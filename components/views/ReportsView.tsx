@@ -12,6 +12,7 @@ import {
 } from '@/services/financeCalculator';
 import { downloadTextFile, formatBanglaNumber, formatTaka } from '@/lib/format';
 import type { PeriodPreset } from '@/types/domain';
+import { SegmentedControl } from '@/components/ui/segmented';
 
 export function ReportsView() {
   const { data, currentBalances, showToast } = useJomarkhata();
@@ -117,27 +118,18 @@ export function ReportsView() {
       </div>
 
       {/* Period Segmented Tabs (Reference Image 1 Style) */}
-      <div className="flex items-center gap-1 rounded-full bg-surface-muted p-1 w-fit">
-        {(
-          [
-            { id: 'today', label: 'আজ' },
-            { id: 'week', label: 'সপ্তাহ' },
-            { id: 'month', label: 'মাস' },
-            { id: 'all', label: 'সব সময়' },
-          ] as Array<{ id: PeriodPreset; label: string }>
-        ).map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setPeriod(t.id)}
-            className={`min-h-[40px] rounded-full px-4 text-xs font-semibold whitespace-nowrap transition-colors ${
-              period === t.id ? 'bg-primary text-on-primary shadow-xs' : 'text-ink-muted'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        aria-label="সময়কাল"
+        variant="track"
+        value={period}
+        onValueChange={(v) => setPeriod(v as PeriodPreset)}
+        options={[
+          { value: 'today', label: 'আজ' },
+          { value: 'week', label: 'সপ্তাহ' },
+          { value: 'month', label: 'মাস' },
+          { value: 'all', label: 'সব সময়' },
+        ]}
+      />
 
       {/* 1. Strictly Separated Period Flows */}
       <section className="rounded-3xl bg-white p-5 shadow-card">
@@ -295,7 +287,7 @@ export function ReportsView() {
             </div>
             {selectedBar && (
               <div className="rounded-xl bg-primary-gradient px-3 py-1.5 text-right text-xs text-on-primary tabular-nums">
-                <p className="text-xs text-on-primary/80">{selectedBar.label}</p>
+                <p className="text-xs text-on-primary">{selectedBar.label}</p>
                 <p className="font-bold">বিক্রি {formatTaka(selectedBar.sales)}</p>
               </div>
             )}

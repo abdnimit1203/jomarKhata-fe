@@ -12,6 +12,7 @@ import {
   getChannelShortLabel,
 } from '@/lib/format';
 import type { PeriodPreset } from '@/types/domain';
+import { SegmentedControl } from '@/components/ui/segmented';
 
 export function PurchasesView() {
   const { data, openSheet } = useJomarkhata();
@@ -92,27 +93,18 @@ export function PurchasesView() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <div className="flex items-center gap-1 rounded-full bg-surface-muted p-1">
-          {(
-            [
-              { id: 'today', label: 'আজ' },
-              { id: 'week', label: 'সপ্তাহ' },
-              { id: 'month', label: 'মাস' },
-              { id: 'all', label: 'সব' },
-            ] as Array<{ id: PeriodPreset; label: string }>
-          ).map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setPeriod(t.id)}
-              className={`min-h-[38px] rounded-full px-3.5 text-xs font-semibold whitespace-nowrap ${
-                period === t.id ? 'bg-primary text-on-primary' : 'text-ink-muted'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          aria-label="সময়কাল"
+          variant="track"
+          value={period}
+          onValueChange={(v) => setPeriod(v as PeriodPreset)}
+          options={[
+            { value: 'today', label: 'আজ' },
+            { value: 'week', label: 'সপ্তাহ' },
+            { value: 'month', label: 'মাস' },
+            { value: 'all', label: 'সব' },
+          ]}
+        />
 
         <button
           type="button"

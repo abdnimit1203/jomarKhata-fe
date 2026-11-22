@@ -59,15 +59,16 @@ describe('tokens only — no raw colours in components', () => {
     expect(m?.[1].toUpperCase()).toBe(token('primary').toUpperCase());
   });
 
-  it('owner-approved base palette is defined exactly', () => {
-    expect(token('canvas')).toBe('#F7F5EF');
-    // S1 revision D22: amber is the main colour, deep emerald the accent.
-    // S1 revision 2: lighter amber + gradient on main surfaces.
-    expect(token('primary')).toBe('#F5BC5C');
-    expect(token('secondary')).toBe('#FDF0D6');
-    expect(token('accent')).toBe('#145C46');
+  it('owner-approved base palette is defined exactly (D24 blue theme)', () => {
+    expect(token('canvas')).toBe('#F5F7FE');
+    expect(token('primary')).toBe('#4664E0');
+    expect(token('secondary')).toBe('#E8EDFF');
     expect(token('danger-soft')).toBe('#FCE7E5');
     expect(token('surface')).toBe('#FFFFFF');
+  });
+
+  it('previous accent colours (amber, emerald) are gone from the theme', () => {
+    expect(css).not.toMatch(/#E9A23B|#F5BC5C|#FAD48A|#145C46/i);
   });
 });
 
@@ -79,22 +80,21 @@ describe('contrast (WCAG ≥ 4.5:1 for text pairs in use)', () => {
     ['ink-muted', 'surface', 'labels on cards'],
     ['ink-muted', 'surface-muted', 'labels on tracks'],
     ['ink-subtle', 'surface', 'meta on cards'],
-    ['ink-subtle', 'canvas', 'meta on page / tiles'],
+    ['ink-subtle', 'canvas', 'meta on page'],
     ['ink-subtle', 'surface-muted', 'meta on tracks / hover fills'],
-    ['primary-ink', 'surface', 'primary text / দিবো on cards'],
-    ['primary-ink', 'canvas', 'primary text on page'],
-    ['primary-ink', 'secondary', 'দিবো / selected states'],
-    ['on-primary', 'primary', 'text on amber buttons'],
-    ['on-primary', 'primary-hover', 'text on pressed amber'],
-    ['on-primary', 'primary-deep', 'text on deepest amber'],
-    ['on-primary', 'primary-light', 'text on gradient start'],
-    ['on-primary', 'secondary', 'text on soft amber'],
+    ['primary', 'surface', 'blue text on cards'],
+    ['primary', 'canvas', 'blue text on page'],
+    ['primary-ink', 'surface', 'link / দিবো on cards'],
+    ['primary-ink', 'canvas', 'link on page'],
+    ['primary-ink', 'secondary', 'selected chips / দিবো background'],
+    ['on-primary', 'primary', 'white on blue buttons'],
+    ['on-primary', 'primary-light', 'white on gradient start'],
+    ['on-primary', 'primary-hover', 'white on gradient middle'],
+    ['on-primary', 'primary-deep', 'white on gradient end'],
+    ['success', 'surface', 'money in (জমা) on cards'],
     ['danger', 'danger-soft', 'পাবো on soft red'],
     ['danger', 'surface', 'পাবো amounts on cards'],
     ['surface', 'danger', 'white on danger buttons'],
-    ['on-accent', 'accent', 'white on emerald accent'],
-    ['accent-ink', 'canvas', 'emerald used as text'],
-    ['accent-ink', 'surface', 'emerald used as text on cards'],
     ['warning-ink', 'warning-soft', 'warning / local-only badge'],
     ['warning-ink', 'surface', 'warning text on cards'],
   ];
@@ -104,12 +104,14 @@ describe('contrast (WCAG ≥ 4.5:1 for text pairs in use)', () => {
     });
   }
 
-  it('documented forbidden pairs really fail (white on amber, amber as text)', () => {
-    expect(contrast('#FFFFFF', token('primary'))).toBeLessThan(4.5);
-    expect(contrast(token('primary'), token('canvas'))).toBeLessThan(4.5);
+  it('feature tiles: icon colour on its tile is at least 3:1 (graphics) for every family', () => {
+    const families = ['green', 'blue', 'orange', 'red', 'teal', 'indigo', 'purple', 'sky', 'gold', 'slate'];
+    for (const f of families) {
+      expect(contrast(token(`tile-${f}-fg`), token(`tile-${f}-bg`)), f).toBeGreaterThanOrEqual(3);
+    }
   });
 
-  it('no white text on an amber fill (use text-on-primary)', () => {
+  it('text on primary fills uses text-on-primary (single source for on-primary colour)', () => {
     const offenders: string[] = [];
     for (const f of UI_FILES) {
       read(f).split('\n').forEach((line, i) => {
@@ -119,19 +121,39 @@ describe('contrast (WCAG ≥ 4.5:1 for text pairs in use)', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('amber is never used as text (text-primary is banned; use text-primary-ink)', () => {
+  it('primary used as text goes through text-primary-ink (bare text-primary is banned)', () => {
     const offenders = UI_FILES.filter((f) => /\btext-primary(?![-\w])/.test(read(f)));
     expect(offenders).toEqual([]);
   });
 
-  it('main amber surfaces use the light-to-amber gradient utility', () => {
+  it('main blue surfaces use the gradient utility (hero + top bar)', () => {
     expect(css).toMatch(/@utility bg-primary-gradient\s*\{[^}]*linear-gradient\([^)]*var\(--color-primary-light\)/);
     expect(read('components/views/DashboardView.tsx')).toMatch(/bg-primary-gradient[^"]*shadow-hero/);
+    expect(read('components/layout/AppShell.tsx')).toMatch(/<header[^>]*bg-primary-gradient/);
   });
 
   it('cards need an outline: white on ivory is nearly invisible, so .shadow-card draws border-strong', () => {
     expect(contrast(token('surface'), token('canvas'))).toBeLessThan(1.2);
     expect(css).toMatch(/\.shadow-card\s*\{[^}]*0 0 0 1px var\(--color-border-strong\)/);
+  });
+});
+
+describe('packaged controls (shadcn/Radix) instead of browser defaults', () => {
+  it('no native <select> in components (use SimpleSelect / Select)', () => {
+    const offenders = UI_FILES.filter(
+      (f) => !f.replace(/\\/g, '/').endsWith('components/ui/select.tsx') && /<select\b/.test(read(f))
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it('horizontal option bars use SegmentedControl (no hand-made active-tab ternaries)', () => {
+    const offenders: string[] = [];
+    for (const f of UI_FILES) {
+      read(f).split('\n').forEach((line, i) => {
+        if (/(===|!)[^?]*\?\s*'bg-primary text-on-primary/.test(line) && !/c\.highlight/.test(line)) offenders.push(`${f}:${i + 1}`);
+      });
+    }
+    expect(offenders).toEqual([]);
   });
 });
 

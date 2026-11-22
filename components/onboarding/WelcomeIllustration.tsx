@@ -9,8 +9,13 @@ export function WelcomeIllustration({ className }: { className?: string }) {
     primary: 'var(--color-primary)',
     primaryDeep: 'var(--color-primary-deep)',
     secondary: 'var(--color-secondary)',
-    accent: 'var(--color-accent)',
-    onAccent: 'var(--color-on-accent)',
+    accent: 'var(--color-highlight)',
+    onAccent: 'var(--color-ink)',
+    green: 'var(--color-tile-green-fg)',
+    orange: 'var(--color-tile-orange-fg)',
+    sky: 'var(--color-tile-sky-bg)',
+    skyFg: 'var(--color-tile-sky-fg)',
+    greenBg: 'var(--color-tile-green-bg)',
     surface: 'var(--color-surface)',
     canvas: 'var(--color-canvas)',
     border: 'var(--color-border-strong)',
@@ -49,13 +54,13 @@ export function WelcomeIllustration({ className }: { className?: string }) {
       <rect x="54" y="140" width="52" height="3" rx="1.5" fill={c.border} />
       <rect x="54" y="160" width="52" height="3" rx="1.5" fill={c.border} />
       <rect x="58" y="130" width="10" height="10" rx="2" fill={c.accent} />
-      <rect x="72" y="132" width="8" height="8" rx="2" fill={c.primary} />
+      <rect x="72" y="132" width="8" height="8" rx="2" fill={c.green} />
       <rect x="84" y="129" width="12" height="11" rx="2" fill={c.danger} opacity="0.8" />
-      <rect x="60" y="150" width="14" height="10" rx="2" fill={c.primary} opacity="0.7" />
+      <rect x="60" y="150" width="14" height="10" rx="2" fill={c.orange} opacity="0.85" />
       <rect x="80" y="149" width="9" height="11" rx="2" fill={c.accent} />
       {/* Door */}
-      <rect x="124" y="140" width="44" height="92" rx="6" fill={c.secondary} stroke={c.primary} strokeWidth="2" />
-      <circle cx="160" cy="188" r="3" fill={c.primary} />
+      <rect x="124" y="140" width="44" height="92" rx="6" fill={c.sky} stroke={c.skyFg} strokeWidth="2" />
+      <circle cx="160" cy="188" r="3" fill={c.skyFg} />
 
       {/* Phone */}
       <g transform="rotate(-6 236 162)">
@@ -69,10 +74,10 @@ export function WelcomeIllustration({ className }: { className?: string }) {
         {/* ledger rows */}
         {[0, 1, 2, 3].map((i) => (
           <g key={i}>
-            <circle cx="211" cy={146 + i * 22} r="6" fill={i % 2 === 0 ? c.secondary : c.dangerSoft} />
+            <circle cx="211" cy={146 + i * 22} r="6" fill={i % 2 === 0 ? c.greenBg : c.dangerSoft} />
             <rect x="221" y={142 + i * 22} width="24" height="4" rx="2" fill={c.ink} opacity="0.55" />
             <rect x="221" y={149 + i * 22} width="16" height="3" rx="1.5" fill={c.ink} opacity="0.25" />
-            <rect x="251" y={143 + i * 22} width="18" height="5" rx="2.5" fill={i % 2 === 0 ? c.primary : c.danger} />
+            <rect x="251" y={143 + i * 22} width="18" height="5" rx="2.5" fill={i % 2 === 0 ? c.green : c.danger} />
           </g>
         ))}
       </g>
@@ -85,8 +90,8 @@ export function WelcomeIllustration({ className }: { className?: string }) {
 
       {/* Plant */}
       <rect x="14" y="214" width="18" height="18" rx="4" fill={c.accent} />
-      <path d="M23 214 q-12 -14 -4 -28 q6 10 4 28 z" fill={c.primary} />
-      <path d="M23 214 q10 -12 6 -24 q-8 8 -6 24 z" fill={c.primary} opacity="0.75" />
+      <path d="M23 214 q-12 -14 -4 -28 q6 10 4 28 z" fill={c.green} />
+      <path d="M23 214 q10 -12 6 -24 q-8 8 -6 24 z" fill={c.green} opacity="0.75" />
     </svg>
   );
 }

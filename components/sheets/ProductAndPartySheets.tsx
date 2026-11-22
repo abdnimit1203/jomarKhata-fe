@@ -12,6 +12,8 @@ import {
   PRODUCT_UNITS,
 } from '@/lib/format';
 import type { Party, PartyRole, Product } from '@/types/domain';
+import { SimpleSelect } from '@/components/ui/select';
+import { SegmentedControl } from '@/components/ui/segmented';
 
 export function ProductFormSheet({
   open,
@@ -123,31 +125,21 @@ export function ProductFormSheet({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="mb-1 block text-xs text-ink-muted">ক্যাটাগরি</label>
-            <select
+            <SimpleSelect
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3 text-sm text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
-            >
-              {PRODUCT_CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+              onValueChange={setCategory}
+              aria-label="ক্যাটাগরি"
+              options={PRODUCT_CATEGORIES.map((c) => ({ value: c, label: c }))}
+            />
           </div>
           <div>
             <label className="mb-1 block text-xs text-ink-muted">একক (Unit)</label>
-            <select
+            <SimpleSelect
               value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3 text-sm text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
-            >
-              {PRODUCT_UNITS.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </select>
+              onValueChange={setUnit}
+              aria-label="একক"
+              options={PRODUCT_UNITS.map((u) => ({ value: u, label: u }))}
+            />
           </div>
         </div>
 
@@ -232,26 +224,18 @@ export function StockAdjustSheet({
       }
     >
       <form id="stock-adjust-form" onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-surface-muted p-1">
-          <button
-            type="button"
-            onClick={() => setDirection('add')}
-            className={`h-11 rounded-xl text-sm font-semibold ${
-              direction === 'add' ? 'bg-primary text-on-primary' : 'text-ink-muted'
-            }`}
-          >
-            স্টক যোগ করুন (+)
-          </button>
-          <button
-            type="button"
-            onClick={() => setDirection('remove')}
-            className={`h-11 rounded-xl text-sm font-semibold ${
-              direction === 'remove' ? 'bg-danger text-white' : 'text-ink-muted'
-            }`}
-          >
-            স্টক কমান (-)
-          </button>
-        </div>
+        <SegmentedControl
+          aria-label="স্টক সমন্বয়"
+          variant="track"
+          fullWidth={true}
+          value={direction}
+          onValueChange={setDirection}
+          activeTone={(v) => (v === 'remove' ? 'danger' : 'primary')}
+          options={[
+            { value: 'add', label: 'স্টক যোগ করুন (+)' },
+            { value: 'remove', label: 'স্টক কমান (-)' },
+          ]}
+        />
 
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-ink-muted">পরিমাণ *</label>
@@ -343,26 +327,17 @@ export function PartyFormSheet({
     >
       <form id="party-form" onSubmit={handleSubmit} className="space-y-4">
         {!editParty && (
-          <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-surface-muted p-1">
-            <button
-              type="button"
-              onClick={() => setRole('customer')}
-              className={`h-11 rounded-xl text-sm font-semibold ${
-                role === 'customer' ? 'bg-primary text-on-primary' : 'text-ink-muted'
-              }`}
-            >
-              কাস্টমার
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole('supplier')}
-              className={`h-11 rounded-xl text-sm font-semibold ${
-                role === 'supplier' ? 'bg-primary text-on-primary' : 'text-ink-muted'
-              }`}
-            >
-              সাপ্লায়ার
-            </button>
-          </div>
+          <SegmentedControl
+            aria-label="ধরন"
+            variant="track"
+            fullWidth={true}
+            value={role}
+            onValueChange={setRole}
+            options={[
+              { value: 'customer', label: 'কাস্টমার' },
+              { value: 'supplier', label: 'সাপ্লায়ার' },
+            ]}
+          />
         )}
 
         {formError && (

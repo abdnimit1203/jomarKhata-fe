@@ -8,6 +8,8 @@ import { PaymentChannelPicker } from '@/components/ui/PaymentChannelPicker';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { formatBanglaNumber, formatTaka, parseNumericInput } from '@/lib/format';
 import type { EntryMode, PaymentChannel, PurchaseLineItem, PurchaseRecord } from '@/types/domain';
+import { SimpleSelect } from '@/components/ui/select';
+import { SegmentedControl } from '@/components/ui/segmented';
 
 interface PurchaseFormSheetProps {
   open: boolean;
@@ -211,26 +213,17 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
       }
     >
       <form id="purchase-form" onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-surface-muted p-1">
-          <button
-            type="button"
-            onClick={() => setMode('quick')}
-            className={`h-11 rounded-xl text-sm font-semibold transition-all ${
-              mode === 'quick' ? 'bg-primary text-on-primary shadow-sm' : 'text-ink-muted'
-            }`}
-          >
-            সহজ কেনা
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('product')}
-            className={`h-11 rounded-xl text-sm font-semibold transition-all ${
-              mode === 'product' ? 'bg-primary text-on-primary shadow-sm' : 'text-ink-muted'
-            }`}
-          >
-            স্টকে পণ্য কেনা
-          </button>
-        </div>
+        <SegmentedControl
+          aria-label="কেনার ধরন"
+          variant="track"
+          fullWidth={true}
+          value={mode}
+          onValueChange={setMode}
+          options={[
+            { value: 'quick', label: 'সহজ কেনা' },
+            { value: 'product', label: 'স্টকে পণ্য কেনা' },
+          ]}
+        />
 
         {formError && (
           <div className="flex items-start gap-2 rounded-2xl bg-danger-soft p-3 text-xs font-medium text-danger">
@@ -332,32 +325,21 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
         <div className="space-y-3 rounded-2xl border border-border bg-white p-4">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold text-ink-muted">পরিশোধ</span>
-            <div className="flex items-center gap-1 rounded-xl bg-surface-muted p-0.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsFullyPaid(true);
-                  setPaidRaw(String(total));
-                }}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                  isFullyPaid ? 'bg-primary text-on-primary' : 'text-ink-muted'
-                }`}
-              >
-                পুরোটা পরিশোধ
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsFullyPaid(false);
-                  setPaidRaw('0');
-                }}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                  !isFullyPaid ? 'bg-warning-ink text-white' : 'text-ink-muted'
-                }`}
-              >
-                বাকি / আংশিক
-              </button>
-            </div>
+            <SegmentedControl
+              aria-label="পরিশোধ"
+              variant="track"
+              size="sm"
+              value={isFullyPaid ? 'paid' : 'due'}
+              onValueChange={(v) => {
+                setIsFullyPaid(v === 'paid');
+                setPaidRaw(v === 'paid' ? String(total) : '0');
+              }}
+              activeTone={(v) => (v === 'due' ? 'warning' : 'primary')}
+              options={[
+                { value: 'paid', label: 'পুরোটা পরিশোধ' },
+                { value: 'due', label: 'বাকি / আংশিক' },
+              ]}
+            />
           </div>
 
           {!isFullyPaid && (
@@ -396,20 +378,15 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
           </div>
 
           {!showInlineSupplier ? (
-            <select
+            <SimpleSelect
               value={partyId}
-              onChange={(e) => setPartyId(e.target.value)}
-              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm font-medium text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
-            >
-              <option value="">
-                {dueAmount > 0 ? '— সাপ্লায়ার নির্বাচন করুন —' : 'নগদ সরবরাহকারী'}
-              </option>
-              {suppliers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} {s.phone ? `(${s.phone})` : ''}
-                </option>
-              ))}
-            </select>
+              onValueChange={setPartyId}
+              aria-label="সাপ্লায়ার"
+              options={[
+                { value: '', label: dueAmount > 0 ? '— সাপ্লায়ার নির্বাচন করুন —' : 'নগদ সরবরাহকারী' },
+                ...suppliers.map((s) => ({ value: s.id, label: `${s.name}${s.phone ? ` (${s.phone})` : ''}` })),
+              ]}
+            />
           ) : (
             <div className="space-y-2.5 rounded-xl bg-white p-3 shadow-xs">
               <input

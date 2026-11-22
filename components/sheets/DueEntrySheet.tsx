@@ -9,6 +9,7 @@ import { useJomarkhata } from '@/context/JomarkhataContext';
 import { formatTaka, parseNumericInput } from '@/lib/format';
 import type { DueTransaction, PaymentChannel } from '@/types/domain';
 import type { RecordDueEntryInput } from '@/services/jomarkhataService';
+import { SimpleSelect } from '@/components/ui/select';
 
 interface DueEntrySheetProps {
   open: boolean;
@@ -187,24 +188,23 @@ export function DueEntrySheet({
           <label className="mb-1.5 block text-xs font-semibold text-ink-muted">
             কাস্টমার / সাপ্লায়ার *
           </label>
-          <select
+          <SimpleSelect
             value={partyId}
             disabled={!!editDue}
-            onChange={(e) => setPartyId(e.target.value)}
-            className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm font-medium text-ink focus:border-primary-ink focus:bg-white focus:outline-none disabled:opacity-60"
-          >
-            <option value="">— নির্বাচন করুন —</option>
-            {parties.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.role === 'customer' ? 'কাস্টমার' : 'সাপ্লায়ার'}) —{' '}
-                {p.balance > 0
+            onValueChange={setPartyId}
+            aria-label="কাস্টমার / সাপ্লায়ার"
+            placeholder="— নির্বাচন করুন —"
+            options={parties.map((p) => ({
+              value: p.id,
+              label: `${p.name} (${p.role === 'customer' ? 'কাস্টমার' : 'সাপ্লায়ার'}) — ${
+                p.balance > 0
                   ? `পাবো ${formatTaka(p.balance)}`
                   : p.balance < 0
                     ? `দিবো ${formatTaka(Math.abs(p.balance))}`
-                    : '০ ৳'}
-              </option>
-            ))}
-          </select>
+                    : '০ ৳'
+              }`,
+            }))}
+          />
           {selectedParty && selectedParty.balance !== 0 && !editDue && (
             <div className="mt-1.5 flex items-center justify-between text-xs text-ink-muted">
               <span>

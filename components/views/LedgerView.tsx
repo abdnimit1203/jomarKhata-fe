@@ -12,6 +12,8 @@ import {
   PAYMENT_CHANNELS,
 } from '@/lib/format';
 import type { PaymentChannel, UnifiedLedgerItem } from '@/types/domain';
+import { SimpleSelect } from '@/components/ui/select';
+import { SegmentedControl } from '@/components/ui/segmented';
 
 type LedgerFilter = 'all' | 'sale' | 'settlement' | 'purchase' | 'expense';
 
@@ -85,30 +87,19 @@ export function LedgerView() {
       </div>
 
       {/* Reference Image 1 Segmented Filter Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-        {(
-          [
-            { id: 'all', label: 'সব' },
-            { id: 'sale', label: 'বিক্রি' },
-            { id: 'settlement', label: 'আদায় / পরিশোধ' },
-            { id: 'purchase', label: 'কেনা' },
-            { id: 'expense', label: 'খরচ' },
-          ] as Array<{ id: LedgerFilter; label: string }>
-        ).map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setFilter(tab.id)}
-            className={`min-h-[40px] rounded-full px-4 text-xs font-semibold whitespace-nowrap transition-colors ${
-              filter === tab.id
-                ? 'bg-primary text-on-primary shadow-xs'
-                : 'bg-white text-ink-muted shadow-card hover:bg-surface-muted'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        aria-label="লেনদেনের ধরন"
+        variant="chips"
+        value={filter}
+        onValueChange={(v) => setFilter(v as LedgerFilter)}
+        options={[
+          { value: 'all', label: 'সব' },
+          { value: 'sale', label: 'বিক্রি' },
+          { value: 'settlement', label: 'আদায় / পরিশোধ' },
+          { value: 'purchase', label: 'কেনা' },
+          { value: 'expense', label: 'খরচ' },
+        ]}
+      />
 
       {/* Search + Channel + Voided Toggle */}
       <div className="flex flex-col gap-2.5 sm:flex-row">
@@ -123,19 +114,14 @@ export function LedgerView() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <select
+          <SimpleSelect
             value={channelFilter}
-            onChange={(e) => setChannelFilter(e.target.value as 'all' | PaymentChannel)}
+            onValueChange={(v) => setChannelFilter(v as 'all' | PaymentChannel)}
             aria-label="পেমেন্ট মাধ্যম"
-            className="h-11 rounded-2xl border border-border-strong bg-white px-3 text-xs font-semibold text-ink-muted shadow-card focus:border-primary-ink focus:outline-none"
-          >
-            <option value="all">সব মাধ্যম</option>
-            {PAYMENT_CHANNELS.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
-            ))}
-          </select>
+            size="sm"
+            className="w-auto min-w-36"
+            options={[{ value: 'all', label: 'সব মাধ্যম' }, ...PAYMENT_CHANNELS.map((c) => ({ value: c.id, label: c.label }))]}
+          />
           <button
             type="button"
             onClick={() => setShowVoided((v) => !v)}

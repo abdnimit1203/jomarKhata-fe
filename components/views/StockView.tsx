@@ -5,6 +5,7 @@ import { AlertTriangle, Edit3, Package, Plus, Search, SlidersHorizontal } from '
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { EmptyState } from '@/components/ui/StateBlocks';
 import { formatBanglaNumber, formatTaka, PRODUCT_CATEGORIES } from '@/lib/format';
+import { SimpleSelect } from '@/components/ui/select';
 
 export function StockView() {
   const { data, currentBalances, openSheet } = useJomarkhata();
@@ -90,19 +91,14 @@ export function StockView() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <select
+          <SimpleSelect
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onValueChange={setCategory}
             aria-label="ক্যাটাগরি"
-            className="h-11 rounded-2xl border border-border-strong bg-white px-3 text-xs font-semibold text-ink-muted shadow-card focus:border-primary-ink focus:outline-none"
-          >
-            <option value="all">সব ক্যাটাগরি</option>
-            {PRODUCT_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+            size="sm"
+            className="w-auto min-w-40"
+            options={[{ value: 'all', label: 'সব ক্যাটাগরি' }, ...PRODUCT_CATEGORIES.map((c) => ({ value: c, label: c }))]}
+          />
           <button
             type="button"
             onClick={() => setOnlyLowStock((v) => !v)}

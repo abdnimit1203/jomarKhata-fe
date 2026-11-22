@@ -18,6 +18,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useJomarkhata } from '@/context/JomarkhataContext';
+import { FeatureIcon, type FeatureTone } from '@/components/ui/FeatureIcon';
 import {
   buildUnifiedLedger,
   computePeriodFlows,
@@ -29,6 +30,7 @@ import {
   formatTaka,
   getRelativeDateGroupLabel,
 } from '@/lib/format';
+import { SegmentedControl } from '@/components/ui/segmented';
 
 export function DashboardView() {
   const { data, currentBalances, navigate, openSheet } = useJomarkhata();
@@ -79,7 +81,7 @@ export function DashboardView() {
 
           <div className="relative z-10 flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-medium text-on-primary/80">
+              <p className="text-xs font-medium text-on-primary">
                 হাতে ক্যাশ · বর্তমান ব্যালেন্স (সব সময়ের)
               </p>
               <div className="mt-1.5 flex items-center gap-2.5">
@@ -95,7 +97,7 @@ export function DashboardView() {
                   {hideBalance ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="mt-1 text-xs text-on-primary/80 tabular-nums">
+              <p className="mt-1 text-xs text-on-primary tabular-nums">
                 মোট ক্যাশ ও ডিজিটাল ব্যালেন্স: {mask(formatTaka(currentBalances.totalLiquidBalance))}
               </p>
             </div>
@@ -111,19 +113,19 @@ export function DashboardView() {
           {/* All-Time Channel & Due Position Strip */}
           <div className="relative z-10 mt-5 grid grid-cols-3 gap-2 border-t border-white/15 pt-4 text-xs sm:grid-cols-5">
             <div>
-              <p className="text-on-primary/80">বিকাশ</p>
+              <p className="text-on-primary">বিকাশ</p>
               <p className="mt-0.5 font-semibold tabular-nums">
                 {mask(formatTaka(currentBalances.channelBalances.bkash))}
               </p>
             </div>
             <div>
-              <p className="text-on-primary/80">নগদ</p>
+              <p className="text-on-primary">নগদ</p>
               <p className="mt-0.5 font-semibold tabular-nums">
                 {mask(formatTaka(currentBalances.channelBalances.nagad))}
               </p>
             </div>
             <div>
-              <p className="text-on-primary/80">ব্যাংক</p>
+              <p className="text-on-primary">ব্যাংক</p>
               <p className="mt-0.5 font-semibold tabular-nums">
                 {mask(formatTaka(currentBalances.channelBalances.bank))}
               </p>
@@ -133,7 +135,7 @@ export function DashboardView() {
               onClick={() => navigate('dues')}
               className="text-left transition-opacity hover:opacity-85"
             >
-              <p className="text-on-primary/80">মোট পাবো</p>
+              <p className="text-on-primary">মোট পাবো</p>
               <p className="mt-0.5 font-semibold text-on-primary tabular-nums">
                 {mask(formatTaka(currentBalances.totalReceivables))}
               </p>
@@ -143,7 +145,7 @@ export function DashboardView() {
               onClick={() => navigate('dues')}
               className="text-left transition-opacity hover:opacity-85"
             >
-              <p className="text-on-primary/80">মোট দিবো</p>
+              <p className="text-on-primary">মোট দিবো</p>
               <p className="mt-0.5 font-semibold text-on-primary tabular-nums">
                 {mask(formatTaka(currentBalances.totalPayables))}
               </p>
@@ -160,26 +162,17 @@ export function DashboardView() {
               </h2>
               <p className="text-xs text-ink-muted">নির্বাচিত সময়ের আয়, আদায় ও খরচ</p>
             </div>
-            <div className="flex items-center gap-1 rounded-full bg-surface-muted p-1">
-              <button
-                type="button"
-                onClick={() => setPeriod('today')}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
-                  period === 'today' ? 'bg-primary text-on-primary shadow-xs' : 'text-ink-muted'
-                }`}
-              >
-                দিন
-              </button>
-              <button
-                type="button"
-                onClick={() => setPeriod('month')}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
-                  period === 'month' ? 'bg-primary text-on-primary shadow-xs' : 'text-ink-muted'
-                }`}
-              >
-                মাস
-              </button>
-            </div>
+            <SegmentedControl
+              aria-label="সময়কাল"
+              variant="track"
+              size="sm"
+              value={period}
+              onValueChange={setPeriod}
+              options={[
+                { value: 'today', label: 'দিন' },
+                { value: 'month', label: 'মাস' },
+              ]}
+            />
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
@@ -232,7 +225,7 @@ export function DashboardView() {
           </span>
           <div className="text-left">
             <p className="text-base font-bold leading-tight">বেচা</p>
-            <p className="text-xs text-on-primary/80">দ্রুত বা পণ্য বিক্রি</p>
+            <p className="text-xs text-on-primary">দ্রুত বা পণ্য বিক্রি</p>
           </div>
         </button>
 
@@ -241,9 +234,9 @@ export function DashboardView() {
           onClick={() => openSheet({ type: 'purchase' })}
           className="flex min-h-[60px] items-center justify-center gap-2.5 rounded-2xl border border-border-strong bg-white px-4 py-3.5 text-ink shadow-card transition-all hover:border-primary-ink/50 active:scale-[0.98]"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-primary-ink">
-            <ShoppingCart className="h-5 w-5" />
-          </span>
+          <FeatureIcon tone="blue" size="sm">
+            <ShoppingCart />
+          </FeatureIcon>
           <div className="text-left">
             <p className="text-base font-bold leading-tight">কেনা</p>
             <p className="text-xs text-ink-muted">মালামাল ক্রয়</p>
@@ -257,21 +250,25 @@ export function DashboardView() {
           {
             label: 'বাকি আদায়',
             icon: ArrowDownLeft,
+            tone: 'orange' as FeatureTone,
             onClick: () => openSheet({ type: 'due', defaultEntryType: 'customer_collection' }),
           },
           {
             label: 'সহজ খরচ',
             icon: Receipt,
+            tone: 'red' as FeatureTone,
             onClick: () => openSheet({ type: 'expense' }),
           },
           {
             label: 'পরিশোধ',
             icon: ArrowUpRight,
+            tone: 'teal' as FeatureTone,
             onClick: () => openSheet({ type: 'due', defaultEntryType: 'supplier_payment' }),
           },
           {
             label: 'স্টক',
             icon: Package,
+            tone: 'indigo' as FeatureTone,
             onClick: () => navigate('stock'),
           },
         ].map((item) => {
@@ -283,9 +280,9 @@ export function DashboardView() {
               onClick={item.onClick}
               className="flex flex-col items-center gap-2 rounded-2xl bg-white py-3.5 px-2 shadow-card transition-transform active:scale-[0.97]"
             >
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-primary-ink">
-                <Icon className="h-5 w-5" />
-              </span>
+              <FeatureIcon tone={item.tone}>
+                <Icon />
+              </FeatureIcon>
               <span className="text-xs font-semibold text-ink whitespace-nowrap">
                 {item.label}
               </span>
@@ -302,10 +299,10 @@ export function DashboardView() {
             <h2 className="mb-3 px-1 text-sm font-semibold text-ink">খাতা সমূহ</h2>
             <div className="grid grid-cols-4 gap-2">
               {[
-                { label: 'বেচার খাতা', icon: ShoppingBag, route: 'sales' as const },
-                { label: 'কেনার খাতা', icon: ShoppingCart, route: 'purchases' as const },
-                { label: 'বাকির খাতা', icon: BookOpen, route: 'dues' as const },
-                { label: 'খরচের খাতা', icon: Wallet, route: 'cash' as const },
+                { label: 'বেচার খাতা', icon: ShoppingBag, route: 'sales' as const, tone: 'green' as FeatureTone },
+                { label: 'কেনার খাতা', icon: ShoppingCart, route: 'purchases' as const, tone: 'blue' as FeatureTone },
+                { label: 'বাকির খাতা', icon: BookOpen, route: 'dues' as const, tone: 'orange' as FeatureTone },
+                { label: 'খরচের খাতা', icon: Wallet, route: 'cash' as const, tone: 'red' as FeatureTone },
               ].map((b) => {
                 const Icon = b.icon;
                 return (
@@ -313,9 +310,11 @@ export function DashboardView() {
                     key={b.label}
                     type="button"
                     onClick={() => navigate(b.route)}
-                    className="flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-2xl bg-canvas p-2 text-center transition-colors hover:bg-secondary active:scale-[0.97]"
+                    className="flex min-h-[84px] flex-col items-center justify-start gap-1.5 rounded-2xl p-1.5 text-center transition-colors hover:bg-canvas active:scale-[0.97]"
                   >
-                    <Icon className="h-5 w-5 text-primary-ink" />
+                    <FeatureIcon tone={b.tone}>
+                      <Icon />
+                    </FeatureIcon>
                     <span className="text-xs font-semibold text-ink leading-tight">
                       {b.label}
                     </span>
@@ -329,14 +328,15 @@ export function DashboardView() {
             <h2 className="mb-3 px-1 text-sm font-semibold text-ink">আপনার ব্যবসার জন্য</h2>
             <div className="grid grid-cols-4 gap-2">
               {[
-                { label: 'পার্টি তালিকা', icon: Users, route: 'dues' as const },
+                { label: 'পার্টি তালিকা', icon: Users, route: 'dues' as const, tone: 'purple' as FeatureTone },
                 {
                   label: `স্টক (${formatBanglaNumber(currentBalances.totalStockQty)})`,
                   icon: Package,
                   route: 'stock' as const,
+                  tone: 'indigo' as FeatureTone,
                 },
-                { label: 'রিপোর্ট', icon: BarChart3, route: 'reports' as const },
-                { label: 'সেটিংস', icon: Settings, route: 'settings' as const },
+                { label: 'রিপোর্ট', icon: BarChart3, route: 'reports' as const, tone: 'sky' as FeatureTone },
+                { label: 'সেটিংস', icon: Settings, route: 'settings' as const, tone: 'slate' as FeatureTone },
               ].map((t) => {
                 const Icon = t.icon;
                 return (
@@ -344,9 +344,11 @@ export function DashboardView() {
                     key={t.label}
                     type="button"
                     onClick={() => navigate(t.route)}
-                    className="flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-2xl bg-canvas p-2 text-center transition-colors hover:bg-secondary active:scale-[0.97]"
+                    className="flex min-h-[84px] flex-col items-center justify-start gap-1.5 rounded-2xl p-1.5 text-center transition-colors hover:bg-canvas active:scale-[0.97]"
                   >
-                    <Icon className="h-5 w-5 text-primary-ink" />
+                    <FeatureIcon tone={t.tone}>
+                      <Icon />
+                    </FeatureIcon>
                     <span className="text-xs font-semibold text-ink leading-tight">
                       {t.label}
                     </span>
@@ -402,14 +404,19 @@ export function DashboardView() {
                     }
                     className="flex min-h-[64px] w-full items-center gap-3 py-3 px-1 text-left transition-colors hover:bg-canvas active:bg-surface-muted"
                   >
-                    <span
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                    <FeatureIcon
+                      size="sm"
+                      tone={
                         isPositive
-                          ? 'bg-secondary text-primary-ink'
+                          ? 'green'
                           : item.sourceType === 'expense'
-                            ? 'bg-danger-soft text-danger'
-                            : 'bg-warning-soft text-warning-ink'
-                      }`}
+                            ? 'red'
+                            : item.sourceType === 'purchase'
+                              ? 'blue'
+                              : item.sourceType === 'supplier_payment'
+                                ? 'teal'
+                                : 'orange'
+                      }
                     >
                       {isPositive ? (
                         <ArrowDownLeft className="h-5 w-5" />
@@ -418,7 +425,7 @@ export function DashboardView() {
                       ) : (
                         <ArrowUpRight className="h-5 w-5" />
                       )}
-                    </span>
+                    </FeatureIcon>
 
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
@@ -431,7 +438,7 @@ export function DashboardView() {
                     <div className="shrink-0 text-right">
                       <p
                         className={`text-sm font-bold tabular-nums ${
-                          isPositive ? 'text-primary-ink' : 'text-ink'
+                          isPositive ? 'text-success' : 'text-ink'
                         }`}
                       >
                         {isPositive ? '+' : '-'} {formatTaka(item.amount)}

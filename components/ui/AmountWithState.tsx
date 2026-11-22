@@ -8,7 +8,7 @@ const STATE: Record<FinancialState, { word: string; className: string; sign?: st
   receivable: { word: 'পাবো', className: 'text-danger' },
   payable: { word: 'দিবো', className: 'text-primary-ink' },
   settled: { word: 'বাকি নেই', className: 'text-ink-muted' },
-  money_in: { word: 'জমা', className: 'text-primary-ink', sign: '+' },
+  money_in: { word: 'জমা', className: 'text-success', sign: '+' },
   money_out: { word: 'পরিশোধ', className: 'text-ink', sign: '−' },
   expense: { word: 'খরচ', className: 'text-danger', sign: '−' },
 };

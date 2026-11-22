@@ -10,34 +10,49 @@
   /* Font: Noto Sans Bengali (generic, Android-native Bangla family), then system UI */
   --font-sans: var(--font-noto-sans-bengali), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
-  /* Base palette (owner-approved; S1 revision D22: amber = main colour, emerald = accent) */
-  --color-canvas: #F7F5EF;         /* Warm Ivory — app background */
-  --color-surface: #FFFFFF;        /* Cards, sheets, inputs */
-  --color-primary: #F5BC5C;        /* Light Amber — brand, primary buttons, hero, active states (FILL only) */
-  --color-secondary: #FDF0D6;      /* Soft Amber — selected states, icon tiles, tonal buttons */
-  --color-accent: #145C46;         /* Deep Emerald — accent: global “+” action, highlights */
-  --color-danger-soft: #FCE7E5;    /* Soft Red — পাবো / due / danger backgrounds (never text) */
+  /* Base palette — S1 revision 3 (D24): blue theme modelled on the owner's reference. */
+  --color-canvas: #F5F7FE;         /* light lavender app background */
+  --color-surface: #FFFFFF;        /* cards, sheets, inputs */
+  --color-primary: #4664E0;        /* Royal Blue — brand, primary buttons, active states; white text 5.05:1 */
+  --color-secondary: #E8EDFF;      /* soft blue — selected chips, tonal buttons */
+  --color-accent: #3A55CF;         /* no separate accent any more (amber/emerald removed): alias of deep blue */
+  --color-danger-soft: #FCE7E5;    /* soft red — পাবো / due / danger backgrounds (never text) */
 
   /* Supporting tokens (contrast-verified) */
-  --color-on-primary: #2B1D05;     /* text/icons ON amber fills — 9.6:1 (white on amber fails: 1.7:1) */
-  --color-primary-light: #FAD48A;  /* gradient start; on-primary 11.6:1 */
-  --color-primary-ink: #8A5A00;    /* "primary" used as TEXT or outline — 5.9 white · 5.4 canvas · 5.25 secondary */
-  --color-primary-hover: #EDA645;  /* gradient end / pressed; on-primary 7.9:1 */
-  --color-primary-deep: #E49A33;   /* deepest amber; on-primary 7.0:1 */
-  --color-secondary-hover: #FAE3B5;
-  --color-on-accent: #FFFFFF;      /* white on emerald — 7.9:1 */
-  --color-accent-ink: #145C46;     /* emerald used as text — 7.3 canvas */
-  --color-surface-muted: #EFECE3;  /* Neutral tracks, hover fills on white */
-  --color-ink: #1A2420;            /* 14.6:1 on canvas */
-  --color-ink-muted: #4F5B55;      /* 6.5:1 on canvas */
-  --color-ink-subtle: #626C66;     /* meta only, ≥13px: 5.0 canvas · 5.45 white · 4.6 surface-muted */
-  --color-danger: #B42318;         /* 5.5:1 on danger-soft; পাবো amounts, danger buttons */
+  --color-on-primary: #FFFFFF;     /* text on blue fills */
+  --color-primary-ink: #3A55CF;    /* blue used as TEXT/outline — 6.2 white · 5.8 canvas · 5.3 secondary */
+  --color-primary-light: #4C6BE6;  /* gradient start; white 4.6:1 */
+  --color-primary-hover: #3F5BD9;  /* gradient middle / pressed */
+  --color-primary-deep: #3448BE;   /* gradient end */
+  --color-secondary-hover: #DCE3FF;
+  --color-on-accent: #FFFFFF;
+  --color-accent-ink: #3A55CF;
+  --color-success: #12804A;        /* money in (জমা / আদায়) — 5.0 white */
+  --color-success-soft: #E2F5EA;
+  --color-surface-muted: #EEF1FA;  /* neutral tracks, hover fills */
+  --color-ink: #1B2238;            /* 14.7:1 on canvas */
+  --color-ink-muted: #535C75;      /* 6.2:1 on canvas */
+  --color-ink-subtle: #5F6780;     /* meta only, ≥13px */
+  --color-danger: #B42318;         /* পাবো amounts, danger buttons */
   --color-danger-hover: #912018;
   --color-danger-border: #F2B8B2;
   --color-warning-soft: #FDF1DC;
-  --color-warning-ink: #7A4B00;    /* warnings (low stock, unknown cost) — 6.6:1 on warning-soft */
-  --color-border: #E4DFD3;         /* dividers inside cards */
-  --color-border-strong: #CFC8B8;  /* card & input outlines */
+  --color-warning-ink: #7A4B00;    /* warnings (low stock, unknown cost) */
+  --color-border: #E3E7F3;         /* dividers inside cards */
+  --color-border-strong: #CDD3E6;  /* card & input outlines */
+
+  /* Multicolour feature tiles (reference style): same feature family = same colour. */
+  --color-tile-green-bg: #E2F5EA;  --color-tile-green-fg: #16975A;   /* বেচা, টাকা এসেছে */
+  --color-tile-blue-bg: #E3EDFF;   --color-tile-blue-fg: #2F6FE4;    /* কেনা */
+  --color-tile-orange-bg: #FFEBD9; --color-tile-orange-fg: #C95E00;  /* বাকি */
+  --color-tile-red-bg: #FFE4E8;    --color-tile-red-fg: #D93A47;     /* খরচ, টাকা গেছে */
+  --color-tile-teal-bg: #DAF3F1;   --color-tile-teal-fg: #0E8F87;    /* পরিশোধ */
+  --color-tile-indigo-bg: #EAE7FF; --color-tile-indigo-fg: #5B4BE0;  /* স্টক */
+  --color-tile-purple-bg: #F2E6FF; --color-tile-purple-fg: #8C3FD6;  /* পার্টি */
+  --color-tile-sky-bg: #DDF1FC;    --color-tile-sky-fg: #1688C9;     /* রিপোর্ট, লেনদেন */
+  --color-tile-gold-bg: #FFF1CC;   --color-tile-gold-fg: #B97A00;    /* ক্যাশ */
+  --color-tile-slate-bg: #ECEEF1;  --color-tile-slate-fg: #4E5A68;   /* সেটিংস */
+  --color-highlight: #FFC94D;      /* coins / sparkle highlight inside icons & illustrations (decorative) */
 
   /* Mobile-first type scale (DESIGN_SYSTEM §3). Minimum on mobile is 13px. */
   --text-xs: 0.8125rem;            /* 13px meta */
@@ -58,10 +73,10 @@
   --text-4xl--line-height: 1.15;
 }
 
-/* Main amber surfaces (hero, primary CTAs, logo): light-to-amber gradient. Text on it: text-on-primary. */
+/* Main blue surfaces (hero, primary CTAs, top bar, logo): blue gradient. Text on it: text-on-primary (white). */
 @utility bg-primary-gradient {
   background-color: var(--color-primary);
-  background-image: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 55%, var(--color-primary-hover) 100%);
+  background-image: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary-hover) 55%, var(--color-primary-deep) 100%);
 }
 
 /* Desktop: slightly tighter scale, never below 13px */
@@ -101,12 +116,12 @@
 .shadow-card {
   box-shadow:
     0 0 0 1px var(--color-border-strong),
-    0 1px 2px rgba(26, 36, 32, 0.06),
-    0 2px 8px rgba(26, 36, 32, 0.06);
+    0 1px 2px rgba(27, 34, 56, 0.05),
+    0 6px 16px rgba(70, 100, 224, 0.07);
 }
 
 .shadow-hero {
-  box-shadow: 0 12px 28px rgba(122, 75, 0, 0.22), 0 3px 8px rgba(122, 75, 0, 0.12);
+  box-shadow: 0 12px 28px rgba(52, 72, 190, 0.26), 0 3px 8px rgba(52, 72, 190, 0.14);
 }
 
 .pb-safe {

@@ -24,6 +24,8 @@ import {
   getChannelShortLabel,
 } from '@/lib/format';
 import type { PeriodPreset } from '@/types/domain';
+import { SimpleSelect } from '@/components/ui/select';
+import { SegmentedControl } from '@/components/ui/segmented';
 
 export function DuesView() {
   const {
@@ -196,29 +198,18 @@ export function DuesView() {
         </section>
 
         {/* Period Filter Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-          {(
-            [
-              { id: 'today', label: 'দিন' },
-              { id: 'month', label: 'মাস' },
-              { id: 'year', label: 'বছর' },
-              { id: 'all', label: 'সব সময়' },
-            ] as Array<{ id: PeriodPreset; label: string }>
-          ).map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setDetailPeriod(tab.id)}
-              className={`min-h-[40px] rounded-full px-4 text-xs font-semibold whitespace-nowrap transition-colors ${
-                detailPeriod === tab.id
-                  ? 'bg-primary text-on-primary shadow-xs'
-                  : 'bg-white text-ink-muted shadow-card hover:bg-surface-muted'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          aria-label="সময়কাল"
+          variant="chips"
+          value={detailPeriod}
+          onValueChange={(v) => setDetailPeriod(v as PeriodPreset)}
+          options={[
+            { value: 'today', label: 'দিন' },
+            { value: 'month', label: 'মাস' },
+            { value: 'year', label: 'বছর' },
+            { value: 'all', label: 'সব সময়' },
+          ]}
+        />
 
         {/* Running-Balance Ledger Table (Reference Screenshots 7 & 8) */}
         <section className="overflow-hidden rounded-3xl bg-white shadow-card">
@@ -415,24 +406,17 @@ export function DuesView() {
 
       {/* Segmented Role Tabs (Reference Image 1 Emerald Tabs) */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1 rounded-full bg-surface-muted p-1">
-          {[
-            { id: 'all' as const, label: `সব (${formatBanglaNumber(parties.length)})` },
-            { id: 'customer' as const, label: `কাস্টমার (${formatBanglaNumber(customerCount)})` },
-            { id: 'supplier' as const, label: `সাপ্লায়ার (${formatBanglaNumber(supplierCount)})` },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setRoleTab(tab.id)}
-              className={`min-h-[40px] rounded-full px-4 text-xs font-semibold whitespace-nowrap transition-colors ${
-                roleTab === tab.id ? 'bg-primary text-on-primary shadow-xs' : 'text-ink-muted'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          aria-label="কাস্টমার / সাপ্লায়ার"
+          variant="track"
+          value={roleTab}
+          onValueChange={setRoleTab}
+          options={[
+            { value: 'all', label: `সব (${formatBanglaNumber(parties.length)})` },
+            { value: 'customer', label: `কাস্টমার (${formatBanglaNumber(customerCount)})` },
+            { value: 'supplier', label: `সাপ্লায়ার (${formatBanglaNumber(supplierCount)})` },
+          ]}
+        />
 
         <div className="flex items-center gap-2">
           <button
@@ -446,16 +430,18 @@ export function DuesView() {
           >
             শুধু বাকি আছে
           </button>
-          <select
+          <SimpleSelect
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as 'due' | 'recent' | 'name')}
+            onValueChange={(v) => setSortBy(v as 'due' | 'recent' | 'name')}
             aria-label="সাজানোর ক্রম"
-            className="h-10 rounded-xl border border-border-strong bg-white px-3 text-xs font-semibold text-ink-muted focus:border-primary-ink focus:outline-none"
-          >
-            <option value="due">বেশি বাকি আগে</option>
-            <option value="recent">সাম্প্রতিক</option>
-            <option value="name">নাম অনুযায়ী</option>
-          </select>
+            size="sm"
+            className="w-auto min-w-40"
+            options={[
+              { value: 'due', label: 'বেশি বাকি আগে' },
+              { value: 'recent', label: 'সাম্প্রতিক' },
+              { value: 'name', label: 'নাম অনুযায়ী' },
+            ]}
+          />
         </div>
       </div>
 

@@ -12,6 +12,8 @@ import {
   getChannelShortLabel,
 } from '@/lib/format';
 import type { PeriodPreset } from '@/types/domain';
+import { SimpleSelect } from '@/components/ui/select';
+import { SegmentedControl } from '@/components/ui/segmented';
 
 export function CashExpenseView() {
   const { data, currentBalances, openSheet } = useJomarkhata();
@@ -121,9 +123,9 @@ export function CashExpenseView() {
               >
                 <div className="flex items-center gap-1.5">
                   <Icon
-                    className={`h-4 w-4 ${c.highlight ? 'text-on-primary/80' : 'text-primary-ink'}`}
+                    className={`h-4 w-4 ${c.highlight ? 'text-on-primary' : 'text-primary-ink'}`}
                   />
-                  <span className={`text-xs font-medium ${c.highlight ? 'text-on-primary/80' : 'text-ink-muted'}`}>
+                  <span className={`text-xs font-medium ${c.highlight ? 'text-on-primary' : 'text-ink-muted'}`}>
                     {c.label}
                   </span>
                 </div>
@@ -152,42 +154,28 @@ export function CashExpenseView() {
 
       {/* Expense List Header & Filters */}
       <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <div className="flex items-center gap-1 rounded-full bg-surface-muted p-1">
-          {(
-            [
-              { id: 'today', label: 'আজ' },
-              { id: 'week', label: 'সপ্তাহ' },
-              { id: 'month', label: 'মাস' },
-              { id: 'all', label: 'সব' },
-            ] as Array<{ id: PeriodPreset; label: string }>
-          ).map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setPeriod(t.id)}
-              className={`min-h-[38px] rounded-full px-3.5 text-xs font-semibold ${
-                period === t.id ? 'bg-primary text-on-primary' : 'text-ink-muted'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          aria-label="সময়কাল"
+          variant="track"
+          value={period}
+          onValueChange={(v) => setPeriod(v as PeriodPreset)}
+          options={[
+            { value: 'today', label: 'আজ' },
+            { value: 'week', label: 'সপ্তাহ' },
+            { value: 'month', label: 'মাস' },
+            { value: 'all', label: 'সব' },
+          ]}
+        />
 
         <div className="flex items-center gap-2">
-          <select
+          <SimpleSelect
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
+            onValueChange={setCategoryFilter}
             aria-label="খরচের খাত"
-            className="h-10 rounded-xl border border-border-strong bg-white px-3 text-xs font-semibold text-ink-muted focus:border-primary-ink focus:outline-none"
-          >
-            <option value="all">সব খাত</option>
-            {EXPENSE_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+            size="sm"
+            className="w-auto min-w-36"
+            options={[{ value: 'all', label: 'সব খাত' }, ...EXPENSE_CATEGORIES.map((c) => ({ value: c, label: c }))]}
+          />
           <button
             type="button"
             onClick={() => setShowVoided((v) => !v)}

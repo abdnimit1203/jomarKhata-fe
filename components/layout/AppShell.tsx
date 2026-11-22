@@ -177,39 +177,42 @@ export function AppShell() {
 
         {/* Main Content Area */}
         <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
-          {/* Mobile Sticky Top App Bar (56px — stays well within 15% mobile sticky cap with bottom bar) */}
-          <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-white/95 px-4 backdrop-blur-md lg:h-16 lg:px-8">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-gradient text-sm font-bold text-on-primary lg:hidden">
-                জ
+          {/* Colourful sticky top bar (S1 rev 3, reference style). Back button + online/offline pill arrive in S2. */}
+          <header className="sticky top-0 z-30 overflow-hidden bg-primary-gradient text-on-primary shadow-hero lg:rounded-none">
+            {/* soft decorative shapes, like the reference card waves */}
+            <span aria-hidden="true" className="pointer-events-none absolute -top-10 right-10 h-28 w-28 rounded-full bg-white/10" />
+            <span aria-hidden="true" className="pointer-events-none absolute -bottom-12 right-[-1.5rem] h-28 w-28 rounded-full bg-white/10" />
+            <div className="relative flex h-16 items-center justify-between gap-3 px-4 lg:px-8">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-base font-extrabold text-primary-ink shadow-sm lg:hidden">
+                  জ
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-medium text-on-primary">আসসালামু আলাইকুম,</p>
+                  <p className="truncate text-base font-bold text-on-primary">
+                    {data?.businessProfile.shopName || 'জমারখাতা'}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="truncate text-base font-bold text-ink">
-                  {data?.businessProfile.shopName || 'জমারখাতা'}
-                </p>
-                <p className="hidden text-xs text-ink-muted lg:block">
-                  দোকানের সব হিসাব, এক খাতায়।
-                </p>
-              </div>
-            </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => openSheet({ type: 'expense' })}
-                className="hidden h-10 items-center gap-1.5 rounded-xl bg-secondary px-3.5 text-xs font-semibold text-primary-ink hover:bg-secondary-hover lg:inline-flex"
-              >
-                <Receipt className="h-4 w-4" />
-                <span>সহজ খরচ</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('settings')}
-                aria-label="সেটিংস"
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-muted text-ink transition-colors hover:bg-secondary hover:text-primary-ink"
-              >
-                <Settings className="h-5 w-5" />
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => openSheet({ type: 'expense' })}
+                  className="hidden h-10 items-center gap-1.5 rounded-xl bg-white/20 px-3.5 text-sm font-semibold text-on-primary transition-colors hover:bg-white/30 lg:inline-flex"
+                >
+                  <Receipt className="h-4 w-4" />
+                  <span>সহজ খরচ</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('settings')}
+                  aria-label="সেটিংস"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-on-primary transition-colors hover:bg-white/30"
+                >
+                  <Settings className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </header>
 

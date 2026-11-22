@@ -77,4 +77,6 @@ All financial math and state transitions live exclusively inside `services/finan
 - **The type scale is set through theme variables** (`--text-xs` … `--text-3xl`), mobile-first with a desktop override, so sizes change globally without editing screens.
 - **Shared UI components** are in `components/ui/` (`Button`, `Card`, `AmountWithState`, `StatusBadge`, `Banner`, `DateInput`), and the welcome screen is in `components/onboarding/`.
 - **Font:** Noto Sans Bengali via `next/font` (CSS variable `--font-noto-sans-bengali`).
+- **Packaged controls** follow the shadcn/ui pattern: component code lives in `components/ui/`, built on Radix primitives (`@radix-ui/react-select`, `@radix-ui/react-toggle-group`). They're bundled locally, so there's no runtime CDN and they work offline. Use `SimpleSelect` instead of a native `<select>`, and `SegmentedControl` for any horizontal option bar.
+- **Multicolour feature tiles:** `FeatureIcon` with `--color-tile-*` tokens.
 - **Specs:** `Instructions/DESIGN_SYSTEM.md` and `UI_GUIDELINES.md` (outside this repo).

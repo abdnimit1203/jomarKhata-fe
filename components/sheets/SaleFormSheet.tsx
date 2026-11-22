@@ -8,6 +8,8 @@ import { PaymentChannelPicker } from '@/components/ui/PaymentChannelPicker';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { formatBanglaNumber, formatTaka, parseNumericInput } from '@/lib/format';
 import type { EntryMode, PaymentChannel, SaleLineItem, SaleRecord } from '@/types/domain';
+import { SimpleSelect } from '@/components/ui/select';
+import { SegmentedControl } from '@/components/ui/segmented';
 
 interface SaleFormSheetProps {
   open: boolean;
@@ -255,30 +257,17 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
       }
     >
       <form id="sale-form" onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-surface-muted p-1">
-          <button
-            type="button"
-            onClick={() => setMode('quick')}
-            className={`h-11 rounded-xl text-sm font-semibold transition-all ${
-              mode === 'quick'
-                ? 'bg-primary text-on-primary shadow-sm'
-                : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            সহজ বিক্রি (দ্রুত)
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('product')}
-            className={`h-11 rounded-xl text-sm font-semibold transition-all ${
-              mode === 'product'
-                ? 'bg-primary text-on-primary shadow-sm'
-                : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            পণ্য থেকে বিক্রি
-          </button>
-        </div>
+        <SegmentedControl
+          aria-label="বিক্রির ধরন"
+          variant="track"
+          fullWidth={true}
+          value={mode}
+          onValueChange={setMode}
+          options={[
+            { value: 'quick', label: 'সহজ বিক্রি (দ্রুত)' },
+            { value: 'product', label: 'পণ্য থেকে বিক্রি' },
+          ]}
+        />
 
         {formError && (
           <div className="flex items-start gap-2 rounded-2xl bg-danger-soft p-3 text-xs font-medium text-danger">
@@ -431,32 +420,21 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
         <div className="space-y-3 rounded-2xl border border-border bg-white p-4">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold text-ink-muted">টাকা আদায়</span>
-            <div className="flex items-center gap-1 rounded-xl bg-surface-muted p-0.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsFullyPaid(true);
-                  setPaidRaw(String(total));
-                }}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  isFullyPaid ? 'bg-primary text-on-primary' : 'text-ink-muted'
-                }`}
-              >
-                পুরোটা জমা
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsFullyPaid(false);
-                  setPaidRaw('0');
-                }}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  !isFullyPaid ? 'bg-danger text-white' : 'text-ink-muted'
-                }`}
-              >
-                বাকি / আংশিক
-              </button>
-            </div>
+            <SegmentedControl
+              aria-label="টাকা আদায়"
+              variant="track"
+              size="sm"
+              value={isFullyPaid ? 'paid' : 'due'}
+              onValueChange={(v) => {
+                setIsFullyPaid(v === 'paid');
+                setPaidRaw(v === 'paid' ? String(total) : '0');
+              }}
+              activeTone={(v) => (v === 'due' ? 'danger' : 'primary')}
+              options={[
+                { value: 'paid', label: 'পুরোটা জমা' },
+                { value: 'due', label: 'বাকি / আংশিক' },
+              ]}
+            />
           </div>
 
           {!isFullyPaid && (
@@ -511,20 +489,15 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
           </div>
 
           {!showInlineCustomer ? (
-            <select
+            <SimpleSelect
               value={partyId}
-              onChange={(e) => setPartyId(e.target.value)}
-              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm font-medium text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
-            >
-              <option value="">
-                {dueAmount > 0 ? '— কাস্টমার নির্বাচন করুন —' : 'নগদ ক্রেতা (নাম ছাড়া)'}
-              </option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} {c.phone ? `(${c.phone})` : ''}
-                </option>
-              ))}
-            </select>
+              onValueChange={setPartyId}
+              aria-label="কাস্টমার"
+              options={[
+                { value: '', label: dueAmount > 0 ? '— কাস্টমার নির্বাচন করুন —' : 'নগদ ক্রেতা (নাম ছাড়া)' },
+                ...customers.map((c) => ({ value: c.id, label: `${c.name}${c.phone ? ` (${c.phone})` : ''}` })),
+              ]}
+            />
           ) : (
             <div className="space-y-2.5 rounded-xl bg-white p-3 shadow-xs">
               <input

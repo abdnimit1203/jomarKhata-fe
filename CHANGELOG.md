@@ -4,6 +4,28 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### S1 revision 3: Blue redesign from the owner's reference (D24), 2026-11-23
+**Changed (visual only; no accounting, schema or service-behaviour change)**
+- **Theme:** Royal Blue `#4664E0` on a light lavender canvas `#F5F7FE`, a blue gradient (`#4C6BE6 → #3F5BD9 → #3448BE`), and soft blue-tinted card shadows. **The amber and emerald accents were removed.** New `success` green for money in. `themeColor` is blue.
+- **Top bar:** colourful blue gradient with decorative shapes, a white logo tile, the greeting "আসসালামু আলাইকুম," and the shop name, plus translucent icon buttons.
+- **Multicolour feature tiles (`FeatureIcon`):**
+  - 10 families with tokens `--color-tile-*`.
+  - Applied to the Dashboard quick actions, খাতা সমূহ, ব্যবসার টুলস, the কেনা button and recent-transaction icons.
+  - Same family = same colour.
+- **Packaged controls instead of browser defaults (shadcn pattern):**
+  - `select.tsx` (Radix Select) replaced all 9 native `<select>` elements.
+  - `segmented.tsx` (Radix ToggleGroup) replaced all hand-made tab and toggle bars: 7 period/filter bars, the Dues role tabs, the Sale/Purchase mode toggles, the paid/due toggles, the stock add/remove toggle and the party role toggle.
+- **Welcome illustration** is now multicolour (new decorative token `--color-highlight` `#FFC94D`).
+- **Hero and labels on blue** use full white (no faded white), for contrast.
+
+**Added dependencies (owner-requested):** `@radix-ui/react-select`, `@radix-ui/react-toggle-group`. They're bundled with the app and work offline; `npm audit --omit=dev` = 0.
+
+**Tests:**
+- New palette and 23 contrast pairs.
+- New checks: all 10 tile families are ≥3:1, the old amber/emerald are gone, there are no native `<select>` elements, and there are no hand-made active-tab ternaries.
+- The gradient is used on the hero and the top bar.
+- 90 tests in total.
+
 ### S1 revision 2 — Lighter amber + gradient (owner decision D23) — 2026-11-23
 **Changed (visual only)**
 - Primary lightened `#E9A23B` → **`#F5BC5C`**; secondary `#FCEBCB` → `#FDF0D6`; hover `#EDA645`, deep `#E49A33`; new `--color-primary-light` `#FAD48A`. Text on amber gets more readable (9.6:1).
