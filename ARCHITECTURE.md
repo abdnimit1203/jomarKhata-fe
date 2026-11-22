@@ -6,16 +6,16 @@
 
 ---
 
-## 1. Flexible Sibling-Folder Deployment Architecture
+## 1. Repositories
 
-This frontend repository is intentionally kept standalone and export-ready so the full production workspace can live in clean sibling folders without forcing an `apps/web` monorepo wrapper:
+The frontend and backend live in **separate Git repositories**. This repository is the frontend only.
 
 ```text
-Workspace Root/
-├── Jomarkhata FE/        # This repository (Next.js App Router + TypeScript + Tailwind CSS + Dexie/IndexedDB) → Vercel
-├── Jomarkhata BE/        # Future backend (Node.js + Express.js + TypeScript + MongoDB Atlas + Mongoose + Firebase Auth)
-└── Instructions/         # Shared product specs, accounting contracts, and operational notes
+jomarKhata-fe   # This repository: Next.js App Router + TypeScript + Tailwind CSS + Dexie/IndexedDB → Vercel
+jomarKhata-be   # Separate repository (future): Node.js + Express.js + TypeScript + MongoDB Atlas + Mongoose + Firebase Auth
 ```
+
+The product specs and plans are kept outside both repositories as working documentation.
 
 ### Target Full Production Stack
 - **Frontend (`Jomarkhata FE`)**: Next.js (App Router), React, TypeScript, Tailwind CSS, Dexie (IndexedDB offline-first primary store), hosted on **Vercel**.
@@ -52,3 +52,19 @@ All financial math and state transitions live exclusively inside `services/finan
 - All multi-table mutations execute inside real `db.transaction('rw', [...], async () => { ... })` blocks.
 - Every record uses a stable UUID `id` (`crypto.randomUUID()`), ISO timestamps (`createdAt`, `updatedAt`), and `revision` counter.
 - A local `syncQueue` outbox records pending `upsert` / `void` mutations so future synchronization with `Jomarkhata BE` (Express + Mongoose) can plug in cleanly without changing UI components. In Phase 1, all storage is strictly local to the browser (no mock cloud sync or fake authentication).
+
+---
+
+## 4. Testing & Data-Preservation Guard
+
+- **Commands:** `npm test` (Vitest) and `npm run typecheck` (`tsc --noEmit`). Tests live in `tests/` and run in Node against `fake-indexeddb`, using the **real** Dexie DB, `jomarkhataService` and `financeCalculator`. Nothing is mocked.
+- **`tests/helpers/app.ts`:** `bootApp()` simulates a fresh device. `bootApp(sameFactory)` simulates the same device after a restart, reload or PWA relaunch: module singletons are reset and IndexedDB contents are kept.
+- **`tests/helpers/invariants.ts`:** after any scenario, asserts the accounting invariants in §2:
+  - party balance = sum of active due entries
+  - exactly one active money movement per paid sale, purchase, expense or collection
+  - no credit without a party
+  - voids reverse every linked record
+  - no orphan money movements
+  - optionally, stock = sum of stock movements
+- **Schema lock (`tests/migration-preservation.test.ts`):** the DB name (`jomarkhata_db`), version (1), tables and indexes are pinned. **Any schema change must add a new `version(n)` with an additive `.upgrade()`.** Existing tables and records are never dropped. The same file proves every record type survives restarts and that data written by an older build opens unchanged. It also contains a harness showing the planned additive v2 migration (new `appMeta` table, extended outbox fields) keeps all v1 records.
+- **UI and PWA work must not touch the DB name, schema or service behaviour.** If any of those tests fail, the change is not merged.
