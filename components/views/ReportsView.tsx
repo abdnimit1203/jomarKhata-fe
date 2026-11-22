@@ -294,7 +294,7 @@ export function ReportsView() {
               <p className="text-xs text-ink-muted">বার-এ ট্যাপ করে দিনের হিসাব দেখুন</p>
             </div>
             {selectedBar && (
-              <div className="rounded-xl bg-primary px-3 py-1.5 text-right text-xs text-on-primary tabular-nums">
+              <div className="rounded-xl bg-primary-gradient px-3 py-1.5 text-right text-xs text-on-primary tabular-nums">
                 <p className="text-xs text-on-primary/80">{selectedBar.label}</p>
                 <p className="font-bold">বিক্রি {formatTaka(selectedBar.sales)}</p>
               </div>
@@ -342,7 +342,7 @@ export function ReportsView() {
 
           <div className="mt-4 flex items-center gap-4 border-t border-border pt-3 text-xs text-ink-muted">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+              <span className="h-2.5 w-2.5 rounded-full bg-primary-gradient" />
               বিক্রি
             </span>
             <span className="inline-flex items-center gap-1.5">
@@ -371,7 +371,7 @@ export function ReportsView() {
                     <div className="h-2 w-full overflow-hidden rounded-full bg-surface-muted">
                       <div
                         style={{ width: `${row.percent}%` }}
-                        className="h-full rounded-full bg-primary"
+                        className="h-full rounded-full bg-primary-gradient"
                       />
                     </div>
                   </div>

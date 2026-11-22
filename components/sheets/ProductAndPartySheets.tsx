@@ -94,7 +94,7 @@ export function ProductFormSheet({
           type="submit"
           form="product-form"
           disabled={isSubmitting}
-          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-on-primary hover:bg-primary-hover disabled:opacity-50"
+          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary-gradient text-base font-semibold text-on-primary hover:brightness-[0.97] disabled:opacity-50"
         >
           {isSubmitting ? 'সংরক্ষণ হচ্ছে...' : 'পণ্য সংরক্ষণ করুন'}
         </button>
@@ -225,7 +225,7 @@ export function StockAdjustSheet({
           type="submit"
           form="stock-adjust-form"
           disabled={isSubmitting || qty <= 0}
-          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-on-primary hover:bg-primary-hover disabled:opacity-50"
+          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary-gradient text-base font-semibold text-on-primary hover:brightness-[0.97] disabled:opacity-50"
         >
           {isSubmitting ? 'আপডেট হচ্ছে...' : 'স্টক হালনাগাদ করুন'}
         </button>
@@ -335,7 +335,7 @@ export function PartyFormSheet({
           type="submit"
           form="party-form"
           disabled={isSubmitting}
-          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-on-primary hover:bg-primary-hover disabled:opacity-50"
+          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary-gradient text-base font-semibold text-on-primary hover:brightness-[0.97] disabled:opacity-50"
         >
           {isSubmitting ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ করুন'}
         </button>

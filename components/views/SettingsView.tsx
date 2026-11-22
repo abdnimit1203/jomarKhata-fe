@@ -147,7 +147,7 @@ function SettingsProfileForm({ profile }: { profile: BusinessProfile }) {
         <button
           type="submit"
           disabled={isSaving}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-semibold text-on-primary shadow-sm hover:bg-primary-hover disabled:opacity-50"
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary-gradient text-sm font-semibold text-on-primary shadow-sm hover:brightness-[0.97] disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
           <span>{isSaving ? 'সংরক্ষণ হচ্ছে...' : 'সেটিংস সংরক্ষণ করুন'}</span>
@@ -187,7 +187,7 @@ export function SettingsView() {
   return (
     <div className="mx-auto max-w-3xl space-y-5 pb-6">
       <section className="flex items-center gap-4 rounded-3xl bg-white p-5 shadow-card">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary-gradient text-on-primary">
           <Store className="h-7 w-7" />
         </div>
         <div className="min-w-0">

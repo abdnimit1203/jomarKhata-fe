@@ -4,6 +4,17 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### S1 revision 2 — Lighter amber + gradient (owner decision D23) — 2026-11-23
+**Changed (visual only)**
+- Primary lightened `#E9A23B` → **`#F5BC5C`**; secondary `#FCEBCB` → `#FDF0D6`; hover `#EDA645`, deep `#E49A33`; new `--color-primary-light` `#FAD48A`. Text on amber gets more readable (9.6:1).
+- **New utility `bg-primary-gradient`** (light → amber → deeper amber, 135°). It's applied to 35 main surfaces: the hero card, primary CTAs and the `Button` primary variant, sheet submit buttons, logo tiles, header buttons and the welcome CTA. Hover is `brightness(0.97)`. Small tabs, toggles, chips and toasts stay flat amber.
+- `themeColor` → `#F5BC5C`.
+
+**Tests**
+- Palette updated, plus contrast for text on the gradient start. The white-text guard now also covers gradient surfaces. New check that the gradient utility exists and the hero uses it. 88 tests.
+
+**Dev note:** after editing theme tokens in `globals.css`, restart `npm run dev` with `.next/dev` cleared. Turbopack's running Tailwind cache kept serving the old token values twice in this step (the production build was unaffected).
+
 ### S1 revision — Amber main colour, emerald accent (owner decision D22) — 2026-11-23
 **Changed (visual only; no accounting, schema or service-behaviour change)**
 - **Tokens:**

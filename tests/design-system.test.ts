@@ -62,8 +62,9 @@ describe('tokens only — no raw colours in components', () => {
   it('owner-approved base palette is defined exactly', () => {
     expect(token('canvas')).toBe('#F7F5EF');
     // S1 revision D22: amber is the main colour, deep emerald the accent.
-    expect(token('primary')).toBe('#E9A23B');
-    expect(token('secondary')).toBe('#FCEBCB');
+    // S1 revision 2: lighter amber + gradient on main surfaces.
+    expect(token('primary')).toBe('#F5BC5C');
+    expect(token('secondary')).toBe('#FDF0D6');
     expect(token('accent')).toBe('#145C46');
     expect(token('danger-soft')).toBe('#FCE7E5');
     expect(token('surface')).toBe('#FFFFFF');
@@ -85,7 +86,8 @@ describe('contrast (WCAG ≥ 4.5:1 for text pairs in use)', () => {
     ['primary-ink', 'secondary', 'দিবো / selected states'],
     ['on-primary', 'primary', 'text on amber buttons'],
     ['on-primary', 'primary-hover', 'text on pressed amber'],
-    ['on-primary', 'primary-deep', 'text on hero gradient end'],
+    ['on-primary', 'primary-deep', 'text on deepest amber'],
+    ['on-primary', 'primary-light', 'text on gradient start'],
     ['on-primary', 'secondary', 'text on soft amber'],
     ['danger', 'danger-soft', 'পাবো on soft red'],
     ['danger', 'surface', 'পাবো amounts on cards'],
@@ -111,7 +113,7 @@ describe('contrast (WCAG ≥ 4.5:1 for text pairs in use)', () => {
     const offenders: string[] = [];
     for (const f of UI_FILES) {
       read(f).split('\n').forEach((line, i) => {
-        if (/\bbg-primary(?![-\w])/.test(line) && /\btext-white\b/.test(line)) offenders.push(`${f}:${i + 1}`);
+        if (/\bbg-primary(-gradient)?(?![-\w])/.test(line) && /\btext-white\b/.test(line)) offenders.push(`${f}:${i + 1}`);
       });
     }
     expect(offenders).toEqual([]);
@@ -120,6 +122,11 @@ describe('contrast (WCAG ≥ 4.5:1 for text pairs in use)', () => {
   it('amber is never used as text (text-primary is banned; use text-primary-ink)', () => {
     const offenders = UI_FILES.filter((f) => /\btext-primary(?![-\w])/.test(read(f)));
     expect(offenders).toEqual([]);
+  });
+
+  it('main amber surfaces use the light-to-amber gradient utility', () => {
+    expect(css).toMatch(/@utility bg-primary-gradient\s*\{[^}]*linear-gradient\([^)]*var\(--color-primary-light\)/);
+    expect(read('components/views/DashboardView.tsx')).toMatch(/bg-primary-gradient[^"]*shadow-hero/);
   });
 
   it('cards need an outline: white on ivory is nearly invisible, so .shadow-card draws border-strong', () => {

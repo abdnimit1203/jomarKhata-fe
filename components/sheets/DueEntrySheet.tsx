@@ -116,10 +116,10 @@ export function DueEntrySheet({
           disabled={isSubmitting || amount <= 0 || !partyId}
           className={`flex h-12 w-full items-center justify-center rounded-2xl text-base font-semibold shadow-sm transition-colors disabled:opacity-50 ${
             entryType === 'customer_collection'
-              ? 'bg-primary text-on-primary hover:bg-primary-hover'
+              ? 'bg-primary-gradient text-on-primary hover:brightness-[0.97]'
               : entryType === 'supplier_payment' || entryType === 'manual_due_given'
                 ? 'bg-danger text-white hover:bg-danger-hover'
-                : 'bg-primary text-on-primary hover:bg-primary-hover'
+                : 'bg-primary-gradient text-on-primary hover:brightness-[0.97]'
           }`}
         >
           {isSubmitting ? 'সংরক্ষণ হচ্ছে...' : 'নিশ্চিত করুন'}

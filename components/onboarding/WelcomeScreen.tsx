@@ -25,7 +25,7 @@ export function WelcomeScreen({ onStartLocal }: WelcomeScreenProps) {
       <div className="mx-auto flex min-h-dvh max-w-md flex-col px-6 pt-10 pb-8">
         {/* Brand */}
         <div className="flex items-center gap-2.5">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-lg font-extrabold text-on-primary shadow-sm">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-gradient text-lg font-extrabold text-on-primary shadow-sm">
             জ
           </span>
           <span className="text-xl font-extrabold tracking-tight text-primary-ink">জমারখাতা</span>
@@ -50,7 +50,7 @@ export function WelcomeScreen({ onStartLocal }: WelcomeScreenProps) {
         <button
           type="button"
           onClick={onStartLocal}
-          className="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-primary px-6 text-base font-bold text-on-primary shadow-hero transition-colors hover:bg-primary-hover active:scale-[0.99]"
+          className="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-primary-gradient px-6 text-base font-bold text-on-primary shadow-hero transition-colors hover:brightness-[0.97] active:scale-[0.99]"
         >
           <span>লগইন ছাড়া শুরু করুন</span>
           <ArrowRight className="h-5 w-5" />

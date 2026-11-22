@@ -70,7 +70,7 @@ export function DashboardView() {
       {/* Top Grid: Hero Balance Card + Period Summary (2 cols on desktop, stacked on mobile) */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-stretch">
         {/* Emerald Hero Balance Card — STRICTLY Cumulative All-Time Balances */}
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary-hover to-primary-deep p-5 text-on-primary shadow-hero lg:col-span-7 lg:p-6">
+        <section className="relative overflow-hidden rounded-3xl bg-primary-gradient p-5 text-on-primary shadow-hero lg:col-span-7 lg:p-6">
           {/* Subtle decorative radial light */}
           <div
             aria-hidden="true"
@@ -225,7 +225,7 @@ export function DashboardView() {
         <button
           type="button"
           onClick={() => openSheet({ type: 'sale' })}
-          className="flex min-h-[60px] items-center justify-center gap-2.5 rounded-2xl bg-primary px-4 py-3.5 text-on-primary shadow-sm transition-all hover:bg-primary-hover active:scale-[0.98]"
+          className="flex min-h-[60px] items-center justify-center gap-2.5 rounded-2xl bg-primary-gradient px-4 py-3.5 text-on-primary shadow-sm transition-all hover:brightness-[0.97] active:scale-[0.98]"
         >
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/30">
             <ShoppingBag className="h-5 w-5" />

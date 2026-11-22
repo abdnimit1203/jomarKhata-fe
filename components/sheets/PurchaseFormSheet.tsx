@@ -203,7 +203,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
             type="submit"
             form="purchase-form"
             disabled={isSubmitting || total <= 0}
-            className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-hover disabled:opacity-50"
+            className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary-gradient text-base font-semibold text-on-primary shadow-sm transition-colors hover:brightness-[0.97] disabled:opacity-50"
           >
             {isSubmitting ? 'সংরক্ষণ হচ্ছে...' : editPurchase ? 'সংশোধন সংরক্ষণ করুন' : 'ক্রয় সংরক্ষণ করুন'}
           </button>
@@ -316,7 +316,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                         <button
                           type="button"
                           onClick={() => handleToggleProduct(prod.id, 1)}
-                          className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-on-primary"
+                          className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-gradient text-on-primary"
                         >
                           <Plus className="h-4 w-4" />
                         </button>
@@ -438,7 +438,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                   type="button"
                   disabled={creatingSupplier}
                   onClick={handleQuickCreateSupplier}
-                  className="h-10 flex-1 rounded-xl bg-primary text-xs font-semibold text-on-primary"
+                  className="h-10 flex-1 rounded-xl bg-primary-gradient text-xs font-semibold text-on-primary"
                 >
                   {creatingSupplier ? 'যোগ হচ্ছে...' : 'সাপ্লায়ার যোগ করুন'}
                 </button>

@@ -105,7 +105,7 @@ export function ConfirmDialog({
                 className={`flex h-12 flex-1 items-center justify-center rounded-xl px-4 text-sm font-semibold transition-colors disabled:opacity-50 ${
                   tone === 'danger'
                     ? 'bg-danger text-white hover:bg-danger-hover'
-                    : 'bg-primary text-on-primary hover:bg-primary-hover'
+                    : 'bg-primary-gradient text-on-primary hover:brightness-[0.97]'
                 }`}
               >
                 {isSubmitting ? 'অপেক্ষা করুন...' : confirmLabel}

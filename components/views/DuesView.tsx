@@ -171,7 +171,7 @@ export function DuesView() {
                 <button
                   type="button"
                   onClick={handleCopyReminder}
-                  className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary px-3.5 text-xs font-semibold text-on-primary transition-colors hover:bg-primary-hover"
+                  className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary-gradient px-3.5 text-xs font-semibold text-on-primary transition-colors hover:brightness-[0.97]"
                 >
                   <Copy className="h-4 w-4" />
                   <span className="hidden sm:inline">তাগাদা কপি</span>
@@ -345,7 +345,7 @@ export function DuesView() {
                     selectedParty.role === 'customer' ? 'customer_collection' : 'manual_due_received',
                 })
               }
-              className="flex h-12 items-center justify-center rounded-2xl bg-primary text-base font-bold text-on-primary shadow-sm transition-colors hover:bg-primary-hover active:scale-[0.98]"
+              className="flex h-12 items-center justify-center rounded-2xl bg-primary-gradient text-base font-bold text-on-primary shadow-sm transition-colors hover:brightness-[0.97] active:scale-[0.98]"
             >
               নিচ্ছি {selectedParty.role === 'customer' ? '(আদায়)' : '(বাকি)'}
             </button>
@@ -404,7 +404,7 @@ export function DuesView() {
             <button
               type="button"
               onClick={() => openSheet({ type: 'party', defaultRole: roleTab === 'supplier' ? 'supplier' : 'customer' })}
-              className="inline-flex items-center gap-1 rounded-xl bg-primary px-3 py-1.5 font-semibold text-on-primary hover:bg-primary-hover"
+              className="inline-flex items-center gap-1 rounded-xl bg-primary-gradient px-3 py-1.5 font-semibold text-on-primary hover:brightness-[0.97]"
             >
               <UserPlus className="h-3.5 w-3.5" />
               <span>নতুন পার্টি</span>
@@ -547,7 +547,7 @@ export function DuesView() {
         <button
           type="button"
           onClick={() => openSheet({ type: 'due', defaultEntryType: 'customer_collection' })}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-hover active:scale-[0.99]"
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary-gradient text-sm font-semibold text-on-primary shadow-sm transition-colors hover:brightness-[0.97] active:scale-[0.99]"
         >
           <Plus className="h-4 w-4" />
           <span>বাকি আদায় / পরিশোধ যোগ করুন</span>

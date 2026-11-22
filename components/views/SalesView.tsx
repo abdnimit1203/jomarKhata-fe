@@ -69,7 +69,7 @@ export function SalesView() {
         <button
           type="button"
           onClick={() => openSheet({ type: 'sale' })}
-          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm hover:bg-primary-hover active:scale-[0.98]"
+          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary-gradient px-4 text-sm font-semibold text-on-primary shadow-sm hover:brightness-[0.97] active:scale-[0.98]"
         >
           <Plus className="h-4 w-4" />
           <span>নতুন বিক্রি</span>

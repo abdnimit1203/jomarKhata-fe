@@ -70,7 +70,7 @@ export function ExpenseFormSheet({ open, editExpense, onClose }: ExpenseFormShee
           type="submit"
           form="expense-form"
           disabled={isSubmitting || amount <= 0}
-          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-hover disabled:opacity-50"
+          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary-gradient text-base font-semibold text-on-primary shadow-sm transition-colors hover:brightness-[0.97] disabled:opacity-50"
         >
           {isSubmitting ? 'সংরক্ষণ হচ্ছে...' : editExpense ? 'সংশোধন সংরক্ষণ করুন' : 'খরচ সংরক্ষণ করুন'}
         </button>

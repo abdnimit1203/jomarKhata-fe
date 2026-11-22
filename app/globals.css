@@ -13,17 +13,18 @@
   /* Base palette (owner-approved; S1 revision D22: amber = main colour, emerald = accent) */
   --color-canvas: #F7F5EF;         /* Warm Ivory — app background */
   --color-surface: #FFFFFF;        /* Cards, sheets, inputs */
-  --color-primary: #E9A23B;        /* Amber — brand, primary buttons, hero, active states (FILL only) */
-  --color-secondary: #FCEBCB;      /* Soft Amber — selected states, icon tiles, tonal buttons */
+  --color-primary: #F5BC5C;        /* Light Amber — brand, primary buttons, hero, active states (FILL only) */
+  --color-secondary: #FDF0D6;      /* Soft Amber — selected states, icon tiles, tonal buttons */
   --color-accent: #145C46;         /* Deep Emerald — accent: global “+” action, highlights */
   --color-danger-soft: #FCE7E5;    /* Soft Red — পাবো / due / danger backgrounds (never text) */
 
   /* Supporting tokens (contrast-verified) */
-  --color-on-primary: #2B1D05;     /* text/icons ON amber fills — 7.6:1 (white on amber fails: 2.2:1) */
-  --color-primary-ink: #8A5A00;    /* "primary" used as TEXT or outline — 5.9 white · 5.4 canvas · 5.1 secondary */
-  --color-primary-hover: #D8901F;  /* on-primary 6.2:1 */
-  --color-primary-deep: #C98314;   /* hero gradient end; on-primary 5.3:1 */
-  --color-secondary-hover: #F8DDA8;
+  --color-on-primary: #2B1D05;     /* text/icons ON amber fills — 9.6:1 (white on amber fails: 1.7:1) */
+  --color-primary-light: #FAD48A;  /* gradient start; on-primary 11.6:1 */
+  --color-primary-ink: #8A5A00;    /* "primary" used as TEXT or outline — 5.9 white · 5.4 canvas · 5.25 secondary */
+  --color-primary-hover: #EDA645;  /* gradient end / pressed; on-primary 7.9:1 */
+  --color-primary-deep: #E49A33;   /* deepest amber; on-primary 7.0:1 */
+  --color-secondary-hover: #FAE3B5;
   --color-on-accent: #FFFFFF;      /* white on emerald — 7.9:1 */
   --color-accent-ink: #145C46;     /* emerald used as text — 7.3 canvas */
   --color-surface-muted: #EFECE3;  /* Neutral tracks, hover fills on white */
@@ -55,6 +56,12 @@
   --text-3xl--line-height: 1.2;
   --text-4xl: 2.25rem;
   --text-4xl--line-height: 1.15;
+}
+
+/* Main amber surfaces (hero, primary CTAs, logo): light-to-amber gradient. Text on it: text-on-primary. */
+@utility bg-primary-gradient {
+  background-color: var(--color-primary);
+  background-image: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 55%, var(--color-primary-hover) 100%);
 }
 
 /* Desktop: slightly tighter scale, never below 13px */

@@ -125,7 +125,7 @@ export function AppShell() {
         {/* Desktop Left Sidebar (lg+) */}
         <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-border lg:bg-white">
           <div className="flex h-16 items-center gap-3 border-b border-border px-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-lg font-bold text-on-primary">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-gradient text-lg font-bold text-on-primary">
               জ
             </div>
             <div className="min-w-0">
@@ -141,7 +141,7 @@ export function AppShell() {
             <button
               type="button"
               onClick={() => openSheet({ type: 'sale' })}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-semibold text-on-primary shadow-xs transition-colors hover:bg-primary-hover active:scale-[0.99]"
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-primary-gradient text-sm font-semibold text-on-primary shadow-xs transition-colors hover:brightness-[0.97] active:scale-[0.99]"
             >
               <Plus className="h-4 w-4" />
               <span>নতুন বিক্রি</span>
@@ -180,7 +180,7 @@ export function AppShell() {
           {/* Mobile Sticky Top App Bar (56px — stays well within 15% mobile sticky cap with bottom bar) */}
           <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-white/95 px-4 backdrop-blur-md lg:h-16 lg:px-8">
             <div className="flex min-w-0 items-center gap-2.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold text-on-primary lg:hidden">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-gradient text-sm font-bold text-on-primary lg:hidden">
                 জ
               </div>
               <div className="min-w-0">
@@ -224,7 +224,7 @@ export function AppShell() {
                 <button
                   type="button"
                   onClick={refresh}
-                  className="mt-4 h-11 rounded-2xl bg-primary px-6 text-sm font-semibold text-on-primary"
+                  className="mt-4 h-11 rounded-2xl bg-primary-gradient px-6 text-sm font-semibold text-on-primary"
                 >
                   আবার চেষ্টা করুন
                 </button>
