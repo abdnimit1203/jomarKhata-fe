@@ -1,0 +1,55 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --font-sans: var(--app-font, var(--font-hind-siliguri)), var(--font-plus-jakarta), system-ui, -apple-system, sans-serif;
+  --color-emerald-brand: #0D7A56;
+  --color-emerald-deep: #064E3B;
+  --color-emerald-soft: #E6F4EE;
+  --color-canvas: #F5F8F6;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #ECF2EE;
+  --color-ink: #0F1F18;
+  --color-ink-muted: #586B62;
+  --color-border-soft: #E2EAE5;
+}
+
+@layer base {
+  html {
+    background-color: #F5F8F6;
+    color: #0F1F18;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: var(--app-font, var(--font-hind-siliguri)), var(--font-plus-jakarta), system-ui, -apple-system, sans-serif;
+    background-color: #F5F8F6;
+    color: #0F1F18;
+    overscroll-behavior-y: none;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.shadow-card {
+  box-shadow: 0 4px 20px rgba(6, 78, 59, 0.055), 0 1px 3px rgba(6, 78, 59, 0.04);
+}
+
+.shadow-hero {
+  box-shadow: 0 14px 32px rgba(6, 78, 59, 0.22), 0 4px 10px rgba(6, 78, 59, 0.12);
+}
+
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

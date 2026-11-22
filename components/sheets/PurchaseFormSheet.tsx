@@ -1,0 +1,463 @@
+'use client';
+
+import React, { useMemo, useState } from 'react';
+import { Minus, Plus, Search, UserPlus, AlertCircle, Package } from 'lucide-react';
+import { ModalSheet } from '@/components/ui/ModalSheet';
+import { NumericInput } from '@/components/ui/NumericInput';
+import { PaymentChannelPicker } from '@/components/ui/PaymentChannelPicker';
+import { useJomarkhata } from '@/context/JomarkhataContext';
+import { formatBanglaNumber, formatTaka, parseNumericInput } from '@/lib/format';
+import type { EntryMode, PaymentChannel, PurchaseLineItem, PurchaseRecord } from '@/types/domain';
+
+interface PurchaseFormSheetProps {
+  open: boolean;
+  editPurchase?: PurchaseRecord | null;
+  onClose: () => void;
+}
+
+export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormSheetProps) {
+  const { data, actions } = useJomarkhata();
+  const [mode, setMode] = useState<EntryMode>(() => editPurchase?.mode ?? 'quick');
+  const [quickAmount, setQuickAmount] = useState(() =>
+    editPurchase?.mode === 'quick' ? String(editPurchase.total) : ''
+  );
+  const [quickDescription, setQuickDescription] = useState(() =>
+    editPurchase?.mode === 'quick'
+      ? editPurchase.description || editPurchase.items[0]?.name || ''
+      : ''
+  );
+
+  const [productSearch, setProductSearch] = useState('');
+  const [selectedItems, setSelectedItems] = useState<PurchaseLineItem[]>(() =>
+    editPurchase?.mode === 'product' ? editPurchase.items : []
+  );
+
+  const [isFullyPaid, setIsFullyPaid] = useState(() =>
+    editPurchase ? editPurchase.dueAmount === 0 : true
+  );
+  const [paidRaw, setPaidRaw] = useState(() =>
+    editPurchase ? String(editPurchase.paidAmount) : ''
+  );
+  const [paymentMethod, setPaymentMethod] = useState<PaymentChannel>(
+    () => editPurchase?.paymentMethod ?? 'cash'
+  );
+  const [partyId, setPartyId] = useState(() => editPurchase?.partyId ?? '');
+  const [note, setNote] = useState(() => editPurchase?.note ?? '');
+
+  const [showInlineSupplier, setShowInlineSupplier] = useState(false);
+  const [newSupplierName, setNewSupplierName] = useState('');
+  const [newSupplierPhone, setNewSupplierPhone] = useState('');
+  const [creatingSupplier, setCreatingSupplier] = useState(false);
+
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const suppliers = useMemo(
+    () => (data?.parties ?? []).filter((p) => p.role === 'supplier'),
+    [data?.parties]
+  );
+
+  const filteredProducts = useMemo(() => {
+    const q = productSearch.trim().toLowerCase();
+    return (data?.products ?? []).filter(
+      (p) => p.isActive && (!q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q))
+    );
+  }, [data?.products, productSearch]);
+
+  const total = useMemo(() => {
+    if (mode === 'quick') return Math.round(Math.max(0, parseNumericInput(quickAmount)));
+    return Math.round(selectedItems.reduce((sum, item) => sum + item.lineTotal, 0));
+  }, [mode, quickAmount, selectedItems]);
+
+  const paidAmount = isFullyPaid
+    ? total
+    : Math.min(total, Math.max(0, Math.round(parseNumericInput(paidRaw))));
+  const dueAmount = Math.max(0, total - paidAmount);
+
+  const handleToggleProduct = (productId: string, delta: number) => {
+    const prod = data?.products.find((p) => p.id === productId);
+    if (!prod) return;
+    setSelectedItems((prev) => {
+      const idx = prev.findIndex((i) => i.productId === productId);
+      if (idx === -1) {
+        if (delta <= 0) return prev;
+        return [
+          ...prev,
+          {
+            productId: prod.id,
+            name: prod.name,
+            unit: prod.unit,
+            qty: delta,
+            unitPrice: prod.purchasePrice,
+            lineTotal: delta * prod.purchasePrice,
+          },
+        ];
+      }
+      const existing = prev[idx];
+      const nextQty = existing.qty + delta;
+      if (nextQty <= 0) return prev.filter((i) => i.productId !== productId);
+      const next = [...prev];
+      next[idx] = { ...existing, qty: nextQty, lineTotal: Math.round(nextQty * existing.unitPrice) };
+      return next;
+    });
+  };
+
+  const handleQuickCreateSupplier = async () => {
+    if (!newSupplierName.trim()) {
+      setFormError('সাপ্লায়ারের নাম লিখুন।');
+      return;
+    }
+    setCreatingSupplier(true);
+    setFormError(null);
+    try {
+      const created = await actions.createParty({
+        name: newSupplierName.trim(),
+        phone: newSupplierPhone.trim(),
+        role: 'supplier',
+      });
+      setPartyId(created.id);
+      setShowInlineSupplier(false);
+      setNewSupplierName('');
+      setNewSupplierPhone('');
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'সাপ্লায়ার যোগ করা যায়নি।');
+    } finally {
+      setCreatingSupplier(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+    if (total <= 0) {
+      setFormError('ক্রয়ের মোট টাকা শূন্যের বেশি হতে হবে।');
+      return;
+    }
+    if (dueAmount > 0 && !partyId) {
+      setFormError('সাপ্লায়ারের বাকি রাখতে সাপ্লায়ার নির্বাচন বা নতুন যোগ করুন।');
+      return;
+    }
+
+    const items: PurchaseLineItem[] =
+      mode === 'quick'
+        ? [
+            {
+              productId: null,
+              name: quickDescription.trim() || 'পাইকারি ক্রয়',
+              qty: 1,
+              unitPrice: total,
+              lineTotal: total,
+            },
+          ]
+        : selectedItems;
+
+    if (items.length === 0) {
+      setFormError('অন্তত একটি পণ্য নির্বাচন করুন।');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        mode,
+        partyId: partyId || null,
+        description: mode === 'quick' ? quickDescription.trim() || undefined : undefined,
+        items,
+        paidAmount,
+        paymentMethod,
+        note: note.trim() || undefined,
+      };
+      if (editPurchase) {
+        await actions.editPurchase(editPurchase.id, payload);
+      } else {
+        await actions.createPurchase(payload);
+      }
+      onClose();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'ক্রয় সংরক্ষণ করা যায়নি।');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <ModalSheet
+      open={open}
+      onClose={onClose}
+      title={editPurchase ? `ক্রয় সংশোধন (${editPurchase.billNo})` : 'নতুন ক্রয় (কেনা)'}
+      subtitle="সরাসরি মালামাল কেনা অথবা স্টকে পণ্য যোগ করুন"
+      footer={
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-[#586B62]">মোট ক্রয়</span>
+            <div className="flex items-center gap-3 tabular-nums">
+              <span className="text-lg font-bold text-[#0F1F18]">{formatTaka(total)}</span>
+              {dueAmount > 0 && (
+                <span className="text-xs font-semibold text-[#0D7A56]">
+                  দিবো {formatTaka(dueAmount)}
+                </span>
+              )}
+            </div>
+          </div>
+          <button
+            type="submit"
+            form="purchase-form"
+            disabled={isSubmitting || total <= 0}
+            className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#0D7A56] text-base font-semibold text-white shadow-sm transition-colors hover:bg-[#096244] disabled:opacity-50"
+          >
+            {isSubmitting ? 'সংরক্ষণ হচ্ছে...' : editPurchase ? 'সংশোধন সংরক্ষণ করুন' : 'ক্রয় সংরক্ষণ করুন'}
+          </button>
+        </div>
+      }
+    >
+      <form id="purchase-form" onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-[#EDF3F0] p-1">
+          <button
+            type="button"
+            onClick={() => setMode('quick')}
+            className={`h-11 rounded-xl text-sm font-semibold transition-all ${
+              mode === 'quick' ? 'bg-[#0D7A56] text-white shadow-sm' : 'text-[#445B50]'
+            }`}
+          >
+            সহজ কেনা
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('product')}
+            className={`h-11 rounded-xl text-sm font-semibold transition-all ${
+              mode === 'product' ? 'bg-[#0D7A56] text-white shadow-sm' : 'text-[#445B50]'
+            }`}
+          >
+            স্টকে পণ্য কেনা
+          </button>
+        </div>
+
+        {formError && (
+          <div className="flex items-start gap-2 rounded-2xl bg-[#FEF2F2] p-3 text-xs font-medium text-[#DC2626]">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{formError}</span>
+          </div>
+        )}
+
+        {mode === 'quick' ? (
+          <div className="space-y-3 rounded-2xl bg-[#F6FAF7] p-4">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-[#354B41]">মোট কেনার টাকা *</label>
+              <NumericInput
+                value={quickAmount}
+                onChange={(raw) => setQuickAmount(raw)}
+                placeholder="যেমন: ৫,০০০"
+                inputSize="lg"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-[#586B62]">কী কিনলেন (ঐচ্ছিক)</label>
+              <input
+                type="text"
+                value={quickDescription}
+                onChange={(e) => setQuickDescription(e.target.value)}
+                placeholder="যেমন: পাইকারি বাজারের মালামাল"
+                className="h-11 w-full rounded-xl border border-[#DCE6E0] bg-white px-3.5 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:outline-none"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-[#6F847A]" />
+              <input
+                type="text"
+                value={productSearch}
+                onChange={(e) => setProductSearch(e.target.value)}
+                placeholder="পণ্য খুঁজুন..."
+                className="h-11 w-full rounded-xl border border-[#DCE6E0] bg-[#F7FAF8] pr-3.5 pl-10 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+              />
+            </div>
+
+            {filteredProducts.length === 0 ? (
+              <div className="rounded-2xl bg-[#F6FAF7] p-5 text-center">
+                <Package className="mx-auto h-7 w-7 text-[#6F847A]" />
+                <p className="mt-2 text-sm font-medium text-[#2E4339]">কোনো পণ্য নেই</p>
+              </div>
+            ) : (
+              <div className="max-h-56 space-y-2 overflow-y-auto pr-0.5">
+                {filteredProducts.map((prod) => {
+                  const chosen = selectedItems.find((i) => i.productId === prod.id);
+                  const qty = chosen?.qty ?? 0;
+                  return (
+                    <div
+                      key={prod.id}
+                      className={`flex items-center justify-between gap-2 rounded-2xl border p-3 ${
+                        qty > 0 ? 'border-[#0D7A56] bg-[#EFF8F4]' : 'border-[#E6EEE9] bg-white'
+                      }`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-[#0F1F18]">{prod.name}</p>
+                        <p className="text-xs text-[#586B62] tabular-nums">
+                          ক্রয়দর {formatTaka(prod.purchasePrice)} · বর্তমান স্টক {formatBanglaNumber(prod.stockQty)} {prod.unit}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {qty > 0 && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleProduct(prod.id, -1)}
+                              className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[#0F1F18] shadow-xs"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </button>
+                            <span className="w-7 text-center text-sm font-bold tabular-nums text-[#0D7A56]">
+                              {formatBanglaNumber(qty)}
+                            </span>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleProduct(prod.id, 1)}
+                          className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0D7A56] text-white"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="space-y-3 rounded-2xl border border-[#E5EDE8] bg-white p-4">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-[#354B41]">পরিশোধ</span>
+            <div className="flex items-center gap-1 rounded-xl bg-[#EDF3F0] p-0.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFullyPaid(true);
+                  setPaidRaw(String(total));
+                }}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                  isFullyPaid ? 'bg-[#0D7A56] text-white' : 'text-[#4B6157]'
+                }`}
+              >
+                পুরোটা পরিশোধ
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFullyPaid(false);
+                  setPaidRaw('0');
+                }}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                  !isFullyPaid ? 'bg-[#D97706] text-white' : 'text-[#4B6157]'
+                }`}
+              >
+                বাকি / আংশিক
+              </button>
+            </div>
+          </div>
+
+          {!isFullyPaid && (
+            <div>
+              <label className="mb-1 block text-xs text-[#586B62]">এখন পরিশোধ করলেন</label>
+              <NumericInput value={paidRaw} onChange={(raw) => setPaidRaw(raw)} placeholder="০" />
+            </div>
+          )}
+
+          {paidAmount > 0 && (
+            <PaymentChannelPicker
+              label="কোন মাধ্যম থেকে পরিশোধ করলেন?"
+              value={paymentMethod}
+              onChange={setPaymentMethod}
+            />
+          )}
+        </div>
+
+        <div
+          className={`space-y-2.5 rounded-2xl border p-4 ${
+            dueAmount > 0 && !partyId ? 'border-[#FCA5A5] bg-[#FEF2F2]/60' : 'border-[#E5EDE8] bg-white'
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-xs font-semibold text-[#354B41]">
+              সাপ্লায়ার {dueAmount > 0 ? <span className="text-[#DC2626]">(বাকির জন্য বাধ্যতামূলক *)</span> : '(ঐচ্ছিক)'}
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowInlineSupplier((v) => !v)}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-[#0D7A56] hover:underline"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              <span>নতুন সাপ্লায়ার</span>
+            </button>
+          </div>
+
+          {!showInlineSupplier ? (
+            <select
+              value={partyId}
+              onChange={(e) => setPartyId(e.target.value)}
+              className="h-12 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm font-medium text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+            >
+              <option value="">
+                {dueAmount > 0 ? '— সাপ্লায়ার নির্বাচন করুন —' : 'নগদ সরবরাহকারী'}
+              </option>
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} {s.phone ? `(${s.phone})` : ''}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="space-y-2.5 rounded-xl bg-white p-3 shadow-xs">
+              <input
+                type="text"
+                value={newSupplierName}
+                onChange={(e) => setNewSupplierName(e.target.value)}
+                placeholder="সাপ্লায়ারের নাম *"
+                className="h-11 w-full rounded-xl border border-[#DCE6E0] px-3 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:outline-none"
+              />
+              <input
+                type="tel"
+                value={newSupplierPhone}
+                onChange={(e) => setNewSupplierPhone(e.target.value)}
+                placeholder="মোবাইল নম্বর (ঐচ্ছিক)"
+                className="h-11 w-full rounded-xl border border-[#DCE6E0] px-3 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:outline-none"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowInlineSupplier(false)}
+                  className="h-10 flex-1 rounded-xl bg-[#EEF3F0] text-xs font-semibold text-[#354B41]"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="button"
+                  disabled={creatingSupplier}
+                  onClick={handleQuickCreateSupplier}
+                  className="h-10 flex-1 rounded-xl bg-[#0D7A56] text-xs font-semibold text-white"
+                >
+                  {creatingSupplier ? 'যোগ হচ্ছে...' : 'সাপ্লায়ার যোগ করুন'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs text-[#586B62]">নোট (ঐচ্ছিক)</label>
+          <input
+            type="text"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="সংক্ষিপ্ত মন্তব্য"
+            className="h-11 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+          />
+        </div>
+      </form>
+    </ModalSheet>
+  );
+}

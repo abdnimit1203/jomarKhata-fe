@@ -1,0 +1,1930 @@
+import { getJomarkhataDb, type JomarkhataDB } from '@/db/jomarkhataDb';
+import { buildSeedDataset } from '@/db/seedData';
+import { computePartyRunningTimeline } from '@/services/financeCalculator';
+import { formatTaka, generateId } from '@/lib/format';
+import type {
+  AuditAction,
+  AuditEntityType,
+  AuditLog,
+  BusinessProfile,
+  ChannelOpeningBalances,
+  DueDirection,
+  DueTransaction,
+  EntryMode,
+  ExpenseRecord,
+  MoneyMovement,
+  Party,
+  PartyRole,
+  PaymentChannel,
+  Product,
+  PurchaseLineItem,
+  PurchaseRecord,
+  SaleLineItem,
+  SaleRecord,
+  StockMovement,
+  SyncQueueItem,
+} from '@/types/domain';
+
+export interface AppDataSnapshot {
+  businessProfile: BusinessProfile;
+  parties: Party[];
+  products: Product[];
+  sales: SaleRecord[];
+  purchases: PurchaseRecord[];
+  moneyMovements: MoneyMovement[];
+  dueTransactions: DueTransaction[];
+  expenses: ExpenseRecord[];
+  stockMovements: StockMovement[];
+  auditLogs: AuditLog[];
+  pendingSyncCount: number;
+}
+
+export interface CreateSaleInput {
+  mode: EntryMode;
+  partyId?: string | null;
+  description?: string;
+  items: SaleLineItem[];
+  discount?: number;
+  paidAmount: number;
+  paymentMethod: PaymentChannel;
+  note?: string;
+  date?: string;
+}
+
+export interface CreatePurchaseInput {
+  mode: EntryMode;
+  partyId?: string | null;
+  description?: string;
+  items: PurchaseLineItem[];
+  paidAmount: number;
+  paymentMethod: PaymentChannel;
+  note?: string;
+  date?: string;
+}
+
+export interface RecordDueEntryInput {
+  partyId: string;
+  /**
+   * 'customer_collection': customer pays us (direction: 'received', creates IN MoneyMovement)
+   * 'supplier_payment': we pay supplier (direction: 'given', creates OUT MoneyMovement)
+   * 'manual_due_given': add manual receivable / due given (no cash moved)
+   * 'manual_due_received': add manual payable / due taken (no cash moved)
+   */
+  entryType: 'customer_collection' | 'supplier_payment' | 'manual_due_given' | 'manual_due_received';
+  amount: number;
+  paymentMethod?: PaymentChannel;
+  note?: string;
+  date?: string;
+}
+
+export interface CreateExpenseInput {
+  category: string;
+  title: string;
+  amount: number;
+  paymentMethod: PaymentChannel;
+  note?: string;
+  date?: string;
+}
+
+async function appendAuditLog(
+  db: JomarkhataDB,
+  params: {
+    entityType: AuditEntityType;
+    entityId: string;
+    action: AuditAction;
+    summary: string;
+    beforeSnapshot?: unknown;
+    afterSnapshot?: unknown;
+    reason?: string | null;
+  }
+): Promise<void> {
+  const entry: AuditLog = {
+    id: generateId(),
+    entityType: params.entityType,
+    entityId: params.entityId,
+    action: params.action,
+    summary: params.summary,
+    beforeSnapshot: params.beforeSnapshot ? JSON.stringify(params.beforeSnapshot) : null,
+    afterSnapshot: params.afterSnapshot ? JSON.stringify(params.afterSnapshot) : null,
+    reason: params.reason ?? null,
+    timestamp: new Date().toISOString(),
+  };
+  await db.auditLogs.add(entry);
+}
+
+async function enqueueSyncMutation(
+  db: JomarkhataDB,
+  entityType: SyncQueueItem['entityType'],
+  entityId: string,
+  operation: 'upsert' | 'void',
+  payload: unknown
+): Promise<void> {
+  await db.syncQueue.add({
+    id: generateId(),
+    entityType,
+    entityId,
+    operation,
+    payload: JSON.stringify(payload),
+    queuedAt: new Date().toISOString(),
+    syncStatus: 'pending',
+  });
+}
+
+/**
+ * Deterministically recomputes all running balances and current cumulative balance
+ * for a given party inside an active Dexie transaction.
+ */
+async function recomputePartyBalanceTx(db: JomarkhataDB, partyId: string): Promise<void> {
+  const party = await db.parties.get(partyId);
+  if (!party) return;
+
+  const partyTxns = await db.dueTransactions.where('partyId').equals(partyId).toArray();
+  const { updatedTxns, finalBalance, lastTransactionAt } = computePartyRunningTimeline(partyTxns);
+
+  if (updatedTxns.length > 0) {
+    await db.dueTransactions.bulkPut(updatedTxns);
+  }
+
+  await db.parties.update(partyId, {
+    balance: finalBalance,
+    lastTransactionAt,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+async function nextInvoiceNumber(db: JomarkhataDB, prefix: 'INV' | 'BILL'): Promise<string> {
+  const count = prefix === 'INV' ? await db.sales.count() : await db.purchases.count();
+  return `${prefix}-${1001 + count}`;
+}
+
+/**
+ * Domain Service Layer — ALL business rules, validations, stock updates,
+ * canonical moneyMovements links, credit-party guards, and append-only audit logs
+ * live strictly here inside atomic Dexie transactions.
+ */
+export const jomarkhataService = {
+  async initializeAndLoad(): Promise<AppDataSnapshot> {
+    const db = getJomarkhataDb();
+    const existingProfile = await db.businessProfile.get('default');
+
+    if (!existingProfile) {
+      await this.seedDatabase(db);
+    }
+
+    return this.loadAllData();
+  },
+
+  async seedDatabase(db: JomarkhataDB): Promise<void> {
+    const seed = buildSeedDataset();
+    await db.transaction(
+      'rw',
+      [
+        db.businessProfile,
+        db.parties,
+        db.products,
+        db.sales,
+        db.purchases,
+        db.moneyMovements,
+        db.dueTransactions,
+        db.expenses,
+        db.stockMovements,
+        db.auditLogs,
+        db.syncQueue,
+      ],
+      async () => {
+        await db.businessProfile.put(seed.businessProfile);
+        await db.parties.bulkPut(seed.parties);
+        await db.products.bulkPut(seed.products);
+        await db.sales.bulkPut(seed.sales);
+        await db.purchases.bulkPut(seed.purchases);
+        await db.moneyMovements.bulkPut(seed.moneyMovements);
+        await db.dueTransactions.bulkPut(seed.dueTransactions);
+        await db.expenses.bulkPut(seed.expenses);
+        await db.stockMovements.bulkPut(seed.stockMovements);
+        await db.auditLogs.bulkPut(seed.auditLogs);
+      }
+    );
+  },
+
+  async resetDemoData(): Promise<AppDataSnapshot> {
+    const db = getJomarkhataDb();
+    await db.transaction(
+      'rw',
+      [
+        db.businessProfile,
+        db.parties,
+        db.products,
+        db.sales,
+        db.purchases,
+        db.moneyMovements,
+        db.dueTransactions,
+        db.expenses,
+        db.stockMovements,
+        db.auditLogs,
+        db.syncQueue,
+      ],
+      async () => {
+        await Promise.all([
+          db.businessProfile.clear(),
+          db.parties.clear(),
+          db.products.clear(),
+          db.sales.clear(),
+          db.purchases.clear(),
+          db.moneyMovements.clear(),
+          db.dueTransactions.clear(),
+          db.expenses.clear(),
+          db.stockMovements.clear(),
+          db.auditLogs.clear(),
+          db.syncQueue.clear(),
+        ]);
+      }
+    );
+    await this.seedDatabase(db);
+    return this.loadAllData();
+  },
+
+  async loadAllData(): Promise<AppDataSnapshot> {
+    const db = getJomarkhataDb();
+    const [
+      businessProfile,
+      parties,
+      products,
+      sales,
+      purchases,
+      moneyMovements,
+      dueTransactions,
+      expenses,
+      stockMovements,
+      auditLogs,
+      pendingSyncCount,
+    ] = await Promise.all([
+      db.businessProfile.get('default'),
+      db.parties.toArray(),
+      db.products.toArray(),
+      db.sales.orderBy('date').reverse().toArray(),
+      db.purchases.orderBy('date').reverse().toArray(),
+      db.moneyMovements.orderBy('date').reverse().toArray(),
+      db.dueTransactions.orderBy('date').reverse().toArray(),
+      db.expenses.orderBy('date').reverse().toArray(),
+      db.stockMovements.orderBy('date').reverse().toArray(),
+      db.auditLogs.orderBy('timestamp').reverse().toArray(),
+      db.syncQueue.where('syncStatus').equals('pending').count(),
+    ]);
+
+    if (!businessProfile) {
+      throw new Error('বিজনেস প্রোফাইল লোড করা যায়নি।');
+    }
+
+    return {
+      businessProfile,
+      parties,
+      products,
+      sales,
+      purchases,
+      moneyMovements,
+      dueTransactions,
+      expenses,
+      stockMovements,
+      auditLogs,
+      pendingSyncCount,
+    };
+  },
+
+  async exportBackupJson(): Promise<string> {
+    const snapshot = await this.loadAllData();
+    return JSON.stringify(
+      {
+        app: 'Jomarkhata (জমারখাতা)',
+        schemaVersion: 1,
+        exportedAt: new Date().toISOString(),
+        data: snapshot,
+      },
+      null,
+      2
+    );
+  },
+
+  // =========================================================================
+  // Business Profile
+  // =========================================================================
+
+  async updateBusinessProfile(updates: {
+    shopName: string;
+    ownerName: string;
+    phone: string;
+    address: string;
+    businessType: string;
+    openingBalances: ChannelOpeningBalances;
+    defaultLowStockThreshold: number;
+  }): Promise<BusinessProfile> {
+    const db = getJomarkhataDb();
+    if (!updates.shopName.trim()) {
+      throw new Error('দোকানের নাম লিখুন।');
+    }
+
+    let updated!: BusinessProfile;
+    await db.transaction('rw', [db.businessProfile, db.auditLogs, db.syncQueue], async () => {
+      const existing = await db.businessProfile.get('default');
+      if (!existing) throw new Error('প্রোফাইল পাওয়া যায়নি।');
+
+      updated = {
+        ...existing,
+        shopName: updates.shopName.trim(),
+        ownerName: updates.ownerName.trim(),
+        phone: updates.phone.trim(),
+        address: updates.address.trim(),
+        businessType: updates.businessType.trim(),
+        openingBalances: {
+          cash: Math.round(updates.openingBalances.cash || 0),
+          bkash: Math.round(updates.openingBalances.bkash || 0),
+          nagad: Math.round(updates.openingBalances.nagad || 0),
+          bank: Math.round(updates.openingBalances.bank || 0),
+        },
+        defaultLowStockThreshold: Math.max(0, Math.round(updates.defaultLowStockThreshold || 0)),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await db.businessProfile.put(updated);
+      await appendAuditLog(db, {
+        entityType: 'business_profile',
+        entityId: 'default',
+        action: 'edit',
+        summary: `দোকানের তথ্য ও শুরুর ব্যালেন্স আপডেট করা হয়েছে (${updated.shopName})`,
+        beforeSnapshot: existing,
+        afterSnapshot: updated,
+      });
+      await enqueueSyncMutation(db, 'business_profile', 'default', 'upsert', updated);
+    });
+    return updated;
+  },
+
+  // =========================================================================
+  // Parties (Customers & Suppliers)
+  // =========================================================================
+
+  async createParty(input: {
+    name: string;
+    phone: string;
+    address?: string;
+    role: PartyRole;
+    openingDue?: number;
+  }): Promise<Party> {
+    const db = getJomarkhataDb();
+    const name = input.name.trim();
+    if (!name) throw new Error('নাম লেখা বাধ্যতামূলক।');
+
+    const now = new Date().toISOString();
+    const partyId = generateId();
+    const openingDue = Math.max(0, Math.round(input.openingDue || 0));
+
+    let created!: Party;
+    await db.transaction('rw', [db.parties, db.dueTransactions, db.auditLogs, db.syncQueue], async () => {
+      created = {
+        id: partyId,
+        name,
+        phone: input.phone.trim(),
+        address: input.address?.trim() || '',
+        role: input.role,
+        balance: 0,
+        dueReminderDate: null,
+        lastTransactionAt: openingDue > 0 ? now : null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await db.parties.add(created);
+
+      if (openingDue > 0) {
+        const direction: DueDirection = input.role === 'customer' ? 'given' : 'received';
+        const dueId = generateId();
+        const dueTxn: DueTransaction = {
+          id: dueId,
+          partyId,
+          partyRole: input.role,
+          direction,
+          source: 'manual_due',
+          sourceId: null,
+          moneyMovementId: null,
+          paymentMethod: null,
+          amount: openingDue,
+          runningBalance: direction === 'given' ? openingDue : -openingDue,
+          note: 'পূর্বের খাতার বাকি জের',
+          status: 'active',
+          date: now,
+          revision: 1,
+          createdAt: now,
+          updatedAt: now,
+        };
+        await db.dueTransactions.add(dueTxn);
+        await recomputePartyBalanceTx(db, partyId);
+        await enqueueSyncMutation(db, 'due_transaction', dueId, 'upsert', dueTxn);
+      }
+
+      const fresh = await db.parties.get(partyId);
+      if (fresh) created = fresh;
+
+      await appendAuditLog(db, {
+        entityType: 'party',
+        entityId: partyId,
+        action: 'create',
+        summary: `নতুন ${input.role === 'customer' ? 'কাস্টমার' : 'সাপ্লায়ার'} যোগ হয়েছে: ${name}`,
+        afterSnapshot: created,
+      });
+      await enqueueSyncMutation(db, 'party', partyId, 'upsert', created);
+    });
+
+    return created;
+  },
+
+  async updateParty(
+    partyId: string,
+    updates: { name: string; phone: string; address?: string; dueReminderDate?: string | null }
+  ): Promise<void> {
+    const db = getJomarkhataDb();
+    if (!updates.name.trim()) throw new Error('নাম লেখা বাধ্যতামূলক।');
+
+    await db.transaction('rw', [db.parties, db.auditLogs, db.syncQueue], async () => {
+      const existing = await db.parties.get(partyId);
+      if (!existing) throw new Error('পার্টি খুঁজে পাওয়া যায়নি।');
+
+      const next: Party = {
+        ...existing,
+        name: updates.name.trim(),
+        phone: updates.phone.trim(),
+        address: updates.address?.trim() ?? existing.address,
+        dueReminderDate:
+          updates.dueReminderDate !== undefined ? updates.dueReminderDate : existing.dueReminderDate,
+        updatedAt: new Date().toISOString(),
+      };
+      await db.parties.put(next);
+      await appendAuditLog(db, {
+        entityType: 'party',
+        entityId: partyId,
+        action: 'edit',
+        summary: `পার্টির তথ্য আপডেট হয়েছে: ${next.name}`,
+        beforeSnapshot: existing,
+        afterSnapshot: next,
+      });
+      await enqueueSyncMutation(db, 'party', partyId, 'upsert', next);
+    });
+  },
+
+  async setPartyDueReminder(partyId: string, dueReminderDate: string | null): Promise<void> {
+    const db = getJomarkhataDb();
+    await db.transaction('rw', [db.parties, db.syncQueue], async () => {
+      const existing = await db.parties.get(partyId);
+      if (!existing) return;
+      const next = { ...existing, dueReminderDate, updatedAt: new Date().toISOString() };
+      await db.parties.put(next);
+      await enqueueSyncMutation(db, 'party', partyId, 'upsert', next);
+    });
+  },
+
+  // =========================================================================
+  // Products & Stock (100% Optional Module)
+  // =========================================================================
+
+  async createProduct(input: {
+    name: string;
+    category: string;
+    unit: string;
+    purchasePrice: number;
+    sellingPrice: number;
+    stockQty: number;
+    lowStockThreshold: number;
+  }): Promise<Product> {
+    const db = getJomarkhataDb();
+    const name = input.name.trim();
+    if (!name) throw new Error('পণ্যের নাম লিখুন।');
+    if (input.sellingPrice < 0 || input.purchasePrice < 0) {
+      throw new Error('পণ্যের মূল্য শূন্য বা তার বেশি হতে হবে।');
+    }
+
+    const now = new Date().toISOString();
+    const id = generateId();
+    const product: Product = {
+      id,
+      name,
+      category: input.category || 'অন্যান্য',
+      unit: input.unit || 'পিস',
+      purchasePrice: Math.round(input.purchasePrice),
+      sellingPrice: Math.round(input.sellingPrice),
+      stockQty: Math.max(0, Number(input.stockQty) || 0),
+      lowStockThreshold: Math.max(0, Math.round(input.lowStockThreshold || 5)),
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await db.transaction('rw', [db.products, db.stockMovements, db.auditLogs, db.syncQueue], async () => {
+      await db.products.add(product);
+      if (product.stockQty > 0) {
+        const sm: StockMovement = {
+          id: generateId(),
+          productId: id,
+          productName: name,
+          deltaQty: product.stockQty,
+          reason: 'manual_add',
+          sourceType: 'manual',
+          note: 'প্রারম্ভিক স্টক',
+          date: now,
+          createdAt: now,
+        };
+        await db.stockMovements.add(sm);
+      }
+      await appendAuditLog(db, {
+        entityType: 'product',
+        entityId: id,
+        action: 'create',
+        summary: `নতুন পণ্য যোগ হয়েছে: ${name} (স্টক ${product.stockQty} ${product.unit})`,
+        afterSnapshot: product,
+      });
+      await enqueueSyncMutation(db, 'product', id, 'upsert', product);
+    });
+
+    return product;
+  },
+
+  async updateProduct(
+    productId: string,
+    updates: {
+      name: string;
+      category: string;
+      unit: string;
+      purchasePrice: number;
+      sellingPrice: number;
+      lowStockThreshold: number;
+    }
+  ): Promise<void> {
+    const db = getJomarkhataDb();
+    if (!updates.name.trim()) throw new Error('পণ্যের নাম লিখুন।');
+
+    await db.transaction('rw', [db.products, db.auditLogs, db.syncQueue], async () => {
+      const existing = await db.products.get(productId);
+      if (!existing) throw new Error('পণ্যটি খুঁজে পাওয়া যায়নি।');
+      const next: Product = {
+        ...existing,
+        name: updates.name.trim(),
+        category: updates.category || existing.category,
+        unit: updates.unit || existing.unit,
+        purchasePrice: Math.max(0, Math.round(updates.purchasePrice)),
+        sellingPrice: Math.max(0, Math.round(updates.sellingPrice)),
+        lowStockThreshold: Math.max(0, Math.round(updates.lowStockThreshold)),
+        updatedAt: new Date().toISOString(),
+      };
+      await db.products.put(next);
+      await appendAuditLog(db, {
+        entityType: 'product',
+        entityId: productId,
+        action: 'edit',
+        summary: `পণ্যের তথ্য আপডেট হয়েছে: ${next.name}`,
+        beforeSnapshot: existing,
+        afterSnapshot: next,
+      });
+      await enqueueSyncMutation(db, 'product', productId, 'upsert', next);
+    });
+  },
+
+  async adjustProductStock(productId: string, deltaQty: number, note?: string): Promise<void> {
+    const db = getJomarkhataDb();
+    if (!deltaQty || !Number.isFinite(deltaQty)) {
+      throw new Error('সঠিক স্টক পরিমাণ লিখুন।');
+    }
+
+    const now = new Date().toISOString();
+    await db.transaction('rw', [db.products, db.stockMovements, db.auditLogs, db.syncQueue], async () => {
+      const prod = await db.products.get(productId);
+      if (!prod) throw new Error('পণ্যটি খুঁজে পাওয়া যায়নি।');
+
+      const nextQty = Math.max(0, prod.stockQty + deltaQty);
+      const actualDelta = nextQty - prod.stockQty;
+      const updated: Product = { ...prod, stockQty: nextQty, updatedAt: now };
+      await db.products.put(updated);
+
+      const sm: StockMovement = {
+        id: generateId(),
+        productId,
+        productName: prod.name,
+        deltaQty: actualDelta,
+        reason: actualDelta >= 0 ? 'manual_add' : 'manual_remove',
+        sourceType: 'manual',
+        note: note?.trim() || (actualDelta >= 0 ? 'স্টক যোগ' : 'স্টক সমন্বয়'),
+        date: now,
+        createdAt: now,
+      };
+      await db.stockMovements.add(sm);
+      await appendAuditLog(db, {
+        entityType: 'product',
+        entityId: productId,
+        action: 'edit',
+        summary: `${prod.name} স্টক সমন্বয়: ${prod.stockQty} → ${nextQty} ${prod.unit}`,
+        beforeSnapshot: { stockQty: prod.stockQty },
+        afterSnapshot: { stockQty: nextQty },
+        reason: note?.trim() || null,
+      });
+      await enqueueSyncMutation(db, 'product', productId, 'upsert', updated);
+      await enqueueSyncMutation(db, 'stock_movement', sm.id, 'upsert', sm);
+    });
+  },
+
+  // =========================================================================
+  // Sales (Quick Sale & Product Sale) — Atomic Create, Edit & Void
+  // =========================================================================
+
+  async createSale(input: CreateSaleInput): Promise<SaleRecord> {
+    const db = getJomarkhataDb();
+    if (!input.items.length) {
+      throw new Error('বিক্রির পরিমাণ বা পণ্য যোগ করুন।');
+    }
+
+    const subtotal = Math.round(input.items.reduce((sum, i) => sum + i.lineTotal, 0));
+    const discount = Math.max(0, Math.round(input.discount || 0));
+    const total = Math.max(0, subtotal - discount);
+    if (total <= 0) {
+      throw new Error('বিক্রির মোট টাকা শূন্যের বেশি হতে হবে।');
+    }
+
+    const paidAmount = Math.min(total, Math.max(0, Math.round(input.paidAmount)));
+    const dueAmount = total - paidAmount;
+
+    // ACCOUNTING INVARIANT #2: Unassigned Credit Prevention
+    if (dueAmount > 0 && !input.partyId) {
+      throw new Error('বাকি রাখতে হলে কাস্টমার নির্বাচন করুন অথবা নতুন কাস্টমার যোগ করুন।');
+    }
+
+    const now = new Date().toISOString();
+    const saleDate = input.date || now;
+    const saleId = generateId();
+
+    let createdSale!: SaleRecord;
+
+    await db.transaction(
+      'rw',
+      [
+        db.sales,
+        db.products,
+        db.parties,
+        db.moneyMovements,
+        db.dueTransactions,
+        db.stockMovements,
+        db.auditLogs,
+        db.syncQueue,
+      ],
+      async () => {
+        let partyName = 'নগদ ক্রেতা';
+        if (input.partyId) {
+          const party = await db.parties.get(input.partyId);
+          if (!party) throw new Error('নির্বাচিত কাস্টমার খুঁজে পাওয়া যায়নি।');
+          partyName = party.name;
+        }
+
+        const invoiceNo = await nextInvoiceNumber(db, 'INV');
+
+        // 1. Canonical MoneyMovement ONLY if actual money received
+        let moneyMovementId: string | null = null;
+        if (paidAmount > 0) {
+          moneyMovementId = generateId();
+          const mm: MoneyMovement = {
+            id: moneyMovementId,
+            direction: 'in',
+            channel: input.paymentMethod,
+            sourceType: 'sale_payment',
+            sourceId: saleId,
+            partyId: input.partyId ?? null,
+            partyName,
+            amount: paidAmount,
+            note: `বিক্রি ${invoiceNo}`,
+            status: 'active',
+            date: saleDate,
+            createdAt: now,
+            updatedAt: now,
+          };
+          await db.moneyMovements.add(mm);
+          await enqueueSyncMutation(db, 'money_movement', mm.id, 'upsert', mm);
+        }
+
+        // 2. Credit DueTransaction ONLY if unpaid balance > 0 (moneyMovementId is null!)
+        let dueTransactionId: string | null = null;
+        if (dueAmount > 0 && input.partyId) {
+          dueTransactionId = generateId();
+          const dueTxn: DueTransaction = {
+            id: dueTransactionId,
+            partyId: input.partyId,
+            partyRole: 'customer',
+            direction: 'given',
+            source: 'sale',
+            sourceId: saleId,
+            moneyMovementId: null,
+            paymentMethod: null,
+            amount: dueAmount,
+            runningBalance: 0, // recomputed below
+            note: `বিক্রি ${invoiceNo} থেকে বাকি`,
+            status: 'active',
+            date: saleDate,
+            revision: 1,
+            createdAt: now,
+            updatedAt: now,
+          };
+          await db.dueTransactions.add(dueTxn);
+          await enqueueSyncMutation(db, 'due_transaction', dueTxn.id, 'upsert', dueTxn);
+        }
+
+        // 3. Deduct stock ONLY for product-linked items
+        for (const item of input.items) {
+          if (item.productId) {
+            const prod = await db.products.get(item.productId);
+            if (prod) {
+              const nextQty = Math.max(0, prod.stockQty - item.qty);
+              await db.products.update(prod.id, { stockQty: nextQty, updatedAt: now });
+              const sm: StockMovement = {
+                id: generateId(),
+                productId: prod.id,
+                productName: prod.name,
+                deltaQty: -item.qty,
+                reason: 'sale',
+                sourceType: 'sale',
+                sourceId: saleId,
+                note: `বিক্রি ${invoiceNo}`,
+                date: saleDate,
+                createdAt: now,
+              };
+              await db.stockMovements.add(sm);
+              await enqueueSyncMutation(db, 'stock_movement', sm.id, 'upsert', sm);
+            }
+          }
+        }
+
+        createdSale = {
+          id: saleId,
+          invoiceNo,
+          mode: input.mode,
+          status: 'active',
+          partyId: input.partyId ?? null,
+          partyName,
+          description: input.description?.trim() || undefined,
+          items: input.items,
+          subtotal,
+          discount,
+          total,
+          paidAmount,
+          dueAmount,
+          paymentMethod: input.paymentMethod,
+          moneyMovementId,
+          dueTransactionId,
+          note: input.note?.trim() || undefined,
+          date: saleDate,
+          revision: 1,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        await db.sales.add(createdSale);
+
+        if (input.partyId && dueAmount > 0) {
+          await recomputePartyBalanceTx(db, input.partyId);
+        }
+
+        await appendAuditLog(db, {
+          entityType: 'sale',
+          entityId: saleId,
+          action: 'create',
+          summary: `বিক্রি ${invoiceNo} (${partyName}) — মোট ${formatTaka(total)}, জমা ${formatTaka(paidAmount)}${dueAmount > 0 ? `, বাকি ${formatTaka(dueAmount)}` : ''}`,
+          afterSnapshot: createdSale,
+        });
+        await enqueueSyncMutation(db, 'sale', saleId, 'upsert', createdSale);
+      }
+    );
+
+    return createdSale;
+  },
+
+  async editSale(saleId: string, input: CreateSaleInput): Promise<SaleRecord> {
+    const db = getJomarkhataDb();
+    const subtotal = Math.round(input.items.reduce((sum, i) => sum + i.lineTotal, 0));
+    const discount = Math.max(0, Math.round(input.discount || 0));
+    const total = Math.max(0, subtotal - discount);
+    if (total <= 0) throw new Error('বিক্রির মোট টাকা শূন্যের বেশি হতে হবে।');
+
+    const paidAmount = Math.min(total, Math.max(0, Math.round(input.paidAmount)));
+    const dueAmount = total - paidAmount;
+
+    if (dueAmount > 0 && !input.partyId) {
+      throw new Error('বাকি রাখতে হলে কাস্টমার নির্বাচন করুন অথবা নতুন কাস্টমার যোগ করুন।');
+    }
+
+    const now = new Date().toISOString();
+    let updatedSale!: SaleRecord;
+
+    await db.transaction(
+      'rw',
+      [
+        db.sales,
+        db.products,
+        db.parties,
+        db.moneyMovements,
+        db.dueTransactions,
+        db.stockMovements,
+        db.auditLogs,
+        db.syncQueue,
+      ],
+      async () => {
+        const existing = await db.sales.get(saleId);
+        if (!existing) throw new Error('বিক্রির হিসাব খুঁজে পাওয়া যায়নি।');
+        if (existing.status === 'voided') throw new Error('বাতিলকৃত বিক্রি সংশোধন করা যাবে না।');
+
+        let partyName = 'নগদ ক্রেতা';
+        if (input.partyId) {
+          const party = await db.parties.get(input.partyId);
+          if (!party) throw new Error('নির্বাচিত কাস্টমার খুঁজে পাওয়া যায়নি।');
+          partyName = party.name;
+        }
+
+        const saleDate = input.date || existing.date;
+
+        // 1. Reverse previous product stock deductions, then apply new product deductions
+        const oldQtyByProd = new Map<string, number>();
+        for (const item of existing.items) {
+          if (item.productId) {
+            oldQtyByProd.set(item.productId, (oldQtyByProd.get(item.productId) || 0) + item.qty);
+          }
+        }
+        const newQtyByProd = new Map<string, number>();
+        for (const item of input.items) {
+          if (item.productId) {
+            newQtyByProd.set(item.productId, (newQtyByProd.get(item.productId) || 0) + item.qty);
+          }
+        }
+        const allProductIds = new Set([...oldQtyByProd.keys(), ...newQtyByProd.keys()]);
+        for (const pid of allProductIds) {
+          const oldQ = oldQtyByProd.get(pid) || 0;
+          const newQ = newQtyByProd.get(pid) || 0;
+          const stockDelta = oldQ - newQ; // positive means restore stock, negative means deduct more
+          if (stockDelta !== 0) {
+            const prod = await db.products.get(pid);
+            if (prod) {
+              await db.products.update(pid, {
+                stockQty: Math.max(0, prod.stockQty + stockDelta),
+                updatedAt: now,
+              });
+              const sm: StockMovement = {
+                id: generateId(),
+                productId: pid,
+                productName: prod.name,
+                deltaQty: stockDelta,
+                reason: 'edit_adjustment',
+                sourceType: 'sale',
+                sourceId: saleId,
+                note: `বিক্রি ${existing.invoiceNo} সংশোধন`,
+                date: now,
+                createdAt: now,
+              };
+              await db.stockMovements.add(sm);
+            }
+          }
+        }
+
+        // 2. Atomically sync linked canonical MoneyMovement
+        let moneyMovementId = existing.moneyMovementId ?? null;
+        if (paidAmount > 0) {
+          if (moneyMovementId) {
+            await db.moneyMovements.update(moneyMovementId, {
+              channel: input.paymentMethod,
+              partyId: input.partyId ?? null,
+              partyName,
+              amount: paidAmount,
+              status: 'active',
+              date: saleDate,
+              updatedAt: now,
+            });
+          } else {
+            moneyMovementId = generateId();
+            await db.moneyMovements.add({
+              id: moneyMovementId,
+              direction: 'in',
+              channel: input.paymentMethod,
+              sourceType: 'sale_payment',
+              sourceId: saleId,
+              partyId: input.partyId ?? null,
+              partyName,
+              amount: paidAmount,
+              note: `বিক্রি ${existing.invoiceNo}`,
+              status: 'active',
+              date: saleDate,
+              createdAt: now,
+              updatedAt: now,
+            });
+          }
+        } else if (moneyMovementId) {
+          await db.moneyMovements.update(moneyMovementId, {
+            status: 'voided',
+            updatedAt: now,
+          });
+          moneyMovementId = null;
+        }
+
+        // 3. Atomically sync linked DueTransaction
+        const affectedParties = new Set<string>();
+        if (existing.partyId) affectedParties.add(existing.partyId);
+        if (input.partyId) affectedParties.add(input.partyId);
+
+        let dueTransactionId = existing.dueTransactionId ?? null;
+        if (dueAmount > 0 && input.partyId) {
+          if (dueTransactionId) {
+            await db.dueTransactions.update(dueTransactionId, {
+              partyId: input.partyId,
+              amount: dueAmount,
+              status: 'active',
+              date: saleDate,
+              revision: existing.revision + 1,
+              updatedAt: now,
+            });
+          } else {
+            dueTransactionId = generateId();
+            await db.dueTransactions.add({
+              id: dueTransactionId,
+              partyId: input.partyId,
+              partyRole: 'customer',
+              direction: 'given',
+              source: 'sale',
+              sourceId: saleId,
+              moneyMovementId: null,
+              paymentMethod: null,
+              amount: dueAmount,
+              runningBalance: 0,
+              note: `বিক্রি ${existing.invoiceNo} থেকে বাকি`,
+              status: 'active',
+              date: saleDate,
+              revision: 1,
+              createdAt: now,
+              updatedAt: now,
+            });
+          }
+        } else if (dueTransactionId) {
+          await db.dueTransactions.update(dueTransactionId, {
+            status: 'voided',
+            voidedAt: now,
+            voidReason: 'বিক্রি সংশোধনের ফলে বাকি শূন্য হয়েছে',
+            updatedAt: now,
+          });
+          dueTransactionId = null;
+        }
+
+        updatedSale = {
+          ...existing,
+          mode: input.mode,
+          partyId: input.partyId ?? null,
+          partyName,
+          description: input.description?.trim() || undefined,
+          items: input.items,
+          subtotal,
+          discount,
+          total,
+          paidAmount,
+          dueAmount,
+          paymentMethod: input.paymentMethod,
+          moneyMovementId,
+          dueTransactionId,
+          note: input.note?.trim() || undefined,
+          date: saleDate,
+          revision: existing.revision + 1,
+          updatedAt: now,
+        };
+
+        await db.sales.put(updatedSale);
+
+        for (const pid of affectedParties) {
+          await recomputePartyBalanceTx(db, pid);
+        }
+
+        await appendAuditLog(db, {
+          entityType: 'sale',
+          entityId: saleId,
+          action: 'edit',
+          summary: `বিক্রি ${existing.invoiceNo} সংশোধন হয়েছে: ${formatTaka(existing.total)} → ${formatTaka(total)} (জমা ${formatTaka(paidAmount)})`,
+          beforeSnapshot: existing,
+          afterSnapshot: updatedSale,
+        });
+        await enqueueSyncMutation(db, 'sale', saleId, 'upsert', updatedSale);
+      }
+    );
+
+    return updatedSale;
+  },
+
+  async voidSale(saleId: string, reason?: string): Promise<void> {
+    const db = getJomarkhataDb();
+    const now = new Date().toISOString();
+    const cleanReason = reason?.trim() || 'ব্যবহারকারী কর্তৃক বাতিল';
+
+    await db.transaction(
+      'rw',
+      [
+        db.sales,
+        db.products,
+        db.parties,
+        db.moneyMovements,
+        db.dueTransactions,
+        db.stockMovements,
+        db.auditLogs,
+        db.syncQueue,
+      ],
+      async () => {
+        const existing = await db.sales.get(saleId);
+        if (!existing) throw new Error('বিক্রির হিসাব পাওয়া যায়নি।');
+        if (existing.status === 'voided') return;
+
+        // 1. Mark Sale voided (never silently hard-delete!)
+        const voided: SaleRecord = {
+          ...existing,
+          status: 'voided',
+          voidedAt: now,
+          voidReason: cleanReason,
+          updatedAt: now,
+        };
+        await db.sales.put(voided);
+
+        // 2. Void linked MoneyMovement atomically
+        if (existing.moneyMovementId) {
+          await db.moneyMovements.update(existing.moneyMovementId, {
+            status: 'voided',
+            updatedAt: now,
+          });
+        }
+
+        // 3. Void linked DueTransaction & recompute party balance
+        if (existing.dueTransactionId) {
+          await db.dueTransactions.update(existing.dueTransactionId, {
+            status: 'voided',
+            voidedAt: now,
+            voidReason: cleanReason,
+            updatedAt: now,
+          });
+        }
+        if (existing.partyId) {
+          await recomputePartyBalanceTx(db, existing.partyId);
+        }
+
+        // 4. Restore deducted product stock via void_reversal movement
+        for (const item of existing.items) {
+          if (item.productId) {
+            const prod = await db.products.get(item.productId);
+            if (prod) {
+              await db.products.update(prod.id, {
+                stockQty: prod.stockQty + item.qty,
+                updatedAt: now,
+              });
+              await db.stockMovements.add({
+                id: generateId(),
+                productId: prod.id,
+                productName: prod.name,
+                deltaQty: item.qty,
+                reason: 'void_reversal',
+                sourceType: 'sale',
+                sourceId: saleId,
+                note: `বিক্রি ${existing.invoiceNo} বাতিল — স্টক ফেরত`,
+                date: now,
+                createdAt: now,
+              });
+            }
+          }
+        }
+
+        await appendAuditLog(db, {
+          entityType: 'sale',
+          entityId: saleId,
+          action: 'void',
+          summary: `বিক্রি ${existing.invoiceNo} বাতিল করা হয়েছে (${formatTaka(existing.total)} রিভার্সড)`,
+          beforeSnapshot: existing,
+          afterSnapshot: voided,
+          reason: cleanReason,
+        });
+        await enqueueSyncMutation(db, 'sale', saleId, 'void', voided);
+      }
+    );
+  },
+
+  // =========================================================================
+  // Purchases (Quick & Product) — Atomic Create, Edit & Void
+  // =========================================================================
+
+  async createPurchase(input: CreatePurchaseInput): Promise<PurchaseRecord> {
+    const db = getJomarkhataDb();
+    if (!input.items.length) throw new Error('ক্রয়ের পরিমাণ বা পণ্য যোগ করুন।');
+
+    const total = Math.round(input.items.reduce((sum, i) => sum + i.lineTotal, 0));
+    if (total <= 0) throw new Error('ক্রয়ের মোট টাকা শূন্যের বেশি হতে হবে।');
+
+    const paidAmount = Math.min(total, Math.max(0, Math.round(input.paidAmount)));
+    const dueAmount = total - paidAmount;
+
+    if (dueAmount > 0 && !input.partyId) {
+      throw new Error('বাকি রাখতে হলে সাপ্লায়ার নির্বাচন করুন অথবা নতুন সাপ্লায়ার যোগ করুন।');
+    }
+
+    const now = new Date().toISOString();
+    const purchaseDate = input.date || now;
+    const purchaseId = generateId();
+    let createdPurchase!: PurchaseRecord;
+
+    await db.transaction(
+      'rw',
+      [
+        db.purchases,
+        db.products,
+        db.parties,
+        db.moneyMovements,
+        db.dueTransactions,
+        db.stockMovements,
+        db.auditLogs,
+        db.syncQueue,
+      ],
+      async () => {
+        let partyName = 'নগদ সরবরাহকারী';
+        if (input.partyId) {
+          const party = await db.parties.get(input.partyId);
+          if (!party) throw new Error('নির্বাচিত সাপ্লায়ার খুঁজে পাওয়া যায়নি।');
+          partyName = party.name;
+        }
+
+        const billNo = await nextInvoiceNumber(db, 'BILL');
+
+        let moneyMovementId: string | null = null;
+        if (paidAmount > 0) {
+          moneyMovementId = generateId();
+          const mm: MoneyMovement = {
+            id: moneyMovementId,
+            direction: 'out',
+            channel: input.paymentMethod,
+            sourceType: 'purchase_payment',
+            sourceId: purchaseId,
+            partyId: input.partyId ?? null,
+            partyName,
+            amount: paidAmount,
+            note: `ক্রয় ${billNo}`,
+            status: 'active',
+            date: purchaseDate,
+            createdAt: now,
+            updatedAt: now,
+          };
+          await db.moneyMovements.add(mm);
+          await enqueueSyncMutation(db, 'money_movement', mm.id, 'upsert', mm);
+        }
+
+        let dueTransactionId: string | null = null;
+        if (dueAmount > 0 && input.partyId) {
+          dueTransactionId = generateId();
+          const dueTxn: DueTransaction = {
+            id: dueTransactionId,
+            partyId: input.partyId,
+            partyRole: 'supplier',
+            direction: 'received', // negative balance = payable (দিবো)
+            source: 'purchase',
+            sourceId: purchaseId,
+            moneyMovementId: null,
+            paymentMethod: null,
+            amount: dueAmount,
+            runningBalance: 0,
+            note: `ক্রয় ${billNo} থেকে সাপ্লায়ার বাকি`,
+            status: 'active',
+            date: purchaseDate,
+            revision: 1,
+            createdAt: now,
+            updatedAt: now,
+          };
+          await db.dueTransactions.add(dueTxn);
+          await enqueueSyncMutation(db, 'due_transaction', dueTxn.id, 'upsert', dueTxn);
+        }
+
+        for (const item of input.items) {
+          if (item.productId) {
+            const prod = await db.products.get(item.productId);
+            if (prod) {
+              await db.products.update(prod.id, {
+                stockQty: prod.stockQty + item.qty,
+                purchasePrice: item.unitPrice > 0 ? Math.round(item.unitPrice) : prod.purchasePrice,
+                updatedAt: now,
+              });
+              await db.stockMovements.add({
+                id: generateId(),
+                productId: prod.id,
+                productName: prod.name,
+                deltaQty: item.qty,
+                reason: 'purchase',
+                sourceType: 'purchase',
+                sourceId: purchaseId,
+                note: `ক্রয় ${billNo}`,
+                date: purchaseDate,
+                createdAt: now,
+              });
+            }
+          }
+        }
+
+        createdPurchase = {
+          id: purchaseId,
+          billNo,
+          mode: input.mode,
+          status: 'active',
+          partyId: input.partyId ?? null,
+          partyName,
+          description: input.description?.trim() || undefined,
+          items: input.items,
+          total,
+          paidAmount,
+          dueAmount,
+          paymentMethod: input.paymentMethod,
+          moneyMovementId,
+          dueTransactionId,
+          note: input.note?.trim() || undefined,
+          date: purchaseDate,
+          revision: 1,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        await db.purchases.add(createdPurchase);
+
+        if (input.partyId && dueAmount > 0) {
+          await recomputePartyBalanceTx(db, input.partyId);
+        }
+
+        await appendAuditLog(db, {
+          entityType: 'purchase',
+          entityId: purchaseId,
+          action: 'create',
+          summary: `ক্রয় ${billNo} (${partyName}) — মোট ${formatTaka(total)}, পরিশোধ ${formatTaka(paidAmount)}`,
+          afterSnapshot: createdPurchase,
+        });
+        await enqueueSyncMutation(db, 'purchase', purchaseId, 'upsert', createdPurchase);
+      }
+    );
+
+    return createdPurchase;
+  },
+
+  async editPurchase(purchaseId: string, input: CreatePurchaseInput): Promise<PurchaseRecord> {
+    const db = getJomarkhataDb();
+    const total = Math.round(input.items.reduce((sum, i) => sum + i.lineTotal, 0));
+    if (total <= 0) throw new Error('ক্রয়ের মোট টাকা শূন্যের বেশি হতে হবে।');
+
+    const paidAmount = Math.min(total, Math.max(0, Math.round(input.paidAmount)));
+    const dueAmount = total - paidAmount;
+
+    if (dueAmount > 0 && !input.partyId) {
+      throw new Error('বাকি রাখতে হলে সাপ্লায়ার নির্বাচন করুন অথবা নতুন সাপ্লায়ার যোগ করুন।');
+    }
+
+    const now = new Date().toISOString();
+    let updatedPurchase!: PurchaseRecord;
+
+    await db.transaction(
+      'rw',
+      [
+        db.purchases,
+        db.products,
+        db.parties,
+        db.moneyMovements,
+        db.dueTransactions,
+        db.stockMovements,
+        db.auditLogs,
+        db.syncQueue,
+      ],
+      async () => {
+        const existing = await db.purchases.get(purchaseId);
+        if (!existing) throw new Error('ক্রয়ের হিসাব পাওয়া যায়নি।');
+        if (existing.status === 'voided') throw new Error('বাতিলকৃত ক্রয় সংশোধন করা যাবে না।');
+
+        let partyName = 'নগদ সরবরাহকারী';
+        if (input.partyId) {
+          const party = await db.parties.get(input.partyId);
+          if (!party) throw new Error('নির্বাচিত সাপ্লায়ার খুঁজে পাওয়া যায়নি।');
+          partyName = party.name;
+        }
+
+        const purchaseDate = input.date || existing.date;
+
+        // Reconcile product stock deltas
+        const oldQtyByProd = new Map<string, number>();
+        for (const item of existing.items) {
+          if (item.productId) {
+            oldQtyByProd.set(item.productId, (oldQtyByProd.get(item.productId) || 0) + item.qty);
+          }
+        }
+        const newQtyByProd = new Map<string, number>();
+        for (const item of input.items) {
+          if (item.productId) {
+            newQtyByProd.set(item.productId, (newQtyByProd.get(item.productId) || 0) + item.qty);
+          }
+        }
+        const allProductIds = new Set([...oldQtyByProd.keys(), ...newQtyByProd.keys()]);
+        for (const pid of allProductIds) {
+          const delta = (newQtyByProd.get(pid) || 0) - (oldQtyByProd.get(pid) || 0);
+          if (delta !== 0) {
+            const prod = await db.products.get(pid);
+            if (prod) {
+              await db.products.update(pid, {
+                stockQty: Math.max(0, prod.stockQty + delta),
+                updatedAt: now,
+              });
+              await db.stockMovements.add({
+                id: generateId(),
+                productId: pid,
+                productName: prod.name,
+                deltaQty: delta,
+                reason: 'edit_adjustment',
+                sourceType: 'purchase',
+                sourceId: purchaseId,
+                note: `ক্রয় ${existing.billNo} সংশোধন`,
+                date: now,
+                createdAt: now,
+              });
+            }
+          }
+        }
+
+        // Sync linked MoneyMovement
+        let moneyMovementId = existing.moneyMovementId ?? null;
+        if (paidAmount > 0) {
+          if (moneyMovementId) {
+            await db.moneyMovements.update(moneyMovementId, {
+              channel: input.paymentMethod,
+              partyId: input.partyId ?? null,
+              partyName,
+              amount: paidAmount,
+              status: 'active',
+              date: purchaseDate,
+              updatedAt: now,
+            });
+          } else {
+            moneyMovementId = generateId();
+            await db.moneyMovements.add({
+              id: moneyMovementId,
+              direction: 'out',
+              channel: input.paymentMethod,
+              sourceType: 'purchase_payment',
+              sourceId: purchaseId,
+              partyId: input.partyId ?? null,
+              partyName,
+              amount: paidAmount,
+              note: `ক্রয় ${existing.billNo}`,
+              status: 'active',
+              date: purchaseDate,
+              createdAt: now,
+              updatedAt: now,
+            });
+          }
+        } else if (moneyMovementId) {
+          await db.moneyMovements.update(moneyMovementId, { status: 'voided', updatedAt: now });
+          moneyMovementId = null;
+        }
+
+        // Sync linked DueTransaction
+        const affectedParties = new Set<string>();
+        if (existing.partyId) affectedParties.add(existing.partyId);
+        if (input.partyId) affectedParties.add(input.partyId);
+
+        let dueTransactionId = existing.dueTransactionId ?? null;
+        if (dueAmount > 0 && input.partyId) {
+          if (dueTransactionId) {
+            await db.dueTransactions.update(dueTransactionId, {
+              partyId: input.partyId,
+              amount: dueAmount,
+              status: 'active',
+              date: purchaseDate,
+              revision: existing.revision + 1,
+              updatedAt: now,
+            });
+          } else {
+            dueTransactionId = generateId();
+            await db.dueTransactions.add({
+              id: dueTransactionId,
+              partyId: input.partyId,
+              partyRole: 'supplier',
+              direction: 'received',
+              source: 'purchase',
+              sourceId: purchaseId,
+              moneyMovementId: null,
+              paymentMethod: null,
+              amount: dueAmount,
+              runningBalance: 0,
+              note: `ক্রয় ${existing.billNo} থেকে সাপ্লায়ার বাকি`,
+              status: 'active',
+              date: purchaseDate,
+              revision: 1,
+              createdAt: now,
+              updatedAt: now,
+            });
+          }
+        } else if (dueTransactionId) {
+          await db.dueTransactions.update(dueTransactionId, {
+            status: 'voided',
+            voidedAt: now,
+            voidReason: 'ক্রয় সংশোধনের ফলে বাকি শূন্য হয়েছে',
+            updatedAt: now,
+          });
+          dueTransactionId = null;
+        }
+
+        updatedPurchase = {
+          ...existing,
+          mode: input.mode,
+          partyId: input.partyId ?? null,
+          partyName,
+          description: input.description?.trim() || undefined,
+          items: input.items,
+          total,
+          paidAmount,
+          dueAmount,
+          paymentMethod: input.paymentMethod,
+          moneyMovementId,
+          dueTransactionId,
+          note: input.note?.trim() || undefined,
+          date: purchaseDate,
+          revision: existing.revision + 1,
+          updatedAt: now,
+        };
+
+        await db.purchases.put(updatedPurchase);
+
+        for (const pid of affectedParties) {
+          await recomputePartyBalanceTx(db, pid);
+        }
+
+        await appendAuditLog(db, {
+          entityType: 'purchase',
+          entityId: purchaseId,
+          action: 'edit',
+          summary: `ক্রয় ${existing.billNo} সংশোধন হয়েছে: ${formatTaka(existing.total)} → ${formatTaka(total)}`,
+          beforeSnapshot: existing,
+          afterSnapshot: updatedPurchase,
+        });
+        await enqueueSyncMutation(db, 'purchase', purchaseId, 'upsert', updatedPurchase);
+      }
+    );
+
+    return updatedPurchase;
+  },
+
+  async voidPurchase(purchaseId: string, reason?: string): Promise<void> {
+    const db = getJomarkhataDb();
+    const now = new Date().toISOString();
+    const cleanReason = reason?.trim() || 'ব্যবহারকারী কর্তৃক বাতিল';
+
+    await db.transaction(
+      'rw',
+      [
+        db.purchases,
+        db.products,
+        db.parties,
+        db.moneyMovements,
+        db.dueTransactions,
+        db.stockMovements,
+        db.auditLogs,
+        db.syncQueue,
+      ],
+      async () => {
+        const existing = await db.purchases.get(purchaseId);
+        if (!existing || existing.status === 'voided') return;
+
+        const voided: PurchaseRecord = {
+          ...existing,
+          status: 'voided',
+          voidedAt: now,
+          voidReason: cleanReason,
+          updatedAt: now,
+        };
+        await db.purchases.put(voided);
+
+        if (existing.moneyMovementId) {
+          await db.moneyMovements.update(existing.moneyMovementId, {
+            status: 'voided',
+            updatedAt: now,
+          });
+        }
+        if (existing.dueTransactionId) {
+          await db.dueTransactions.update(existing.dueTransactionId, {
+            status: 'voided',
+            voidedAt: now,
+            voidReason: cleanReason,
+            updatedAt: now,
+          });
+        }
+        if (existing.partyId) {
+          await recomputePartyBalanceTx(db, existing.partyId);
+        }
+
+        for (const item of existing.items) {
+          if (item.productId) {
+            const prod = await db.products.get(item.productId);
+            if (prod) {
+              await db.products.update(prod.id, {
+                stockQty: Math.max(0, prod.stockQty - item.qty),
+                updatedAt: now,
+              });
+              await db.stockMovements.add({
+                id: generateId(),
+                productId: prod.id,
+                productName: prod.name,
+                deltaQty: -item.qty,
+                reason: 'void_reversal',
+                sourceType: 'purchase',
+                sourceId: purchaseId,
+                note: `ক্রয় ${existing.billNo} বাতিল — স্টক বাদ`,
+                date: now,
+                createdAt: now,
+              });
+            }
+          }
+        }
+
+        await appendAuditLog(db, {
+          entityType: 'purchase',
+          entityId: purchaseId,
+          action: 'void',
+          summary: `ক্রয় ${existing.billNo} বাতিল করা হয়েছে (${formatTaka(existing.total)} রিভার্সড)`,
+          beforeSnapshot: existing,
+          afterSnapshot: voided,
+          reason: cleanReason,
+        });
+        await enqueueSyncMutation(db, 'purchase', purchaseId, 'void', voided);
+      }
+    );
+  },
+
+  // =========================================================================
+  // Party Collections (নিচ্ছি), Supplier Payments (দিচ্ছি) & Manual Dues
+  // =========================================================================
+
+  async recordDueEntry(input: RecordDueEntryInput): Promise<DueTransaction> {
+    const db = getJomarkhataDb();
+    const amount = Math.round(input.amount);
+    if (amount <= 0) throw new Error('টাকার পরিমাণ শূন্যের বেশি হতে হবে।');
+    if (!input.partyId) throw new Error('কাস্টমার বা সাপ্লায়ার নির্বাচন করুন।');
+
+    const now = new Date().toISOString();
+    const txnDate = input.date || now;
+    const dueId = generateId();
+    const channel: PaymentChannel = input.paymentMethod || 'cash';
+
+    let created!: DueTransaction;
+
+    await db.transaction(
+      'rw',
+      [db.parties, db.dueTransactions, db.moneyMovements, db.auditLogs, db.syncQueue],
+      async () => {
+        const party = await db.parties.get(input.partyId);
+        if (!party) throw new Error('পার্টি খুঁজে পাওয়া যায়নি।');
+
+        let direction: DueDirection;
+        let source: DueTransaction['source'];
+        let moneyMovementId: string | null = null;
+        let usedPaymentMethod: PaymentChannel | null = null;
+        let defaultNote = '';
+
+        if (input.entryType === 'customer_collection') {
+          direction = 'received';
+          source = 'customer_collection';
+          usedPaymentMethod = channel;
+          moneyMovementId = generateId();
+          defaultNote = 'বাকি আদায় (নিচ্ছি)';
+          const mm: MoneyMovement = {
+            id: moneyMovementId,
+            direction: 'in',
+            channel,
+            sourceType: 'customer_collection',
+            sourceId: dueId,
+            partyId: party.id,
+            partyName: party.name,
+            amount,
+            note: input.note?.trim() || defaultNote,
+            status: 'active',
+            date: txnDate,
+            createdAt: now,
+            updatedAt: now,
+          };
+          await db.moneyMovements.add(mm);
+          await enqueueSyncMutation(db, 'money_movement', mm.id, 'upsert', mm);
+        } else if (input.entryType === 'supplier_payment') {
+          direction = 'given';
+          source = 'supplier_payment';
+          usedPaymentMethod = channel;
+          moneyMovementId = generateId();
+          defaultNote = 'সাপ্লায়ার পরিশোধ (দিচ্ছি)';
+          const mm: MoneyMovement = {
+            id: moneyMovementId,
+            direction: 'out',
+            channel,
+            sourceType: 'supplier_payment',
+            sourceId: dueId,
+            partyId: party.id,
+            partyName: party.name,
+            amount,
+            note: input.note?.trim() || defaultNote,
+            status: 'active',
+            date: txnDate,
+            createdAt: now,
+            updatedAt: now,
+          };
+          await db.moneyMovements.add(mm);
+          await enqueueSyncMutation(db, 'money_movement', mm.id, 'upsert', mm);
+        } else if (input.entryType === 'manual_due_given') {
+          direction = 'given';
+          source = 'manual_due';
+          defaultNote = 'বাকি দিচ্ছি';
+        } else {
+          direction = 'received';
+          source = 'manual_due';
+          defaultNote = 'বাকি নিচ্ছি';
+        }
+
+        created = {
+          id: dueId,
+          partyId: party.id,
+          partyRole: party.role,
+          direction,
+          source,
+          sourceId: null,
+          moneyMovementId,
+          paymentMethod: usedPaymentMethod,
+          amount,
+          runningBalance: 0,
+          note: input.note?.trim() || defaultNote,
+          status: 'active',
+          date: txnDate,
+          revision: 1,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        await db.dueTransactions.add(created);
+        await recomputePartyBalanceTx(db, party.id);
+
+        const refreshed = await db.dueTransactions.get(dueId);
+        if (refreshed) created = refreshed;
+
+        await appendAuditLog(db, {
+          entityType: 'due_transaction',
+          entityId: dueId,
+          action: 'create',
+          summary: `${party.name} — ${defaultNote} ${formatTaka(amount)}`,
+          afterSnapshot: created,
+        });
+        await enqueueSyncMutation(db, 'due_transaction', dueId, 'upsert', created);
+      }
+    );
+
+    return created;
+  },
+
+  async editDueEntry(
+    dueId: string,
+    updates: { amount: number; paymentMethod?: PaymentChannel; note?: string; date?: string }
+  ): Promise<void> {
+    const db = getJomarkhataDb();
+    const amount = Math.round(updates.amount);
+    if (amount <= 0) throw new Error('টাকার পরিমাণ শূন্যের বেশি হতে হবে।');
+
+    const now = new Date().toISOString();
+    await db.transaction(
+      'rw',
+      [db.parties, db.dueTransactions, db.moneyMovements, db.auditLogs, db.syncQueue],
+      async () => {
+        const existing = await db.dueTransactions.get(dueId);
+        if (!existing) throw new Error('বাকির এন্ট্রি পাওয়া যায়নি।');
+        if (existing.status === 'voided') throw new Error('বাতিলকৃত এন্ট্রি সংশোধন করা যাবে না।');
+        if (existing.source === 'sale' || existing.source === 'purchase') {
+          throw new Error('বিক্রি বা ক্রয় থেকে তৈরি বাকি মূল ইনভয়েস থেকেই সংশোধন করুন।');
+        }
+
+        const nextDate = updates.date || existing.date;
+        const nextChannel = updates.paymentMethod || existing.paymentMethod || 'cash';
+
+        if (existing.moneyMovementId) {
+          await db.moneyMovements.update(existing.moneyMovementId, {
+            amount,
+            channel: nextChannel,
+            note: updates.note?.trim() ?? existing.note,
+            date: nextDate,
+            updatedAt: now,
+          });
+        }
+
+        const next: DueTransaction = {
+          ...existing,
+          amount,
+          paymentMethod: existing.moneyMovementId ? nextChannel : existing.paymentMethod,
+          note: updates.note?.trim() ?? existing.note,
+          date: nextDate,
+          revision: existing.revision + 1,
+          updatedAt: now,
+        };
+        await db.dueTransactions.put(next);
+        await recomputePartyBalanceTx(db, existing.partyId);
+
+        await appendAuditLog(db, {
+          entityType: 'due_transaction',
+          entityId: dueId,
+          action: 'edit',
+          summary: `বাকি লেনদেন সংশোধন হয়েছে: ${formatTaka(existing.amount)} → ${formatTaka(amount)}`,
+          beforeSnapshot: existing,
+          afterSnapshot: next,
+        });
+        await enqueueSyncMutation(db, 'due_transaction', dueId, 'upsert', next);
+      }
+    );
+  },
+
+  async voidDueEntry(dueId: string, reason?: string): Promise<void> {
+    const db = getJomarkhataDb();
+    const now = new Date().toISOString();
+    const cleanReason = reason?.trim() || 'ব্যবহারকারী কর্তৃক বাতিল';
+
+    await db.transaction(
+      'rw',
+      [db.parties, db.dueTransactions, db.moneyMovements, db.auditLogs, db.syncQueue],
+      async () => {
+        const existing = await db.dueTransactions.get(dueId);
+        if (!existing || existing.status === 'voided') return;
+        if (existing.source === 'sale' || existing.source === 'purchase') {
+          throw new Error('বিক্রি বা ক্রয় থেকে তৈরি বাকি মূল ইনভয়েস থেকে বাতিল করুন।');
+        }
+
+        const voided: DueTransaction = {
+          ...existing,
+          status: 'voided',
+          voidedAt: now,
+          voidReason: cleanReason,
+          updatedAt: now,
+        };
+        await db.dueTransactions.put(voided);
+
+        if (existing.moneyMovementId) {
+          await db.moneyMovements.update(existing.moneyMovementId, {
+            status: 'voided',
+            updatedAt: now,
+          });
+        }
+
+        await recomputePartyBalanceTx(db, existing.partyId);
+
+        await appendAuditLog(db, {
+          entityType: 'due_transaction',
+          entityId: dueId,
+          action: 'void',
+          summary: `বাকি লেনদেন বাতিল করা হয়েছে (${formatTaka(existing.amount)} রিভার্সড)`,
+          beforeSnapshot: existing,
+          afterSnapshot: voided,
+          reason: cleanReason,
+        });
+        await enqueueSyncMutation(db, 'due_transaction', dueId, 'void', voided);
+      }
+    );
+  },
+
+  // =========================================================================
+  // Direct-Amount Expenses — Atomic Create, Edit & Void
+  // =========================================================================
+
+  async createExpense(input: CreateExpenseInput): Promise<ExpenseRecord> {
+    const db = getJomarkhataDb();
+    const amount = Math.round(input.amount);
+    if (amount <= 0) throw new Error('খরচের পরিমাণ শূন্যের বেশি হতে হবে।');
+
+    const now = new Date().toISOString();
+    const expDate = input.date || now;
+    const expId = generateId();
+    const mmId = generateId();
+    const category = input.category?.trim() || 'অন্যান্য';
+    const title = input.title?.trim() || category;
+
+    let created!: ExpenseRecord;
+
+    await db.transaction('rw', [db.expenses, db.moneyMovements, db.auditLogs, db.syncQueue], async () => {
+      const mm: MoneyMovement = {
+        id: mmId,
+        direction: 'out',
+        channel: input.paymentMethod,
+        sourceType: 'expense',
+        sourceId: expId,
+        amount,
+        note: title,
+        status: 'active',
+        date: expDate,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await db.moneyMovements.add(mm);
+
+      created = {
+        id: expId,
+        category,
+        title,
+        amount,
+        paymentMethod: input.paymentMethod,
+        moneyMovementId: mmId,
+        note: input.note?.trim() || undefined,
+        status: 'active',
+        date: expDate,
+        revision: 1,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await db.expenses.add(created);
+
+      await appendAuditLog(db, {
+        entityType: 'expense',
+        entityId: expId,
+        action: 'create',
+        summary: `খরচ যোগ হয়েছে: ${title} (${formatTaka(amount)})`,
+        afterSnapshot: created,
+      });
+      await enqueueSyncMutation(db, 'expense', expId, 'upsert', created);
+      await enqueueSyncMutation(db, 'money_movement', mmId, 'upsert', mm);
+    });
+
+    return created;
+  },
+
+  async editExpense(expenseId: string, input: CreateExpenseInput): Promise<void> {
+    const db = getJomarkhataDb();
+    const amount = Math.round(input.amount);
+    if (amount <= 0) throw new Error('খরচের পরিমাণ শূন্যের বেশি হতে হবে।');
+
+    const now = new Date().toISOString();
+    await db.transaction('rw', [db.expenses, db.moneyMovements, db.auditLogs, db.syncQueue], async () => {
+      const existing = await db.expenses.get(expenseId);
+      if (!existing) throw new Error('খরচটি পাওয়া যায়নি।');
+      if (existing.status === 'voided') throw new Error('বাতিলকৃত খরচ সংশোধন করা যাবে না।');
+
+      const category = input.category?.trim() || existing.category;
+      const title = input.title?.trim() || category;
+      const expDate = input.date || existing.date;
+
+      const next: ExpenseRecord = {
+        ...existing,
+        category,
+        title,
+        amount,
+        paymentMethod: input.paymentMethod,
+        note: input.note?.trim() || undefined,
+        date: expDate,
+        revision: existing.revision + 1,
+        updatedAt: now,
+      };
+      await db.expenses.put(next);
+
+      await db.moneyMovements.update(existing.moneyMovementId, {
+        channel: input.paymentMethod,
+        amount,
+        note: title,
+        date: expDate,
+        updatedAt: now,
+      });
+
+      await appendAuditLog(db, {
+        entityType: 'expense',
+        entityId: expenseId,
+        action: 'edit',
+        summary: `খরচ "${title}" সংশোধন হয়েছে: ${formatTaka(existing.amount)} → ${formatTaka(amount)}`,
+        beforeSnapshot: existing,
+        afterSnapshot: next,
+      });
+      await enqueueSyncMutation(db, 'expense', expenseId, 'upsert', next);
+    });
+  },
+
+  async voidExpense(expenseId: string, reason?: string): Promise<void> {
+    const db = getJomarkhataDb();
+    const now = new Date().toISOString();
+    const cleanReason = reason?.trim() || 'ব্যবহারকারী কর্তৃক বাতিল';
+
+    await db.transaction('rw', [db.expenses, db.moneyMovements, db.auditLogs, db.syncQueue], async () => {
+      const existing = await db.expenses.get(expenseId);
+      if (!existing || existing.status === 'voided') return;
+
+      const voided: ExpenseRecord = {
+        ...existing,
+        status: 'voided',
+        voidedAt: now,
+        voidReason: cleanReason,
+        updatedAt: now,
+      };
+      await db.expenses.put(voided);
+
+      await db.moneyMovements.update(existing.moneyMovementId, {
+        status: 'voided',
+        updatedAt: now,
+      });
+
+      await appendAuditLog(db, {
+        entityType: 'expense',
+        entityId: expenseId,
+        action: 'void',
+        summary: `খরচ "${existing.title}" বাতিল করা হয়েছে (${formatTaka(existing.amount)} রিভার্সড)`,
+        beforeSnapshot: existing,
+        afterSnapshot: voided,
+        reason: cleanReason,
+      });
+      await enqueueSyncMutation(db, 'expense', expenseId, 'void', voided);
+    });
+  },
+};

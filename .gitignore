@@ -1,0 +1,43 @@
+# Dependencies & build output
+node_modules/
+.next/
+out/
+build/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Secrets — never commit (only .env.example is allowed)
+.env*
+!.env.example
+*.pem
+*.key
+.vercel/
+
+# AI tools / coding-agent artifacts — never commit
+.aistudio/
+.antigravity/
+.agent/
+.agents/
+.claude/
+.cursor/
+.cursorrules
+.gemini/
+.windsurf/
+.codeium/
+.continue/
+.aider*
+.copilot/
+.github/copilot-instructions.md
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+metadata.json
+public/assets/aistudio/
+# Foreign lockfile (this project uses npm / package-lock.json)
+bun.lock
+
+# OS / logs
+.DS_Store
+Thumbs.db
+*.log

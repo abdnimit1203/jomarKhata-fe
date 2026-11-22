@@ -1,0 +1,397 @@
+'use client';
+
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  jomarkhataService,
+  type AppDataSnapshot,
+  type CreateExpenseInput,
+  type CreatePurchaseInput,
+  type CreateSaleInput,
+  type RecordDueEntryInput,
+} from '@/services/jomarkhataService';
+import { computeCurrentBalances } from '@/services/financeCalculator';
+import type {
+  AppRoute,
+  ChannelOpeningBalances,
+  CurrentBalancesSummary,
+  DueTransaction,
+  ExpenseRecord,
+  Party,
+  PartyRole,
+  Product,
+  PurchaseRecord,
+  SaleRecord,
+} from '@/types/domain';
+
+export interface ToastMessage {
+  id: string;
+  type: 'success' | 'error' | 'info';
+  text: string;
+}
+
+export type ActiveSheet =
+  | { type: 'none' }
+  | { type: 'sale'; editSale?: SaleRecord | null }
+  | { type: 'purchase'; editPurchase?: PurchaseRecord | null }
+  | {
+      type: 'due';
+      partyId?: string | null;
+      defaultEntryType?: RecordDueEntryInput['entryType'];
+      editDue?: DueTransaction | null;
+    }
+  | { type: 'expense'; editExpense?: ExpenseRecord | null }
+  | { type: 'product'; editProduct?: Product | null }
+  | { type: 'stock_adjust'; product: Product }
+  | { type: 'party'; defaultRole?: PartyRole; editParty?: Party | null }
+  | {
+      type: 'transaction_detail';
+      sourceType: 'sale' | 'purchase' | 'due_transaction' | 'expense';
+      sourceId: string;
+    };
+
+interface JomarkhataContextValue {
+  data: AppDataSnapshot | null;
+  isLoading: boolean;
+  error: string | null;
+  currentBalances: CurrentBalancesSummary;
+  activeRoute: AppRoute;
+  selectedPartyId: string | null;
+  activeSheet: ActiveSheet;
+  toasts: ToastMessage[];
+  navigate: (route: AppRoute, options?: { partyId?: string | null }) => void;
+  setSelectedPartyId: (partyId: string | null) => void;
+  openSheet: (sheet: ActiveSheet) => void;
+  closeSheet: () => void;
+  showToast: (text: string, type?: ToastMessage['type']) => void;
+  dismissToast: (id: string) => void;
+  refresh: () => Promise<void>;
+  actions: {
+    updateBusinessProfile: (updates: {
+      shopName: string;
+      ownerName: string;
+      phone: string;
+      address: string;
+      businessType: string;
+      openingBalances: ChannelOpeningBalances;
+      defaultLowStockThreshold: number;
+    }) => Promise<void>;
+    createParty: (input: {
+      name: string;
+      phone: string;
+      address?: string;
+      role: PartyRole;
+      openingDue?: number;
+    }) => Promise<Party>;
+    updateParty: (
+      partyId: string,
+      updates: { name: string; phone: string; address?: string; dueReminderDate?: string | null }
+    ) => Promise<void>;
+    setPartyDueReminder: (partyId: string, dueReminderDate: string | null) => Promise<void>;
+    createProduct: (input: {
+      name: string;
+      category: string;
+      unit: string;
+      purchasePrice: number;
+      sellingPrice: number;
+      stockQty: number;
+      lowStockThreshold: number;
+    }) => Promise<Product>;
+    updateProduct: (
+      productId: string,
+      updates: {
+        name: string;
+        category: string;
+        unit: string;
+        purchasePrice: number;
+        sellingPrice: number;
+        lowStockThreshold: number;
+      }
+    ) => Promise<void>;
+    adjustProductStock: (productId: string, deltaQty: number, note?: string) => Promise<void>;
+    createSale: (input: CreateSaleInput) => Promise<SaleRecord>;
+    editSale: (saleId: string, input: CreateSaleInput) => Promise<SaleRecord>;
+    voidSale: (saleId: string, reason?: string) => Promise<void>;
+    createPurchase: (input: CreatePurchaseInput) => Promise<PurchaseRecord>;
+    editPurchase: (purchaseId: string, input: CreatePurchaseInput) => Promise<PurchaseRecord>;
+    voidPurchase: (purchaseId: string, reason?: string) => Promise<void>;
+    recordDueEntry: (input: RecordDueEntryInput) => Promise<DueTransaction>;
+    editDueEntry: (
+      dueId: string,
+      updates: { amount: number; paymentMethod?: RecordDueEntryInput['paymentMethod']; note?: string; date?: string }
+    ) => Promise<void>;
+    voidDueEntry: (dueId: string, reason?: string) => Promise<void>;
+    createExpense: (input: CreateExpenseInput) => Promise<ExpenseRecord>;
+    editExpense: (expenseId: string, input: CreateExpenseInput) => Promise<void>;
+    voidExpense: (expenseId: string, reason?: string) => Promise<void>;
+    resetDemoData: () => Promise<void>;
+    exportBackupJson: () => Promise<string>;
+  };
+}
+
+const JomarkhataContext = createContext<JomarkhataContextValue | null>(null);
+
+const EMPTY_BALANCES: CurrentBalancesSummary = {
+  channelBalances: { cash: 0, bkash: 0, nagad: 0, bank: 0 },
+  cashInHand: 0,
+  digitalAndBankTotal: 0,
+  totalLiquidBalance: 0,
+  totalReceivables: 0,
+  totalPayables: 0,
+  netDuePosition: 0,
+  totalStockQty: 0,
+  totalStockValue: 0,
+  lowStockCount: 0,
+};
+
+export function JomarkhataProvider({ children }: { children: React.ReactNode }) {
+  const [data, setData] = useState<AppDataSnapshot | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeRoute, setActiveRoute] = useState<AppRoute>('dashboard');
+  const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
+  const [activeSheet, setActiveSheet] = useState<ActiveSheet>({ type: 'none' });
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  const showToast = useCallback((text: string, type: ToastMessage['type'] = 'success') => {
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    setToasts((prev) => [...prev.slice(-2), { id, type, text }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3200);
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const refresh = useCallback(async () => {
+    try {
+      const snap = await jomarkhataService.loadAllData();
+      setData(snap);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'ডেটা লোড করতে সমস্যা হয়েছে।');
+    }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const snap = await jomarkhataService.initializeAndLoad();
+        if (active) {
+          setData(snap);
+          setError(null);
+        }
+      } catch (err) {
+        if (active) {
+          setError(err instanceof Error ? err.message : 'লোকাল ডেটাবেস চালু করা যায়নি।');
+        }
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const navigate = useCallback((route: AppRoute, options?: { partyId?: string | null }) => {
+    setActiveRoute(route);
+    if (options && 'partyId' in options) {
+      setSelectedPartyId(options.partyId ?? null);
+    } else if (route !== 'dues') {
+      setSelectedPartyId(null);
+    }
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    }
+  }, []);
+
+  const openSheet = useCallback((sheet: ActiveSheet) => setActiveSheet(sheet), []);
+  const closeSheet = useCallback(() => setActiveSheet({ type: 'none' }), []);
+
+  const currentBalances = useMemo(() => {
+    if (!data) return EMPTY_BALANCES;
+    return computeCurrentBalances(
+      data.businessProfile,
+      data.parties,
+      data.moneyMovements,
+      data.products
+    );
+  }, [data]);
+
+  const actions = useMemo(
+    () => ({
+      updateBusinessProfile: async (updates: Parameters<typeof jomarkhataService.updateBusinessProfile>[0]) => {
+        await jomarkhataService.updateBusinessProfile(updates);
+        await refresh();
+        showToast('দোকানের তথ্য সংরক্ষণ করা হয়েছে।');
+      },
+      createParty: async (input: Parameters<typeof jomarkhataService.createParty>[0]) => {
+        const created = await jomarkhataService.createParty(input);
+        await refresh();
+        showToast(`${created.name} যোগ করা হয়েছে।`);
+        return created;
+      },
+      updateParty: async (
+        partyId: string,
+        updates: Parameters<typeof jomarkhataService.updateParty>[1]
+      ) => {
+        await jomarkhataService.updateParty(partyId, updates);
+        await refresh();
+        showToast('তথ্য আপডেট করা হয়েছে।');
+      },
+      setPartyDueReminder: async (partyId: string, dueReminderDate: string | null) => {
+        await jomarkhataService.setPartyDueReminder(partyId, dueReminderDate);
+        await refresh();
+        showToast(dueReminderDate ? 'পরিশোধের তারিখ সেট করা হয়েছে।' : 'পরিশোধের তারিখ সরানো হয়েছে।');
+      },
+      createProduct: async (input: Parameters<typeof jomarkhataService.createProduct>[0]) => {
+        const created = await jomarkhataService.createProduct(input);
+        await refresh();
+        showToast(`${created.name} প্রোডাক্ট লিস্টে যোগ হয়েছে।`);
+        return created;
+      },
+      updateProduct: async (
+        productId: string,
+        updates: Parameters<typeof jomarkhataService.updateProduct>[1]
+      ) => {
+        await jomarkhataService.updateProduct(productId, updates);
+        await refresh();
+        showToast('পণ্যের তথ্য আপডেট হয়েছে।');
+      },
+      adjustProductStock: async (productId: string, deltaQty: number, note?: string) => {
+        await jomarkhataService.adjustProductStock(productId, deltaQty, note);
+        await refresh();
+        showToast('স্টক হালনাগাদ করা হয়েছে।');
+      },
+      createSale: async (input: CreateSaleInput) => {
+        const created = await jomarkhataService.createSale(input);
+        await refresh();
+        showToast(`বিক্রি ${created.invoiceNo} সংরক্ষণ হয়েছে।`);
+        return created;
+      },
+      editSale: async (saleId: string, input: CreateSaleInput) => {
+        const updated = await jomarkhataService.editSale(saleId, input);
+        await refresh();
+        showToast(`বিক্রি ${updated.invoiceNo} সংশোধন হয়েছে।`);
+        return updated;
+      },
+      voidSale: async (saleId: string, reason?: string) => {
+        await jomarkhataService.voidSale(saleId, reason);
+        await refresh();
+        showToast('বিক্রি বাতিল করা হয়েছে এবং ব্যালেন্স সমন্বয় হয়েছে।', 'info');
+      },
+      createPurchase: async (input: CreatePurchaseInput) => {
+        const created = await jomarkhataService.createPurchase(input);
+        await refresh();
+        showToast(`ক্রয় ${created.billNo} সংরক্ষণ হয়েছে।`);
+        return created;
+      },
+      editPurchase: async (purchaseId: string, input: CreatePurchaseInput) => {
+        const updated = await jomarkhataService.editPurchase(purchaseId, input);
+        await refresh();
+        showToast(`ক্রয় ${updated.billNo} সংশোধন হয়েছে।`);
+        return updated;
+      },
+      voidPurchase: async (purchaseId: string, reason?: string) => {
+        await jomarkhataService.voidPurchase(purchaseId, reason);
+        await refresh();
+        showToast('ক্রয় বাতিল করা হয়েছে এবং হিসাব সমন্বয় হয়েছে।', 'info');
+      },
+      recordDueEntry: async (input: RecordDueEntryInput) => {
+        const created = await jomarkhataService.recordDueEntry(input);
+        await refresh();
+        showToast('বাকি লেনদেন সংরক্ষণ হয়েছে।');
+        return created;
+      },
+      editDueEntry: async (
+        dueId: string,
+        updates: { amount: number; paymentMethod?: RecordDueEntryInput['paymentMethod']; note?: string; date?: string }
+      ) => {
+        await jomarkhataService.editDueEntry(dueId, updates);
+        await refresh();
+        showToast('বাকি লেনদেন সংশোধন হয়েছে।');
+      },
+      voidDueEntry: async (dueId: string, reason?: string) => {
+        await jomarkhataService.voidDueEntry(dueId, reason);
+        await refresh();
+        showToast('বাকি লেনদেন বাতিল করা হয়েছে এবং ব্যালেন্স সমন্বয় হয়েছে।', 'info');
+      },
+      createExpense: async (input: CreateExpenseInput) => {
+        const created = await jomarkhataService.createExpense(input);
+        await refresh();
+        showToast('খরচ সংরক্ষণ হয়েছে।');
+        return created;
+      },
+      editExpense: async (expenseId: string, input: CreateExpenseInput) => {
+        await jomarkhataService.editExpense(expenseId, input);
+        await refresh();
+        showToast('খরচ সংশোধন হয়েছে।');
+      },
+      voidExpense: async (expenseId: string, reason?: string) => {
+        await jomarkhataService.voidExpense(expenseId, reason);
+        await refresh();
+        showToast('খরচ বাতিল করা হয়েছে এবং ব্যালেন্স ফেরত এসেছে।', 'info');
+      },
+      resetDemoData: async () => {
+        const fresh = await jomarkhataService.resetDemoData();
+        setData(fresh);
+        setSelectedPartyId(null);
+        setActiveRoute('dashboard');
+        showToast('ডেমো ডেটা পুনরায় রিসেট করা হয়েছে।', 'info');
+      },
+      exportBackupJson: async () => {
+        return jomarkhataService.exportBackupJson();
+      },
+    }),
+    [refresh, showToast]
+  );
+
+  const value = useMemo<JomarkhataContextValue>(
+    () => ({
+      data,
+      isLoading,
+      error,
+      currentBalances,
+      activeRoute,
+      selectedPartyId,
+      activeSheet,
+      toasts,
+      navigate,
+      setSelectedPartyId,
+      openSheet,
+      closeSheet,
+      showToast,
+      dismissToast,
+      refresh,
+      actions,
+    }),
+    [
+      data,
+      isLoading,
+      error,
+      currentBalances,
+      activeRoute,
+      selectedPartyId,
+      activeSheet,
+      toasts,
+      navigate,
+      openSheet,
+      closeSheet,
+      showToast,
+      dismissToast,
+      refresh,
+      actions,
+    ]
+  );
+
+  return <JomarkhataContext.Provider value={value}>{children}</JomarkhataContext.Provider>;
+}
+
+export function useJomarkhata() {
+  const ctx = useContext(JomarkhataContext);
+  if (!ctx) throw new Error('useJomarkhata must be used within JomarkhataProvider');
+  return ctx;
+}
