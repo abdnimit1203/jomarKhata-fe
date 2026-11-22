@@ -27,7 +27,7 @@ function ChannelIcon({ channel, className }: { channel: PaymentChannel; classNam
 export function PaymentChannelPicker({ value, onChange, label }: PaymentChannelPickerProps) {
   return (
     <div>
-      {label && <p className="mb-2 text-xs font-medium text-[#4A5F55]">{label}</p>}
+      {label && <p className="mb-2 text-xs font-medium text-ink-muted">{label}</p>}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {PAYMENT_CHANNELS.map((ch) => {
           const active = value === ch.id;
@@ -38,8 +38,8 @@ export function PaymentChannelPicker({ value, onChange, label }: PaymentChannelP
               onClick={() => onChange(ch.id)}
               className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold whitespace-nowrap transition-all active:scale-[0.98] ${
                 active
-                  ? 'border-[#0D7A56] bg-[#0D7A56] text-white shadow-sm'
-                  : 'border-[#DCE6E0] bg-[#F7FAF8] text-[#2F463B] hover:bg-[#ECF3EF]'
+                  ? 'border-primary bg-primary text-white shadow-sm'
+                  : 'border-border-strong bg-canvas text-ink hover:bg-surface-muted'
               }`}
             >
               <ChannelIcon channel={ch.id} className="h-4 w-4 shrink-0" />

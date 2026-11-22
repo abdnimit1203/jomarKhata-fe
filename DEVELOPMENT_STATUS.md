@@ -1,15 +1,15 @@
 # Development Status — Jomarkhata Frontend
 
-_Last updated: 2026-11-22 (after S0)_
+_Last updated: 2026-11-22 (after S1)_
 
 ## Step tracker (approved plan, one step at a time with owner approval)
 
 | Step | Name | Status |
 |---|---|---|
-| S0 | Safety net (tests) | ✅ Done, awaiting owner review |
-| S1 | Design system foundation + ক্যাশ/নগদ terminology | ⏸ Not started (needs approval) |
-| S2 | App shell & navigation | ⏸ |
-| S3 | First run, local mode, business profile | ⏸ |
+| S0 | Safety net (tests) | ✅ Accepted by owner |
+| S1 | Design system foundation (colours, type, font, shared components, welcome screen design, ক্যাশ/নগদ wording) | ✅ Done, awaiting owner review |
+| S2 | App shell & navigation | ⏸ Not started (needs approval) |
+| S3 | First run, local mode, business profile (+ wiring the welcome screen) | ⏸ |
 | S4 | Dashboard & cash summary | ⏸ |
 | S5 | Customers, suppliers & Due Book | ⏸ |
 | S6 | Sales, purchases, expenses | ⏸ |
@@ -23,25 +23,41 @@ _Last updated: 2026-11-22 (after S0)_
 
 ## What works today
 - **Fully local bookkeeping in IndexedDB:** sales, purchases, customers and suppliers, due collection and payment, expenses, stock, reports, edit/void with audit history, and JSON backup export.
+- **New visual system:** ivory/emerald theme, larger and bolder type, outlined cards, Noto Sans Bengali.
+- **Welcome screen designed;** viewable only as a dev preview at `/?preview=welcome`.
 - **No backend, login or cloud sync.** The sync outbox is recorded locally and never sent.
 
 ## Quality gates
-| Check | Command | Result (S0) |
-|---|---|---|
-| Unit / integration tests | `npm test` | 49 / 49 passed (4 files) |
-| TypeScript | `npm run typecheck` | 0 errors |
-| Mutation check of the test suite | manual | 3 / 3 deliberate breakages were detected (void not reversing money, an unmigrated schema change, startup re-seeding over existing data) |
+| Check | Command | S0 | S1 |
+|---|---|---|---|
+| Tests | `npm test` | 49 / 49 | **81 / 81** (5 files) |
+| TypeScript | `npm run typecheck` | 0 errors | **0 errors** |
+| Production build | `npm run build` | — | **✓ compiled, 3/3 static pages** |
+| Mobile render check (360px, Edge via puppeteer) | manual | — | Welcome and Dashboard render with **0px horizontal overflow** |
 
-## Known issues (documented by tests, not yet fixed)
+## ⚠ Business-critical: release blocker
+| Issue | Rule |
+|---|---|
+| **AP-9: overselling corrupts stock.** `stockQty` is clamped at 0 while the stock movement records the full −qty, so the two diverge and a later void over-restores stock. | **Must be fixed (with owner approval of the change) before the sales feature is released to real users.** It's documented by a characterisation test in `tests/service.sales-purchases.test.ts`. |
+
+## Other known issues (documented by tests, not yet fixed)
 | Issue | Plan item |
 |---|---|
-| Overselling clamps `stockQty` at 0 but the stock movement keeps the full −qty, so they diverge | AP-9 (owner decision pending) |
 | A fresh install auto-seeds demo data; "Reset demo" also deletes user-entered records | S3 (AP-1/AP-2), S8 |
 | The JSON backup does not include sync outbox items | S8 |
 | Edits and voids queue only the parent record, not the changed money movement, due, stock or running-balance rows | S9 (AP-4) |
 | Invoice/bill numbers use `count + 1001` (will collide across devices) | AP-5 (backend phase) |
-| `npm audit` reports 23 advisories (12 moderate, 8 high, 3 critical) in existing dependencies, mainly in the dev-only toolchain | to review separately; not changed in S0 |
+
+## Dependency audit review (2026-11-22, read-only; nothing upgraded)
+`npm audit`: 23 advisories (3 critical, 8 high, 12 moderate). **`npm audit --omit=dev`: 0.** Nothing that ships to users is affected.
+
+| Severity | Package (path) | Advisory (summary) | Real exposure | Recommendation (needs owner approval) |
+|---|---|---|---|---|
+| **critical** | `tar` ← `firebase-tools` (devDependency) | Path traversal / arbitrary file overwrite when extracting crafted archives | Only if the Firebase CLI extracts an attacker's archive. **The CLI isn't used**: there's no `firebase.json`, deployment is Vercel, and it's a leftover of the original generator. | **Remove `firebase-tools`** (not upgrade). This also clears all 8 high advisories and most moderates (`superstatic`, `router`, `path-to-regexp`, `proxy-agent`/`basic-ftp`, `google-gax`, …). Firebase *client* SDKs for auth are a separate, future backend-phase decision. |
+| **critical** | `vitest` (devDependency, added in S0) | Path traversal via `@vitest/mocker` redirect mocks | Local test runner only; we don't use mock redirects | **Upgrade vitest 3 → 5** as its own small change, verified by the full test suite. It's a major version, so it's not done blindly. |
+| **critical** | `tinypool` ← `vitest` | Prototype-pollution gadget in worker options | Needs attacker-controlled worker options; local test runs only | Fixed by the same vitest upgrade |
 
 ## Not tested yet
-- UI components (no component or E2E tests yet). Each UI step adds manual 360px and desktop checks.
-- Real browsers and devices. S0 tests use fake-indexeddb in Node, not Chrome/Android IndexedDB; real-device checks are in S12/S13.
+- No component or E2E tests. The UI is checked with headless 360px screenshots and the static design-system tests.
+- Real Android devices and browsers. S0/S1 tests run in Node with fake-indexeddb; real-device checks are in S12/S13.
+- The `DateInput` native-picker opening (`showPicker`) on real Android Chrome. It was verified to compile and display only.

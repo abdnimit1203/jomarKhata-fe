@@ -63,13 +63,13 @@ export function SalesView() {
     <div className="mx-auto max-w-5xl space-y-4 pb-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-[#0F1F18]">বেচার খাতা (বিক্রি)</h1>
-          <p className="text-xs text-[#586B62]">সহজ বিক্রি ও পণ্য বিক্রির সম্পূর্ণ হিসাব</p>
+          <h1 className="text-xl font-bold text-ink">বেচার খাতা (বিক্রি)</h1>
+          <p className="text-xs text-ink-muted">সহজ বিক্রি ও পণ্য বিক্রির সম্পূর্ণ হিসাব</p>
         </div>
         <button
           type="button"
           onClick={() => openSheet({ type: 'sale' })}
-          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-[#0D7A56] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#096244] active:scale-[0.98]"
+          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover active:scale-[0.98]"
         >
           <Plus className="h-4 w-4" />
           <span>নতুন বিক্রি</span>
@@ -79,20 +79,20 @@ export function SalesView() {
       {/* Period Summary Strip */}
       <div className="grid grid-cols-3 gap-2.5">
         <div className="rounded-2xl bg-white p-3.5 shadow-card">
-          <p className="text-xs text-[#586B62]">মোট বিক্রি</p>
-          <p className="mt-1 text-base font-bold tabular-nums text-[#0F1F18] sm:text-lg">
+          <p className="text-xs text-ink-muted">মোট বিক্রি</p>
+          <p className="mt-1 text-base font-bold tabular-nums text-ink sm:text-lg">
             {formatTaka(summary.total)}
           </p>
         </div>
         <div className="rounded-2xl bg-white p-3.5 shadow-card">
-          <p className="text-xs text-[#586B62]">বিক্রিতে আদায়</p>
-          <p className="mt-1 text-base font-bold tabular-nums text-[#0D7A56] sm:text-lg">
+          <p className="text-xs text-ink-muted">বিক্রিতে আদায়</p>
+          <p className="mt-1 text-base font-bold tabular-nums text-primary sm:text-lg">
             {formatTaka(summary.paid)}
           </p>
         </div>
         <div className="rounded-2xl bg-white p-3.5 shadow-card">
-          <p className="text-xs text-[#586B62]">বাকি রয়েছে</p>
-          <p className="mt-1 text-base font-bold tabular-nums text-[#DC2626] sm:text-lg">
+          <p className="text-xs text-ink-muted">বাকি রয়েছে</p>
+          <p className="mt-1 text-base font-bold tabular-nums text-danger sm:text-lg">
             {formatTaka(summary.due)}
           </p>
         </div>
@@ -100,7 +100,7 @@ export function SalesView() {
 
       {/* Period & Status Filters */}
       <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <div className="flex items-center gap-1 rounded-full bg-[#E9F0EC] p-1">
+        <div className="flex items-center gap-1 rounded-full bg-surface-muted p-1">
           {(
             [
               { id: 'today', label: 'আজ' },
@@ -114,7 +114,7 @@ export function SalesView() {
               type="button"
               onClick={() => setPeriod(t.id)}
               className={`min-h-[38px] rounded-full px-3.5 text-xs font-semibold whitespace-nowrap ${
-                period === t.id ? 'bg-[#0D7A56] text-white' : 'text-[#486055]'
+                period === t.id ? 'bg-primary text-white' : 'text-ink-muted'
               }`}
             >
               {t.label}
@@ -126,7 +126,7 @@ export function SalesView() {
           {(
             [
               { id: 'all', label: 'সব সক্রিয়' },
-              { id: 'paid', label: 'নগদ/জমা' },
+              { id: 'paid', label: 'পুরো জমা' },
               { id: 'due', label: 'বাকি আছে' },
               { id: 'voided', label: 'বাতিলকৃত' },
             ] as const
@@ -137,8 +137,8 @@ export function SalesView() {
               onClick={() => setStatusFilter(f.id)}
               className={`min-h-[38px] rounded-xl border px-3 text-xs font-semibold whitespace-nowrap ${
                 statusFilter === f.id
-                  ? 'border-[#0D7A56] bg-[#E6F4EE] text-[#0D7A56]'
-                  : 'border-[#DCE6E0] bg-white text-[#486055]'
+                  ? 'border-primary bg-secondary text-primary'
+                  : 'border-border-strong bg-white text-ink-muted'
               }`}
             >
               {f.label}
@@ -149,13 +149,13 @@ export function SalesView() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-[#6F847A]" />
+        <Search className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="কাস্টমার, ইনভয়েস বা বিবরণ খুঁজুন"
-          className="h-12 w-full rounded-2xl border border-[#DCE6E0] bg-white pr-4 pl-11 text-sm text-[#0F1F18] shadow-card focus:border-[#0D7A56] focus:outline-none"
+          className="h-12 w-full rounded-2xl border border-border-strong bg-white pr-4 pl-11 text-sm text-ink shadow-card focus:border-primary focus:outline-none"
         />
       </div>
 
@@ -179,18 +179,18 @@ export function SalesView() {
                 onClick={() =>
                   openSheet({ type: 'transaction_detail', sourceType: 'sale', sourceId: sale.id })
                 }
-                className={`flex w-full items-center justify-between gap-3 rounded-2xl bg-white p-4 text-left shadow-card transition-colors hover:bg-[#F9FCFA] ${
+                className={`flex w-full items-center justify-between gap-3 rounded-2xl bg-white p-4 text-left shadow-card transition-colors hover:bg-canvas ${
                   isVoided ? 'opacity-60' : ''
                 }`}
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-semibold text-[#0F1F18]">
+                    <p className="truncate text-sm font-semibold text-ink">
                       {sale.partyName}
                     </p>
-                    <span className="text-xs text-[#586B62]">· {sale.invoiceNo}</span>
+                    <span className="text-xs text-ink-muted">· {sale.invoiceNo}</span>
                   </div>
-                  <p className="mt-0.5 truncate text-xs text-[#586B62]">
+                  <p className="mt-0.5 truncate text-xs text-ink-muted">
                     {sale.mode === 'quick' ? 'সহজ বিক্রি' : `${formatBanglaNumber(sale.items.length)}টি পণ্য`}
                     {sale.description ? ` · ${sale.description}` : ''} · {formatBanglaDateTime(sale.date)}
                   </p>
@@ -199,20 +199,20 @@ export function SalesView() {
                 <div className="shrink-0 text-right">
                   <p
                     className={`text-sm font-bold tabular-nums ${
-                      isVoided ? 'line-through text-[#6A7F75]' : 'text-[#0F1F18]'
+                      isVoided ? 'line-through text-ink-subtle' : 'text-ink'
                     }`}
                   >
                     {formatTaka(sale.total)}
                   </p>
-                  <p className="mt-0.5 text-[11px] tabular-nums">
+                  <p className="mt-0.5 text-xs tabular-nums">
                     {isVoided ? (
-                      <span className="font-semibold text-[#DC2626]">বাতিলকৃত</span>
+                      <span className="font-semibold text-danger">বাতিলকৃত</span>
                     ) : sale.dueAmount > 0 ? (
-                      <span className="font-semibold text-[#DC2626]">
+                      <span className="font-semibold text-danger">
                         বাকি {formatTaka(sale.dueAmount)}
                       </span>
                     ) : (
-                      <span className="font-medium text-[#0D7A56]">
+                      <span className="font-medium text-primary">
                         পরিশোধ ({getChannelShortLabel(sale.paymentMethod)})
                       </span>
                     )}

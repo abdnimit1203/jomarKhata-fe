@@ -52,7 +52,7 @@ export function ModalSheet({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.16 }}
             onClick={onClose}
-            className="fixed inset-0 bg-[#071D14]/45 backdrop-blur-[2px]"
+            className="fixed inset-0 bg-ink/45 backdrop-blur-[2px]"
           />
 
           <motion.div
@@ -64,20 +64,20 @@ export function ModalSheet({
           >
             {/* Mobile drag handle */}
             <div className="flex justify-center pt-2.5 pb-1 lg:hidden">
-              <div className="h-1.5 w-10 rounded-full bg-[#D3DFD8]" />
+              <div className="h-1.5 w-10 rounded-full bg-border-strong" />
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between gap-3 border-b border-[#E8EFEA] px-5 py-3.5">
+            <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3.5">
               <div className="min-w-0">
-                <h2 className="truncate text-lg font-semibold text-[#0F1F18]">{title}</h2>
-                {subtitle && <p className="truncate text-xs text-[#586B62]">{subtitle}</p>}
+                <h2 className="truncate text-lg font-semibold text-ink">{title}</h2>
+                {subtitle && <p className="truncate text-xs text-ink-muted">{subtitle}</p>}
               </div>
               <button
                 type="button"
                 onClick={onClose}
                 aria-label="বন্ধ করুন"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F2F6F4] text-[#354B41] transition-colors hover:bg-[#E4ECE7] active:scale-95"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-muted text-ink-muted transition-colors hover:bg-surface-muted active:scale-95"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -88,7 +88,7 @@ export function ModalSheet({
 
             {/* Footer */}
             {footer && (
-              <div className="border-t border-[#E8EFEA] bg-white px-5 py-3.5 pb-safe">
+              <div className="border-t border-border bg-white px-5 py-3.5 pb-safe">
                 {footer}
               </div>
             )}

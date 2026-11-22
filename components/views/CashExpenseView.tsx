@@ -53,15 +53,15 @@ export function CashExpenseView() {
     <div className="mx-auto max-w-5xl space-y-5 pb-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-[#0F1F18]">দৈনিক ক্যাশ ও খরচের খাতা</h1>
-          <p className="text-xs text-[#586B62]">
+          <h1 className="text-xl font-bold text-ink">দৈনিক ক্যাশ ও খরচের খাতা</h1>
+          <p className="text-xs text-ink-muted">
             বর্তমান মাধ্যমভিত্তিক ব্যালেন্স এবং দৈনিক দোকান খরচের হিসাব
           </p>
         </div>
         <button
           type="button"
           onClick={() => openSheet({ type: 'expense' })}
-          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-[#0D7A56] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#096244]"
+          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
         >
           <Plus className="h-4 w-4" />
           <span>সহজ খরচ</span>
@@ -72,14 +72,14 @@ export function CashExpenseView() {
       <section className="rounded-3xl bg-white p-5 shadow-card">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="text-sm font-semibold text-[#0F1F18]">
+            <h2 className="text-sm font-semibold text-ink">
               বর্তমান ব্যালেন্স (সব সময়ের মোট স্থিতি)
             </h2>
-            <p className="text-xs text-[#586B62]">
+            <p className="text-xs text-ink-muted">
               শুরুর ব্যালেন্স + সব সক্রিয় আদায় − সব সক্রিয় পরিশোধ ও খরচ
             </p>
           </div>
-          <span className="text-sm font-bold tabular-nums text-[#0D7A56]">
+          <span className="text-sm font-bold tabular-nums text-primary">
             মোট {formatTaka(currentBalances.totalLiquidBalance)}
           </span>
         </div>
@@ -87,7 +87,7 @@ export function CashExpenseView() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
             {
-              label: 'হাতে নগদ',
+              label: 'হাতে ক্যাশ',
               amount: currentBalances.channelBalances.cash,
               icon: Banknote,
               highlight: true,
@@ -99,7 +99,7 @@ export function CashExpenseView() {
               highlight: false,
             },
             {
-              label: 'নগদ (MFS)',
+              label: 'নগদ',
               amount: currentBalances.channelBalances.nagad,
               icon: Wallet,
               highlight: false,
@@ -116,14 +116,14 @@ export function CashExpenseView() {
               <div
                 key={c.label}
                 className={`rounded-2xl p-3.5 ${
-                  c.highlight ? 'bg-[#0D7A56] text-white' : 'bg-[#F5F9F7] text-[#0F1F18]'
+                  c.highlight ? 'bg-primary text-white' : 'bg-canvas text-ink'
                 }`}
               >
                 <div className="flex items-center gap-1.5">
                   <Icon
-                    className={`h-4 w-4 ${c.highlight ? 'text-[#C6ECDC]' : 'text-[#0D7A56]'}`}
+                    className={`h-4 w-4 ${c.highlight ? 'text-white/80' : 'text-primary'}`}
                   />
-                  <span className={`text-xs font-medium ${c.highlight ? 'text-[#D6F3E6]' : 'text-[#586B62]'}`}>
+                  <span className={`text-xs font-medium ${c.highlight ? 'text-white/80' : 'text-ink-muted'}`}>
                     {c.label}
                   </span>
                 </div>
@@ -134,16 +134,16 @@ export function CashExpenseView() {
         </div>
 
         {/* Today's Cash Flow Strip (Strictly Today!) */}
-        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[#EFF4F1] pt-3.5 text-xs">
-          <div className="flex items-center justify-between rounded-xl bg-[#ECF7F2] px-3 py-2.5">
-            <span className="text-[#2F6A53]">আজ নগদ এসেছে</span>
-            <span className="font-bold tabular-nums text-[#0D7A56]">
+        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3.5 text-xs">
+          <div className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2.5">
+            <span className="text-primary">আজ ক্যাশ এসেছে</span>
+            <span className="font-bold tabular-nums text-primary">
               + {formatTaka(todayFlows.cashInflow)}
             </span>
           </div>
-          <div className="flex items-center justify-between rounded-xl bg-[#FEF2F2] px-3 py-2.5">
-            <span className="text-[#9E3535]">আজ নগদ গেছে</span>
-            <span className="font-bold tabular-nums text-[#DC2626]">
+          <div className="flex items-center justify-between rounded-xl bg-danger-soft px-3 py-2.5">
+            <span className="text-danger">আজ ক্যাশ গেছে</span>
+            <span className="font-bold tabular-nums text-danger">
               - {formatTaka(todayFlows.cashOutflow)}
             </span>
           </div>
@@ -152,7 +152,7 @@ export function CashExpenseView() {
 
       {/* Expense List Header & Filters */}
       <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <div className="flex items-center gap-1 rounded-full bg-[#E9F0EC] p-1">
+        <div className="flex items-center gap-1 rounded-full bg-surface-muted p-1">
           {(
             [
               { id: 'today', label: 'আজ' },
@@ -166,7 +166,7 @@ export function CashExpenseView() {
               type="button"
               onClick={() => setPeriod(t.id)}
               className={`min-h-[38px] rounded-full px-3.5 text-xs font-semibold ${
-                period === t.id ? 'bg-[#0D7A56] text-white' : 'text-[#486055]'
+                period === t.id ? 'bg-primary text-white' : 'text-ink-muted'
               }`}
             >
               {t.label}
@@ -179,7 +179,7 @@ export function CashExpenseView() {
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
             aria-label="খরচের খাত"
-            className="h-10 rounded-xl border border-[#DCE6E0] bg-white px-3 text-xs font-semibold text-[#354B41] focus:border-[#0D7A56] focus:outline-none"
+            className="h-10 rounded-xl border border-border-strong bg-white px-3 text-xs font-semibold text-ink-muted focus:border-primary focus:outline-none"
           >
             <option value="all">সব খাত</option>
             {EXPENSE_CATEGORIES.map((c) => (
@@ -193,8 +193,8 @@ export function CashExpenseView() {
             onClick={() => setShowVoided((v) => !v)}
             className={`h-10 rounded-xl border px-3 text-xs font-semibold ${
               showVoided
-                ? 'border-[#DC2626] bg-[#FEF2F2] text-[#DC2626]'
-                : 'border-[#DCE6E0] bg-white text-[#486055]'
+                ? 'border-danger bg-danger-soft text-danger'
+                : 'border-border-strong bg-white text-ink-muted'
             }`}
           >
             বাতিলকৃত
@@ -204,8 +204,8 @@ export function CashExpenseView() {
 
       {/* Period Expense Total Bar */}
       <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-card">
-        <span className="text-xs font-semibold text-[#586B62]">নির্বাচিত সময়ে মোট খরচ</span>
-        <span className="text-base font-bold tabular-nums text-[#DC2626]">
+        <span className="text-xs font-semibold text-ink-muted">নির্বাচিত সময়ে মোট খরচ</span>
+        <span className="text-base font-bold tabular-nums text-danger">
           {formatTaka(periodExpenseTotal)}
         </span>
       </div>
@@ -220,7 +220,7 @@ export function CashExpenseView() {
           onAction={() => openSheet({ type: 'expense' })}
         />
       ) : (
-        <div className="divide-y divide-[#EEF3F0] overflow-hidden rounded-3xl bg-white shadow-card">
+        <div className="divide-y divide-border overflow-hidden rounded-3xl bg-white shadow-card">
           {filteredExpenses.map((exp) => {
             const isVoided = exp.status === 'voided';
             return (
@@ -230,16 +230,16 @@ export function CashExpenseView() {
                 onClick={() =>
                   openSheet({ type: 'transaction_detail', sourceType: 'expense', sourceId: exp.id })
                 }
-                className={`flex min-h-[68px] w-full items-center gap-3.5 px-4 py-3 text-left transition-colors hover:bg-[#F7FAF8] ${
+                className={`flex min-h-[68px] w-full items-center gap-3.5 px-4 py-3 text-left transition-colors hover:bg-canvas ${
                   isVoided ? 'opacity-55' : ''
                 }`}
               >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#DC2626]">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-danger-soft text-danger">
                   <Receipt className="h-5 w-5" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-[#0F1F18]">{exp.title}</p>
-                  <p className="mt-0.5 truncate text-xs text-[#586B62]">
+                  <p className="truncate text-sm font-semibold text-ink">{exp.title}</p>
+                  <p className="mt-0.5 truncate text-xs text-ink-muted">
                     {exp.category} · {getChannelShortLabel(exp.paymentMethod)} ·{' '}
                     {formatBanglaDateTime(exp.date)}
                   </p>
@@ -247,12 +247,12 @@ export function CashExpenseView() {
                 <div className="shrink-0 text-right">
                   <p
                     className={`text-sm font-bold tabular-nums ${
-                      isVoided ? 'line-through text-[#6A7F75]' : 'text-[#DC2626]'
+                      isVoided ? 'line-through text-ink-subtle' : 'text-danger'
                     }`}
                   >
                     - {formatTaka(exp.amount)}
                   </p>
-                  {isVoided && <p className="text-[11px] font-semibold text-[#DC2626]">বাতিলকৃত</p>}
+                  {isVoided && <p className="text-xs font-semibold text-danger">বাতিলকৃত</p>}
                 </div>
               </button>
             );

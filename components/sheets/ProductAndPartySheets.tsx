@@ -94,7 +94,7 @@ export function ProductFormSheet({
           type="submit"
           form="product-form"
           disabled={isSubmitting}
-          className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#0D7A56] text-base font-semibold text-white hover:bg-[#096244] disabled:opacity-50"
+          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
         >
           {isSubmitting ? 'সংরক্ষণ হচ্ছে...' : 'পণ্য সংরক্ষণ করুন'}
         </button>
@@ -102,31 +102,31 @@ export function ProductFormSheet({
     >
       <form id="product-form" onSubmit={handleSubmit} className="space-y-4">
         {formError && (
-          <div className="flex items-start gap-2 rounded-2xl bg-[#FEF2F2] p-3 text-xs font-medium text-[#DC2626]">
+          <div className="flex items-start gap-2 rounded-2xl bg-danger-soft p-3 text-xs font-medium text-danger">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{formError}</span>
           </div>
         )}
 
         <div>
-          <label className="mb-1 block text-xs font-semibold text-[#354B41]">পণ্যের নাম *</label>
+          <label className="mb-1 block text-xs font-semibold text-ink-muted">পণ্যের নাম *</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="যেমন: মিনিকেট চাল (১ কেজি)"
             autoFocus
-            className="h-12 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+            className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-xs text-[#586B62]">ক্যাটাগরি</label>
+            <label className="mb-1 block text-xs text-ink-muted">ক্যাটাগরি</label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="h-12 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
             >
               {PRODUCT_CATEGORIES.map((c) => (
                 <option key={c} value={c}>
@@ -136,11 +136,11 @@ export function ProductFormSheet({
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-[#586B62]">একক (Unit)</label>
+            <label className="mb-1 block text-xs text-ink-muted">একক (Unit)</label>
             <select
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
-              className="h-12 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
             >
               {PRODUCT_UNITS.map((u) => (
                 <option key={u} value={u}>
@@ -153,11 +153,11 @@ export function ProductFormSheet({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-xs font-semibold text-[#354B41]">ক্রয়মূল্য</label>
+            <label className="mb-1 block text-xs font-semibold text-ink-muted">ক্রয়মূল্য</label>
             <NumericInput value={purchasePrice} onChange={(raw) => setPurchasePrice(raw)} placeholder="০" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-[#354B41]">বিক্রয়মূল্য</label>
+            <label className="mb-1 block text-xs font-semibold text-ink-muted">বিক্রয়মূল্য</label>
             <NumericInput value={sellingPrice} onChange={(raw) => setSellingPrice(raw)} placeholder="০" />
           </div>
         </div>
@@ -165,12 +165,12 @@ export function ProductFormSheet({
         <div className="grid grid-cols-2 gap-3">
           {!editProduct && (
             <div>
-              <label className="mb-1 block text-xs text-[#586B62]">বর্তমান স্টক</label>
+              <label className="mb-1 block text-xs text-ink-muted">বর্তমান স্টক</label>
               <NumericInput value={stockQty} onChange={(raw) => setStockQty(raw)} placeholder="০" suffix={unit} />
             </div>
           )}
           <div className={editProduct ? 'col-span-2' : ''}>
-            <label className="mb-1 block text-xs text-[#586B62]">কম স্টক সতর্কতা সীমা</label>
+            <label className="mb-1 block text-xs text-ink-muted">কম স্টক সতর্কতা সীমা</label>
             <NumericInput
               value={lowStockThreshold}
               onChange={(raw) => setLowStockThreshold(raw)}
@@ -225,19 +225,19 @@ export function StockAdjustSheet({
           type="submit"
           form="stock-adjust-form"
           disabled={isSubmitting || qty <= 0}
-          className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#0D7A56] text-base font-semibold text-white hover:bg-[#096244] disabled:opacity-50"
+          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
         >
           {isSubmitting ? 'আপডেট হচ্ছে...' : 'স্টক হালনাগাদ করুন'}
         </button>
       }
     >
       <form id="stock-adjust-form" onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-[#EDF3F0] p-1">
+        <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-surface-muted p-1">
           <button
             type="button"
             onClick={() => setDirection('add')}
             className={`h-11 rounded-xl text-sm font-semibold ${
-              direction === 'add' ? 'bg-[#0D7A56] text-white' : 'text-[#445B50]'
+              direction === 'add' ? 'bg-primary text-white' : 'text-ink-muted'
             }`}
           >
             স্টক যোগ করুন (+)
@@ -246,7 +246,7 @@ export function StockAdjustSheet({
             type="button"
             onClick={() => setDirection('remove')}
             className={`h-11 rounded-xl text-sm font-semibold ${
-              direction === 'remove' ? 'bg-[#DC2626] text-white' : 'text-[#445B50]'
+              direction === 'remove' ? 'bg-danger text-white' : 'text-ink-muted'
             }`}
           >
             স্টক কমান (-)
@@ -254,18 +254,18 @@ export function StockAdjustSheet({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-[#354B41]">পরিমাণ *</label>
+          <label className="mb-1.5 block text-xs font-semibold text-ink-muted">পরিমাণ *</label>
           <NumericInput value={qtyRaw} onChange={(raw) => setQtyRaw(raw)} suffix={product.unit} inputSize="lg" autoFocus />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-[#586B62]">কারণ (ঐচ্ছিক)</label>
+          <label className="mb-1 block text-xs text-ink-muted">কারণ (ঐচ্ছিক)</label>
           <input
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="যেমন: নতুন চালান এসেছে / নষ্ট পণ্য বাদ"
-            className="h-11 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
           />
         </div>
       </form>
@@ -335,7 +335,7 @@ export function PartyFormSheet({
           type="submit"
           form="party-form"
           disabled={isSubmitting}
-          className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#0D7A56] text-base font-semibold text-white hover:bg-[#096244] disabled:opacity-50"
+          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
         >
           {isSubmitting ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ করুন'}
         </button>
@@ -343,12 +343,12 @@ export function PartyFormSheet({
     >
       <form id="party-form" onSubmit={handleSubmit} className="space-y-4">
         {!editParty && (
-          <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-[#EDF3F0] p-1">
+          <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-surface-muted p-1">
             <button
               type="button"
               onClick={() => setRole('customer')}
               className={`h-11 rounded-xl text-sm font-semibold ${
-                role === 'customer' ? 'bg-[#0D7A56] text-white' : 'text-[#445B50]'
+                role === 'customer' ? 'bg-primary text-white' : 'text-ink-muted'
               }`}
             >
               কাস্টমার
@@ -357,7 +357,7 @@ export function PartyFormSheet({
               type="button"
               onClick={() => setRole('supplier')}
               className={`h-11 rounded-xl text-sm font-semibold ${
-                role === 'supplier' ? 'bg-[#0D7A56] text-white' : 'text-[#445B50]'
+                role === 'supplier' ? 'bg-primary text-white' : 'text-ink-muted'
               }`}
             >
               সাপ্লায়ার
@@ -366,49 +366,49 @@ export function PartyFormSheet({
         )}
 
         {formError && (
-          <div className="flex items-start gap-2 rounded-2xl bg-[#FEF2F2] p-3 text-xs font-medium text-[#DC2626]">
+          <div className="flex items-start gap-2 rounded-2xl bg-danger-soft p-3 text-xs font-medium text-danger">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{formError}</span>
           </div>
         )}
 
         <div>
-          <label className="mb-1 block text-xs font-semibold text-[#354B41]">নাম *</label>
+          <label className="mb-1 block text-xs font-semibold text-ink-muted">নাম *</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={role === 'customer' ? 'কাস্টমারের নাম লিখুন' : 'সাপ্লায়ার বা প্রতিষ্ঠানের নাম'}
             autoFocus
-            className="h-12 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+            className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-[#586B62]">মোবাইল নম্বর (ঐচ্ছিক)</label>
+          <label className="mb-1 block text-xs text-ink-muted">মোবাইল নম্বর (ঐচ্ছিক)</label>
           <input
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="017XXXXXXXX"
-            className="h-12 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+            className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-[#586B62]">ঠিকানা (ঐচ্ছিক)</label>
+          <label className="mb-1 block text-xs text-ink-muted">ঠিকানা (ঐচ্ছিক)</label>
           <input
             type="text"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="এলাকা বা বাজারের নাম"
-            className="h-11 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
           />
         </div>
 
         {!editParty && (
           <div>
-            <label className="mb-1 block text-xs text-[#586B62]">
+            <label className="mb-1 block text-xs text-ink-muted">
               {role === 'customer' ? 'পূর্বের বাকি পাবো (ঐচ্ছিক)' : 'পূর্বের বাকি দিবো (ঐচ্ছিক)'}
             </label>
             <NumericInput value={openingDue} onChange={(raw) => setOpeningDue(raw)} placeholder="০" />

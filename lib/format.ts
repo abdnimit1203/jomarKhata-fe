@@ -37,9 +37,9 @@ export const PAYMENT_CHANNELS: Array<{
   label: string;
   shortLabel: string;
 }> = [
-  { id: 'cash', label: 'নগদ ক্যাশ', shortLabel: 'নগদ' },
+  { id: 'cash', label: 'ক্যাশ', shortLabel: 'ক্যাশ' },
   { id: 'bkash', label: 'বিকাশ', shortLabel: 'বিকাশ' },
-  { id: 'nagad', label: 'নগদ (এমএফএস)', shortLabel: 'নগদ (MFS)' },
+  { id: 'nagad', label: 'নগদ', shortLabel: 'নগদ' },
   { id: 'bank', label: 'ব্যাংক', shortLabel: 'ব্যাংক' },
 ];
 
@@ -131,13 +131,13 @@ export function formatTaka(amount: number, options?: { showSign?: boolean }): st
 export function getChannelLabel(channel?: PaymentChannel | null): string {
   if (!channel) return 'বাকি';
   const found = PAYMENT_CHANNELS.find((c) => c.id === channel);
-  return found ? found.label : 'নগদ ক্যাশ';
+  return found ? found.label : 'ক্যাশ';
 }
 
 export function getChannelShortLabel(channel?: PaymentChannel | null): string {
   if (!channel) return 'বাকি';
   const found = PAYMENT_CHANNELS.find((c) => c.id === channel);
-  return found ? found.shortLabel : 'নগদ';
+  return found ? found.shortLabel : 'ক্যাশ';
 }
 
 export function formatBanglaDate(iso: string): string {
@@ -208,4 +208,30 @@ export function downloadTextFile(filename: string, content: string, mimeType: st
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Converts an ISO timestamp (or Date) to a local `yyyy-MM-dd` value for date inputs.
+ * The stored value stays ISO; this is for the picker only.
+ */
+export function toDateInputValue(input: string | Date): string {
+  const d = typeof input === 'string' ? new Date(input) : input;
+  if (Number.isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Display format for date inputs: dd/MM/yyyy in Bengali digits (e.g. "২২/১১/২০২৬").
+ * Accepts `yyyy-MM-dd` (date-input value) or an ISO timestamp. Returns '' for empty/invalid input.
+ */
+export function formatDateInputDisplay(value: string | null | undefined): string {
+  if (!value) return '';
+  const ymd = /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : toDateInputValue(value);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
+  if (!match) return '';
+  const [, y, m, d] = match;
+  return toBanglaDigits(`${d}/${m}/${y}`);
 }

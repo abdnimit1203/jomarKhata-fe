@@ -68,3 +68,13 @@ All financial math and state transitions live exclusively inside `services/finan
   - optionally, stock = sum of stock movements
 - **Schema lock (`tests/migration-preservation.test.ts`):** the DB name (`jomarkhata_db`), version (1), tables and indexes are pinned. **Any schema change must add a new `version(n)` with an additive `.upgrade()`.** Existing tables and records are never dropped. The same file proves every record type survives restarts and that data written by an older build opens unchanged. It also contains a harness showing the planned additive v2 migration (new `appMeta` table, extended outbox fields) keeps all v1 records.
 - **UI and PWA work must not touch the DB name, schema or service behaviour.** If any of those tests fail, the change is not merged.
+
+---
+
+## 5. Design System (S1)
+
+- **Tokens** live only in the `@theme` block of `app/globals.css`, and components use them as Tailwind classes (`bg-primary`, `text-ink-muted`, `border-border-strong`, `bg-danger-soft`, …). **No raw hex in components**, enforced by `tests/design-system.test.ts`.
+- **The type scale is set through theme variables** (`--text-xs` … `--text-3xl`), mobile-first with a desktop override, so sizes change globally without editing screens.
+- **Shared UI components** are in `components/ui/` (`Button`, `Card`, `AmountWithState`, `StatusBadge`, `Banner`, `DateInput`), and the welcome screen is in `components/onboarding/`.
+- **Font:** Noto Sans Bengali via `next/font` (CSS variable `--font-noto-sans-bengali`).
+- **Specs:** `Instructions/DESIGN_SYSTEM.md` and `UI_GUIDELINES.md` (outside this repo).

@@ -1,31 +1,86 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@theme inline {
-  --font-sans: var(--app-font, var(--font-hind-siliguri)), var(--font-plus-jakarta), system-ui, -apple-system, sans-serif;
-  --color-emerald-brand: #0D7A56;
-  --color-emerald-deep: #064E3B;
-  --color-emerald-soft: #E6F4EE;
-  --color-canvas: #F5F8F6;
-  --color-surface: #FFFFFF;
-  --color-surface-muted: #ECF2EE;
-  --color-ink: #0F1F18;
-  --color-ink-muted: #586B62;
-  --color-border-soft: #E2EAE5;
+/*
+ * Jomarkhata design tokens — single source of truth (Instructions/DESIGN_SYSTEM.md).
+ * Components use these as Tailwind classes (bg-primary, text-ink-muted, border-border-strong, …).
+ * Raw hex values in components are not allowed (enforced by tests/design-system.test.ts).
+ */
+@theme {
+  /* Font: Noto Sans Bengali (generic, Android-native Bangla family), then system UI */
+  --font-sans: var(--font-noto-sans-bengali), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Base palette (owner-approved) */
+  --color-canvas: #F7F5EF;         /* Warm Ivory — app background */
+  --color-surface: #FFFFFF;        /* Cards, sheets, inputs */
+  --color-primary: #145C46;        /* Deep Emerald — brand, primary actions, money in, দিবো */
+  --color-secondary: #DCECE4;      /* Soft Sage — selected states, icon tiles, দিবো background */
+  --color-accent: #E9A23B;         /* Amber — highlights, global “+” action */
+  --color-danger-soft: #FCE7E5;    /* Soft Red — পাবো / due / danger backgrounds (never text) */
+
+  /* Supporting tokens (contrast-verified) */
+  --color-primary-hover: #0F4A38;
+  --color-primary-deep: #0B3A2C;
+  --color-secondary-hover: #CFE4D9;
+  --color-surface-muted: #EFECE3;  /* Neutral tracks, hover fills on white */
+  --color-ink: #1A2420;            /* 14.6:1 on canvas */
+  --color-ink-muted: #4F5B55;      /* 6.5:1 on canvas */
+  --color-ink-subtle: #626C66;     /* meta only, ≥13px: 5.0 canvas · 5.45 white · 4.6 surface-muted */
+  --color-danger: #B42318;         /* 5.5:1 on danger-soft; পাবো amounts, danger buttons */
+  --color-danger-hover: #912018;
+  --color-danger-border: #F2B8B2;
+  --color-on-accent: #2B1D05;      /* text on amber, 7.6:1 */
+  --color-accent-ink: #8A5A00;     /* amber used as text, 5.4:1 */
+  --color-warning-soft: #FDF1DC;
+  --color-warning-ink: #7A4B00;    /* 6.6:1 on warning-soft */
+  --color-border: #E4DFD3;         /* dividers inside cards */
+  --color-border-strong: #CFC8B8;  /* card & input outlines */
+
+  /* Mobile-first type scale (DESIGN_SYSTEM §3). Minimum on mobile is 13px. */
+  --text-xs: 0.8125rem;            /* 13px meta */
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.9375rem;            /* 15px labels / list text */
+  --text-sm--line-height: 1.45;
+  --text-base: 1rem;               /* 16px body, buttons, inputs */
+  --text-base--line-height: 1.5;
+  --text-lg: 1.125rem;             /* 18px amounts, sheet titles */
+  --text-lg--line-height: 1.45;
+  --text-xl: 1.3125rem;            /* 21px screen titles */
+  --text-xl--line-height: 1.35;
+  --text-2xl: 1.5625rem;           /* 25px key figures */
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 2rem;                /* 32px hero balance */
+  --text-3xl--line-height: 1.2;
+  --text-4xl: 2.25rem;
+  --text-4xl--line-height: 1.15;
+}
+
+/* Desktop: slightly tighter scale, never below 13px */
+@media (min-width: 1024px) {
+  :root {
+    --text-sm: 0.875rem;
+    --text-base: 0.9375rem;
+  }
 }
 
 @layer base {
   html {
-    background-color: #F5F8F6;
-    color: #0F1F18;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
     -webkit-tap-highlight-color: transparent;
   }
 
   body {
-    font-family: var(--app-font, var(--font-hind-siliguri)), var(--font-plus-jakarta), system-ui, -apple-system, sans-serif;
-    background-color: #F5F8F6;
-    color: #0F1F18;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
     overscroll-behavior-y: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
   }
 }
 
@@ -33,12 +88,16 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Cards: white on ivory is only 1.09:1, so every card carries a visible 1px outline + soft shadow. */
 .shadow-card {
-  box-shadow: 0 4px 20px rgba(6, 78, 59, 0.055), 0 1px 3px rgba(6, 78, 59, 0.04);
+  box-shadow:
+    0 0 0 1px var(--color-border-strong),
+    0 1px 2px rgba(26, 36, 32, 0.06),
+    0 2px 8px rgba(26, 36, 32, 0.06);
 }
 
 .shadow-hero {
-  box-shadow: 0 14px 32px rgba(6, 78, 59, 0.22), 0 4px 10px rgba(6, 78, 59, 0.12);
+  box-shadow: 0 12px 28px rgba(11, 58, 44, 0.24), 0 3px 8px rgba(11, 58, 44, 0.14);
 }
 
 .pb-safe {

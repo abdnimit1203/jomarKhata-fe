@@ -47,12 +47,12 @@ export function NumericInput({
         value={value}
         onChange={handleChange}
         placeholder={placeholder}
-        className={`w-full rounded-2xl border border-[#D8E4DD] bg-[#F8FBF9] font-semibold tabular-nums text-[#0F1F18] placeholder:font-normal placeholder:text-[#8DA197] transition-colors focus:border-[#0D7A56] focus:bg-white focus:outline-none disabled:opacity-60 ${
+        className={`w-full rounded-2xl border border-border-strong bg-surface font-semibold tabular-nums text-ink placeholder:font-normal placeholder:text-ink-subtle transition-colors focus:border-primary focus:bg-white focus:outline-none disabled:opacity-60 ${
           inputSize === 'lg' ? 'h-14 pl-4 pr-11 text-2xl' : 'h-12 pl-4 pr-10 text-base'
         }`}
       />
       {suffix && (
-        <span className="pointer-events-none absolute right-3.5 text-sm font-semibold text-[#586B62]">
+        <span className="pointer-events-none absolute right-3.5 text-sm font-semibold text-ink-muted">
           {suffix}
         </span>
       )}

@@ -116,10 +116,10 @@ export function DueEntrySheet({
           disabled={isSubmitting || amount <= 0 || !partyId}
           className={`flex h-12 w-full items-center justify-center rounded-2xl text-base font-semibold text-white shadow-sm transition-colors disabled:opacity-50 ${
             entryType === 'customer_collection'
-              ? 'bg-[#0D7A56] hover:bg-[#096244]'
+              ? 'bg-primary hover:bg-primary-hover'
               : entryType === 'supplier_payment' || entryType === 'manual_due_given'
-                ? 'bg-[#DC2626] hover:bg-[#B91C1C]'
-                : 'bg-[#0D7A56] hover:bg-[#096244]'
+                ? 'bg-danger hover:bg-danger-hover'
+                : 'bg-primary hover:bg-primary-hover'
           }`}
         >
           {isSubmitting ? 'সংরক্ষণ হচ্ছে...' : 'নিশ্চিত করুন'}
@@ -134,8 +134,8 @@ export function DueEntrySheet({
               onClick={() => setEntryType('customer_collection')}
               className={`min-h-[48px] rounded-2xl border px-3 py-2 text-xs font-semibold transition-all ${
                 entryType === 'customer_collection'
-                  ? 'border-[#0D7A56] bg-[#0D7A56] text-white'
-                  : 'border-[#DCE6E0] bg-[#F7FAF8] text-[#2F463B]'
+                  ? 'border-primary bg-primary text-white'
+                  : 'border-border-strong bg-canvas text-ink'
               }`}
             >
               বাকি আদায় (নিচ্ছি)
@@ -145,8 +145,8 @@ export function DueEntrySheet({
               onClick={() => setEntryType('supplier_payment')}
               className={`min-h-[48px] rounded-2xl border px-3 py-2 text-xs font-semibold transition-all ${
                 entryType === 'supplier_payment'
-                  ? 'border-[#DC2626] bg-[#DC2626] text-white'
-                  : 'border-[#DCE6E0] bg-[#F7FAF8] text-[#2F463B]'
+                  ? 'border-danger bg-danger text-white'
+                  : 'border-border-strong bg-canvas text-ink'
               }`}
             >
               সাপ্লায়ার পরিশোধ (দিচ্ছি)
@@ -156,8 +156,8 @@ export function DueEntrySheet({
               onClick={() => setEntryType('manual_due_given')}
               className={`min-h-[44px] rounded-2xl border px-3 py-2 text-xs font-medium transition-all ${
                 entryType === 'manual_due_given'
-                  ? 'border-[#DC2626] bg-[#FEF2F2] text-[#DC2626]'
-                  : 'border-[#E6EEE9] bg-white text-[#586B62]'
+                  ? 'border-danger bg-danger-soft text-danger'
+                  : 'border-border bg-white text-ink-muted'
               }`}
             >
               নতুন বাকি দিলাম (ক্যাশ ছাড়া)
@@ -167,8 +167,8 @@ export function DueEntrySheet({
               onClick={() => setEntryType('manual_due_received')}
               className={`min-h-[44px] rounded-2xl border px-3 py-2 text-xs font-medium transition-all ${
                 entryType === 'manual_due_received'
-                  ? 'border-[#0D7A56] bg-[#E6F4EE] text-[#0D7A56]'
-                  : 'border-[#E6EEE9] bg-white text-[#586B62]'
+                  ? 'border-primary bg-secondary text-primary'
+                  : 'border-border bg-white text-ink-muted'
               }`}
             >
               সাপ্লায়ার বাকি নিলাম (ক্যাশ ছাড়া)
@@ -177,21 +177,21 @@ export function DueEntrySheet({
         )}
 
         {formError && (
-          <div className="flex items-start gap-2 rounded-2xl bg-[#FEF2F2] p-3 text-xs font-medium text-[#DC2626]">
+          <div className="flex items-start gap-2 rounded-2xl bg-danger-soft p-3 text-xs font-medium text-danger">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{formError}</span>
           </div>
         )}
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-[#354B41]">
+          <label className="mb-1.5 block text-xs font-semibold text-ink-muted">
             কাস্টমার / সাপ্লায়ার *
           </label>
           <select
             value={partyId}
             disabled={!!editDue}
             onChange={(e) => setPartyId(e.target.value)}
-            className="h-12 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm font-medium text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none disabled:opacity-60"
+            className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm font-medium text-ink focus:border-primary focus:bg-white focus:outline-none disabled:opacity-60"
           >
             <option value="">— নির্বাচন করুন —</option>
             {parties.map((p) => (
@@ -206,10 +206,10 @@ export function DueEntrySheet({
             ))}
           </select>
           {selectedParty && selectedParty.balance !== 0 && !editDue && (
-            <div className="mt-1.5 flex items-center justify-between text-xs text-[#586B62]">
+            <div className="mt-1.5 flex items-center justify-between text-xs text-ink-muted">
               <span>
                 বর্তমান স্থিতি:{' '}
-                <strong className={selectedParty.balance > 0 ? 'text-[#DC2626]' : 'text-[#0D7A56]'}>
+                <strong className={selectedParty.balance > 0 ? 'text-danger' : 'text-primary'}>
                   {selectedParty.balance > 0 ? 'পাবো' : 'দিবো'}{' '}
                   {formatTaka(Math.abs(selectedParty.balance))}
                 </strong>
@@ -217,7 +217,7 @@ export function DueEntrySheet({
               <button
                 type="button"
                 onClick={() => setAmountRaw(String(Math.abs(selectedParty.balance)))}
-                className="font-semibold text-[#0D7A56] hover:underline"
+                className="font-semibold text-primary hover:underline"
               >
                 পুরো বাকি বসান
               </button>
@@ -226,7 +226,7 @@ export function DueEntrySheet({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-[#354B41]">টাকার পরিমাণ *</label>
+          <label className="mb-1.5 block text-xs font-semibold text-ink-muted">টাকার পরিমাণ *</label>
           <NumericInput
             value={amountRaw}
             onChange={(raw) => setAmountRaw(raw)}
@@ -249,13 +249,13 @@ export function DueEntrySheet({
         )}
 
         <div>
-          <label className="mb-1 block text-xs text-[#586B62]">নোট / বিবরণ (ঐচ্ছিক)</label>
+          <label className="mb-1 block text-xs text-ink-muted">নোট / বিবরণ (ঐচ্ছিক)</label>
           <input
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="যেমন: বিকাশে পাঠিয়েছে / পুরোনো বাকি শোধ"
-            className="h-11 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
           />
         </div>
       </form>

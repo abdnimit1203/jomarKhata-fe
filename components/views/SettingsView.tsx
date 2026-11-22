@@ -52,57 +52,57 @@ function SettingsProfileForm({ profile }: { profile: BusinessProfile }) {
   return (
     <form onSubmit={handleSave} className="space-y-5">
       <section className="space-y-3.5 rounded-3xl bg-white p-5 shadow-card">
-        <h2 className="text-sm font-semibold text-[#0F1F18]">দোকানের তথ্য</h2>
+        <h2 className="text-sm font-semibold text-ink">দোকানের তথ্য</h2>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-[#4A5F55]">দোকানের নাম *</label>
+          <label className="mb-1 block text-xs font-medium text-ink-muted">দোকানের নাম *</label>
           <input
             type="text"
             value={shopName}
             onChange={(e) => setShopName(e.target.value)}
-            className="h-12 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+            className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
           />
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-xs font-medium text-[#4A5F55]">মালিকের নাম</label>
+            <label className="mb-1 block text-xs font-medium text-ink-muted">মালিকের নাম</label>
             <input
               type="text"
               value={ownerName}
               onChange={(e) => setOwnerName(e.target.value)}
-              className="h-12 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-[#4A5F55]">মোবাইল নম্বর</label>
+            <label className="mb-1 block text-xs font-medium text-ink-muted">মোবাইল নম্বর</label>
             <input
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="h-12 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-xs font-medium text-[#4A5F55]">ব্যবসার ধরন</label>
+            <label className="mb-1 block text-xs font-medium text-ink-muted">ব্যবসার ধরন</label>
             <input
               type="text"
               value={businessType}
               onChange={(e) => setBusinessType(e.target.value)}
               placeholder="যেমন: মুদি ও জেনারেল স্টোর"
-              className="h-12 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-[#4A5F55]">ঠিকানা</label>
+            <label className="mb-1 block text-xs font-medium text-ink-muted">ঠিকানা</label>
             <input
               type="text"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              className="h-12 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
             />
           </div>
         </div>
@@ -110,33 +110,33 @@ function SettingsProfileForm({ profile }: { profile: BusinessProfile }) {
 
       <section className="space-y-3.5 rounded-3xl bg-white p-5 shadow-card">
         <div>
-          <h2 className="text-sm font-semibold text-[#0F1F18]">শুরুর ব্যালেন্স (Opening Balances)</h2>
-          <p className="text-xs text-[#586B62]">
-            বর্তমান নগদ, বিকাশ, নগদ (MFS) ও ব্যাংক ব্যালেন্স এই শুরুর ব্যালেন্স থেকে হিসাব হয়
+          <h2 className="text-sm font-semibold text-ink">শুরুর ব্যালেন্স (Opening Balances)</h2>
+          <p className="text-xs text-ink-muted">
+            বর্তমান ক্যাশ, বিকাশ, নগদ ও ব্যাংক ব্যালেন্স এই শুরুর ব্যালেন্স থেকে হিসাব হয়
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-xs text-[#4A5F55]">শুরুর নগদ ক্যাশ</label>
+            <label className="mb-1 block text-xs text-ink-muted">শুরুর ক্যাশ</label>
             <NumericInput value={openCash} onChange={(r) => setOpenCash(r)} />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-[#4A5F55]">শুরুর বিকাশ</label>
+            <label className="mb-1 block text-xs text-ink-muted">শুরুর বিকাশ</label>
             <NumericInput value={openBkash} onChange={(r) => setOpenBkash(r)} />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-[#4A5F55]">শুরুর নগদ (MFS)</label>
+            <label className="mb-1 block text-xs text-ink-muted">শুরুর নগদ</label>
             <NumericInput value={openNagad} onChange={(r) => setOpenNagad(r)} />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-[#4A5F55]">শুরুর ব্যাংক</label>
+            <label className="mb-1 block text-xs text-ink-muted">শুরুর ব্যাংক</label>
             <NumericInput value={openBank} onChange={(r) => setOpenBank(r)} />
           </div>
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-[#4A5F55]">ডিফল্ট কম স্টক সতর্কতা সীমা</label>
+          <label className="mb-1 block text-xs text-ink-muted">ডিফল্ট কম স্টক সতর্কতা সীমা</label>
           <NumericInput
             value={lowStockThreshold}
             onChange={(r) => setLowStockThreshold(r)}
@@ -147,7 +147,7 @@ function SettingsProfileForm({ profile }: { profile: BusinessProfile }) {
         <button
           type="submit"
           disabled={isSaving}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#0D7A56] text-sm font-semibold text-white shadow-sm hover:bg-[#096244] disabled:opacity-50"
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-semibold text-white shadow-sm hover:bg-primary-hover disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
           <span>{isSaving ? 'সংরক্ষণ হচ্ছে...' : 'সেটিংস সংরক্ষণ করুন'}</span>
@@ -187,17 +187,17 @@ export function SettingsView() {
   return (
     <div className="mx-auto max-w-3xl space-y-5 pb-6">
       <section className="flex items-center gap-4 rounded-3xl bg-white p-5 shadow-card">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#0D7A56] text-white">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary text-white">
           <Store className="h-7 w-7" />
         </div>
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-bold text-[#0F1F18]">
+          <h1 className="truncate text-lg font-bold text-ink">
             {data.businessProfile.shopName}
           </h1>
-          <p className="truncate text-xs text-[#586B62]">
+          <p className="truncate text-xs text-ink-muted">
             {data.businessProfile.ownerName} · {data.businessProfile.phone}
           </p>
-          <p className="mt-0.5 text-xs text-[#0D7A56]">{data.businessProfile.businessType}</p>
+          <p className="mt-0.5 text-xs text-primary">{data.businessProfile.businessType}</p>
         </div>
       </section>
 
@@ -208,18 +208,18 @@ export function SettingsView() {
 
       <section className="space-y-3.5 rounded-3xl bg-white p-5 shadow-card">
         <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#E6F4EE] text-[#0D7A56]">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-primary">
             <Database className="h-5 w-5" />
           </span>
           <div>
-            <h2 className="text-sm font-semibold text-[#0F1F18]">
+            <h2 className="text-sm font-semibold text-ink">
               লোকাল অফলাইন ডেটাবেস (IndexedDB · Dexie)
             </h2>
-            <p className="mt-1 text-xs leading-relaxed text-[#586B62]">
+            <p className="mt-1 text-xs leading-relaxed text-ink-muted">
               বর্তমান ফ্রন্টএন্ড পর্যায়ে আপনার সব হিসাব নিরাপদভাবে এই ডিভাইসের ব্রাউজারে (IndexedDB) সংরক্ষিত হচ্ছে।
               ক্লাউড ব্যাকআপ ও লগইন পরবর্তী ব্যাকএন্ড পর্যায়ে যুক্ত হবে।
             </p>
-            <p className="mt-1.5 text-xs font-medium text-[#354B41] tabular-nums">
+            <p className="mt-1.5 text-xs font-medium text-ink-muted tabular-nums">
               লোকাল সিঙ্ক কিউ: {formatBanglaNumber(data.pendingSyncCount)}টি রেকর্ড · মোট অডিট লগ:{' '}
               {formatBanglaNumber(data.auditLogs.length)}টি
             </p>
@@ -230,7 +230,7 @@ export function SettingsView() {
           <button
             type="button"
             onClick={handleExportJson}
-            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#E6F4EE] text-xs font-semibold text-[#0D7A56] hover:bg-[#D5ECE1]"
+            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-secondary text-xs font-semibold text-primary hover:bg-secondary-hover"
           >
             <Download className="h-4 w-4" />
             <span>ব্যাকআপ ডাউনলোড (JSON)</span>
@@ -239,7 +239,7 @@ export function SettingsView() {
           <button
             type="button"
             onClick={() => setConfirmResetOpen(true)}
-            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#FEF2F2] text-xs font-semibold text-[#DC2626] hover:bg-[#FEE2E2]"
+            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-danger-soft text-xs font-semibold text-danger hover:bg-danger-soft"
           >
             <RotateCcw className="h-4 w-4" />
             <span>ডেমো ডেটা রিসেট করুন</span>

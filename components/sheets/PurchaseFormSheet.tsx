@@ -189,11 +189,11 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
       footer={
         <div className="space-y-2.5">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-[#586B62]">মোট ক্রয়</span>
+            <span className="text-ink-muted">মোট ক্রয়</span>
             <div className="flex items-center gap-3 tabular-nums">
-              <span className="text-lg font-bold text-[#0F1F18]">{formatTaka(total)}</span>
+              <span className="text-lg font-bold text-ink">{formatTaka(total)}</span>
               {dueAmount > 0 && (
-                <span className="text-xs font-semibold text-[#0D7A56]">
+                <span className="text-xs font-semibold text-primary">
                   দিবো {formatTaka(dueAmount)}
                 </span>
               )}
@@ -203,7 +203,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
             type="submit"
             form="purchase-form"
             disabled={isSubmitting || total <= 0}
-            className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#0D7A56] text-base font-semibold text-white shadow-sm transition-colors hover:bg-[#096244] disabled:opacity-50"
+            className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover disabled:opacity-50"
           >
             {isSubmitting ? 'সংরক্ষণ হচ্ছে...' : editPurchase ? 'সংশোধন সংরক্ষণ করুন' : 'ক্রয় সংরক্ষণ করুন'}
           </button>
@@ -211,12 +211,12 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
       }
     >
       <form id="purchase-form" onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-[#EDF3F0] p-1">
+        <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-surface-muted p-1">
           <button
             type="button"
             onClick={() => setMode('quick')}
             className={`h-11 rounded-xl text-sm font-semibold transition-all ${
-              mode === 'quick' ? 'bg-[#0D7A56] text-white shadow-sm' : 'text-[#445B50]'
+              mode === 'quick' ? 'bg-primary text-white shadow-sm' : 'text-ink-muted'
             }`}
           >
             সহজ কেনা
@@ -225,7 +225,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
             type="button"
             onClick={() => setMode('product')}
             className={`h-11 rounded-xl text-sm font-semibold transition-all ${
-              mode === 'product' ? 'bg-[#0D7A56] text-white shadow-sm' : 'text-[#445B50]'
+              mode === 'product' ? 'bg-primary text-white shadow-sm' : 'text-ink-muted'
             }`}
           >
             স্টকে পণ্য কেনা
@@ -233,16 +233,16 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
         </div>
 
         {formError && (
-          <div className="flex items-start gap-2 rounded-2xl bg-[#FEF2F2] p-3 text-xs font-medium text-[#DC2626]">
+          <div className="flex items-start gap-2 rounded-2xl bg-danger-soft p-3 text-xs font-medium text-danger">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{formError}</span>
           </div>
         )}
 
         {mode === 'quick' ? (
-          <div className="space-y-3 rounded-2xl bg-[#F6FAF7] p-4">
+          <div className="space-y-3 rounded-2xl bg-canvas p-4">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-[#354B41]">মোট কেনার টাকা *</label>
+              <label className="mb-1.5 block text-xs font-semibold text-ink-muted">মোট কেনার টাকা *</label>
               <NumericInput
                 value={quickAmount}
                 onChange={(raw) => setQuickAmount(raw)}
@@ -252,33 +252,33 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-[#586B62]">কী কিনলেন (ঐচ্ছিক)</label>
+              <label className="mb-1 block text-xs text-ink-muted">কী কিনলেন (ঐচ্ছিক)</label>
               <input
                 type="text"
                 value={quickDescription}
                 onChange={(e) => setQuickDescription(e.target.value)}
                 placeholder="যেমন: পাইকারি বাজারের মালামাল"
-                className="h-11 w-full rounded-xl border border-[#DCE6E0] bg-white px-3.5 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:outline-none"
+                className="h-11 w-full rounded-xl border border-border-strong bg-white px-3.5 text-sm text-ink focus:border-primary focus:outline-none"
               />
             </div>
           </div>
         ) : (
           <div className="space-y-3">
             <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-[#6F847A]" />
+              <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
               <input
                 type="text"
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
                 placeholder="পণ্য খুঁজুন..."
-                className="h-11 w-full rounded-xl border border-[#DCE6E0] bg-[#F7FAF8] pr-3.5 pl-10 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+                className="h-11 w-full rounded-xl border border-border-strong bg-canvas pr-3.5 pl-10 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
               />
             </div>
 
             {filteredProducts.length === 0 ? (
-              <div className="rounded-2xl bg-[#F6FAF7] p-5 text-center">
-                <Package className="mx-auto h-7 w-7 text-[#6F847A]" />
-                <p className="mt-2 text-sm font-medium text-[#2E4339]">কোনো পণ্য নেই</p>
+              <div className="rounded-2xl bg-canvas p-5 text-center">
+                <Package className="mx-auto h-7 w-7 text-ink-subtle" />
+                <p className="mt-2 text-sm font-medium text-ink">কোনো পণ্য নেই</p>
               </div>
             ) : (
               <div className="max-h-56 space-y-2 overflow-y-auto pr-0.5">
@@ -289,12 +289,12 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                     <div
                       key={prod.id}
                       className={`flex items-center justify-between gap-2 rounded-2xl border p-3 ${
-                        qty > 0 ? 'border-[#0D7A56] bg-[#EFF8F4]' : 'border-[#E6EEE9] bg-white'
+                        qty > 0 ? 'border-primary bg-secondary' : 'border-border bg-white'
                       }`}
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-[#0F1F18]">{prod.name}</p>
-                        <p className="text-xs text-[#586B62] tabular-nums">
+                        <p className="truncate text-sm font-semibold text-ink">{prod.name}</p>
+                        <p className="text-xs text-ink-muted tabular-nums">
                           ক্রয়দর {formatTaka(prod.purchasePrice)} · বর্তমান স্টক {formatBanglaNumber(prod.stockQty)} {prod.unit}
                         </p>
                       </div>
@@ -304,11 +304,11 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                             <button
                               type="button"
                               onClick={() => handleToggleProduct(prod.id, -1)}
-                              className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[#0F1F18] shadow-xs"
+                              className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-ink shadow-xs"
                             >
                               <Minus className="h-4 w-4" />
                             </button>
-                            <span className="w-7 text-center text-sm font-bold tabular-nums text-[#0D7A56]">
+                            <span className="w-7 text-center text-sm font-bold tabular-nums text-primary">
                               {formatBanglaNumber(qty)}
                             </span>
                           </>
@@ -316,7 +316,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                         <button
                           type="button"
                           onClick={() => handleToggleProduct(prod.id, 1)}
-                          className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0D7A56] text-white"
+                          className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white"
                         >
                           <Plus className="h-4 w-4" />
                         </button>
@@ -329,10 +329,10 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
           </div>
         )}
 
-        <div className="space-y-3 rounded-2xl border border-[#E5EDE8] bg-white p-4">
+        <div className="space-y-3 rounded-2xl border border-border bg-white p-4">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-[#354B41]">পরিশোধ</span>
-            <div className="flex items-center gap-1 rounded-xl bg-[#EDF3F0] p-0.5">
+            <span className="text-xs font-semibold text-ink-muted">পরিশোধ</span>
+            <div className="flex items-center gap-1 rounded-xl bg-surface-muted p-0.5">
               <button
                 type="button"
                 onClick={() => {
@@ -340,7 +340,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                   setPaidRaw(String(total));
                 }}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                  isFullyPaid ? 'bg-[#0D7A56] text-white' : 'text-[#4B6157]'
+                  isFullyPaid ? 'bg-primary text-white' : 'text-ink-muted'
                 }`}
               >
                 পুরোটা পরিশোধ
@@ -352,7 +352,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                   setPaidRaw('0');
                 }}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                  !isFullyPaid ? 'bg-[#D97706] text-white' : 'text-[#4B6157]'
+                  !isFullyPaid ? 'bg-accent text-white' : 'text-ink-muted'
                 }`}
               >
                 বাকি / আংশিক
@@ -362,7 +362,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
 
           {!isFullyPaid && (
             <div>
-              <label className="mb-1 block text-xs text-[#586B62]">এখন পরিশোধ করলেন</label>
+              <label className="mb-1 block text-xs text-ink-muted">এখন পরিশোধ করলেন</label>
               <NumericInput value={paidRaw} onChange={(raw) => setPaidRaw(raw)} placeholder="০" />
             </div>
           )}
@@ -378,17 +378,17 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
 
         <div
           className={`space-y-2.5 rounded-2xl border p-4 ${
-            dueAmount > 0 && !partyId ? 'border-[#FCA5A5] bg-[#FEF2F2]/60' : 'border-[#E5EDE8] bg-white'
+            dueAmount > 0 && !partyId ? 'border-danger-border bg-danger-soft/60' : 'border-border bg-white'
           }`}
         >
           <div className="flex items-center justify-between gap-2">
-            <label className="text-xs font-semibold text-[#354B41]">
-              সাপ্লায়ার {dueAmount > 0 ? <span className="text-[#DC2626]">(বাকির জন্য বাধ্যতামূলক *)</span> : '(ঐচ্ছিক)'}
+            <label className="text-xs font-semibold text-ink-muted">
+              সাপ্লায়ার {dueAmount > 0 ? <span className="text-danger">(বাকির জন্য বাধ্যতামূলক *)</span> : '(ঐচ্ছিক)'}
             </label>
             <button
               type="button"
               onClick={() => setShowInlineSupplier((v) => !v)}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[#0D7A56] hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
             >
               <UserPlus className="h-3.5 w-3.5" />
               <span>নতুন সাপ্লায়ার</span>
@@ -399,7 +399,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
             <select
               value={partyId}
               onChange={(e) => setPartyId(e.target.value)}
-              className="h-12 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm font-medium text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm font-medium text-ink focus:border-primary focus:bg-white focus:outline-none"
             >
               <option value="">
                 {dueAmount > 0 ? '— সাপ্লায়ার নির্বাচন করুন —' : 'নগদ সরবরাহকারী'}
@@ -417,20 +417,20 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                 value={newSupplierName}
                 onChange={(e) => setNewSupplierName(e.target.value)}
                 placeholder="সাপ্লায়ারের নাম *"
-                className="h-11 w-full rounded-xl border border-[#DCE6E0] px-3 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:outline-none"
+                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary focus:outline-none"
               />
               <input
                 type="tel"
                 value={newSupplierPhone}
                 onChange={(e) => setNewSupplierPhone(e.target.value)}
                 placeholder="মোবাইল নম্বর (ঐচ্ছিক)"
-                className="h-11 w-full rounded-xl border border-[#DCE6E0] px-3 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:outline-none"
+                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary focus:outline-none"
               />
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setShowInlineSupplier(false)}
-                  className="h-10 flex-1 rounded-xl bg-[#EEF3F0] text-xs font-semibold text-[#354B41]"
+                  className="h-10 flex-1 rounded-xl bg-surface-muted text-xs font-semibold text-ink-muted"
                 >
                   বাতিল
                 </button>
@@ -438,7 +438,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                   type="button"
                   disabled={creatingSupplier}
                   onClick={handleQuickCreateSupplier}
-                  className="h-10 flex-1 rounded-xl bg-[#0D7A56] text-xs font-semibold text-white"
+                  className="h-10 flex-1 rounded-xl bg-primary text-xs font-semibold text-white"
                 >
                   {creatingSupplier ? 'যোগ হচ্ছে...' : 'সাপ্লায়ার যোগ করুন'}
                 </button>
@@ -448,13 +448,13 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-[#586B62]">নোট (ঐচ্ছিক)</label>
+          <label className="mb-1 block text-xs text-ink-muted">নোট (ঐচ্ছিক)</label>
           <input
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="সংক্ষিপ্ত মন্তব্য"
-            className="h-11 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
           />
         </div>
       </form>

@@ -4,6 +4,25 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### S1 — Design system foundation — 2026-11-22
+**Changed (visual only; no accounting, schema or service-behaviour change)**
+- **Colour tokens:** `app/globals.css` `@theme` holds the owner palette (Warm Ivory `#F7F5EF`, Deep Emerald `#145C46`, Soft Sage `#DCECE4`, Amber `#E9A23B`, Soft Red `#FCE7E5`, White cards) plus contrast-verified supporting tokens.
+- **All 903 hardcoded hex colours replaced by tokens** (884 in 21 files; 19 removed with the font switcher). The only literal left is the browser `themeColor`.
+- **Type scale** raised for mobile (13 / 15 / 16 / 18 / 21 / 25 / 32 px) through the theme, so every screen got larger text at once. All `text-[11px]` / `text-[10px]` became `text-xs` (13px). The body weight is 500.
+- **Cards** now carry a visible 1px outline plus a soft shadow (`shadow-card`). Focus rings use the primary colour.
+- **Font:** a single generic font, **Noto Sans Bengali** (variable). Hind Siliguri, Plus Jakarta Sans, the 5 candidate fonts and the dev `FontSwitcher` were removed.
+- **Wording (D10):** cash is "ক্যাশ" (হাতে ক্যাশ, আজ ক্যাশ এসেছে/গেছে, শুরুর ক্যাশ). "নগদ" now means only the Nagad wallet, with "(MFS)" dropped. The payment channels read ক্যাশ · বিকাশ · নগদ · ব্যাংক. **The walk-in labels "নগদ ক্রেতা" / "নগদ সরবরাহকারী" are unchanged** (AP-12 rejected).
+- **The due-reminder date field** now displays dd/MM/yyyy with a left calendar icon (`DateInput`).
+
+**Added**
+- Shared components: `Button`, `Card`, `AmountWithState`, `StatusBadge`, `Banner`, `DateInput`.
+- `onboarding/WelcomeScreen` (first page when not logged in, modelled on the reference theme) with an original token-only SVG illustration. In S1 it's a **development preview only** (`/?preview=welcome`); it's wired to the first run in S3. "লগইন করুন" only explains that accounts aren't available yet, with no fake login.
+- `lib/format.ts`: `toDateInputValue()` and `formatDateInputDisplay()` (dd/MM/yyyy, Bengali digits).
+- `tests/design-system.test.ts` (32 tests): no raw hex, the exact owner palette, WCAG contrast for 20 token pairs (plus proof that the forbidden pairs fail), the card outline, no px font sizes, the single font with the switcher gone, the D10 wording, the "নগদ ক্রেতা" label unchanged, and the date display format.
+
+**Fixed during S1**
+- `--color-ink-subtle` darkened from `#6B756F` to `#626C66`. The new contrast test showed 4.38:1 on ivory; it's now 5.0:1, and at least 4.6:1 on every background.
+
 ### S0 — Safety net (tests only, no app behaviour change) — 2026-11-22
 **Added**
 - Vitest and fake-indexeddb (dev dependencies). Scripts: `npm test` (`vitest run`) and `npm run typecheck` (`tsc --noEmit`).

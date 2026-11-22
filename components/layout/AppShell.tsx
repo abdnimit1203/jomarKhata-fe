@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   BarChart3,
   BookOpen,
@@ -35,6 +35,7 @@ import { CashExpenseView } from '@/components/views/CashExpenseView';
 import { StockView } from '@/components/views/StockView';
 import { ReportsView } from '@/components/views/ReportsView';
 import { SettingsView } from '@/components/views/SettingsView';
+import { WelcomeScreen } from '@/components/onboarding/WelcomeScreen';
 import type { AppRoute } from '@/types/domain';
 
 const DESKTOP_NAV: Array<{ id: AppRoute; label: string; icon: React.ComponentType<{ className?: string }> }> = [
@@ -72,6 +73,27 @@ export function AppShell() {
     refresh,
   } = useJomarkhata();
 
+  // S1 design preview only: `?preview=welcome` shows the not-logged-in first page in development.
+  // Real first-run / account wiring arrives in S3 (AP-1..AP-3). Never active in production builds.
+  const [welcomePreview, setWelcomePreview] = useState(false);
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+    if (new URLSearchParams(window.location.search).get('preview') === 'welcome') {
+      setWelcomePreview(true);
+    }
+  }, []);
+
+  if (welcomePreview) {
+    return (
+      <WelcomeScreen
+        onStartLocal={() => {
+          window.history.replaceState(null, '', window.location.pathname);
+          setWelcomePreview(false);
+        }}
+      />
+    );
+  }
+
   const renderActiveView = () => {
     switch (activeRoute) {
       case 'dashboard':
@@ -96,19 +118,19 @@ export function AppShell() {
   };
 
   return (
-    <div className="min-h-dvh bg-[#F5F8F6] text-[#0F1F18]">
+    <div className="min-h-dvh bg-canvas text-ink">
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
       <div className="flex min-h-dvh">
         {/* Desktop Left Sidebar (lg+) */}
-        <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-[#E2EAE5] lg:bg-white">
-          <div className="flex h-16 items-center gap-3 border-b border-[#EDF3F0] px-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0D7A56] text-lg font-bold text-white">
+        <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-border lg:bg-white">
+          <div className="flex h-16 items-center gap-3 border-b border-border px-5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-lg font-bold text-white">
               জ
             </div>
             <div className="min-w-0">
-              <p className="truncate text-base font-bold text-[#0F1F18]">জমারখাতা</p>
-              <p className="truncate text-[11px] text-[#586B62]">
+              <p className="truncate text-base font-bold text-ink">জমারখাতা</p>
+              <p className="truncate text-xs text-ink-muted">
                 {data?.businessProfile.shopName || 'দোকানের সব হিসাব'}
               </p>
             </div>
@@ -119,7 +141,7 @@ export function AppShell() {
             <button
               type="button"
               onClick={() => openSheet({ type: 'sale' })}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#0D7A56] text-sm font-semibold text-white shadow-xs transition-colors hover:bg-[#096244] active:scale-[0.99]"
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-semibold text-white shadow-xs transition-colors hover:bg-primary-hover active:scale-[0.99]"
             >
               <Plus className="h-4 w-4" />
               <span>নতুন বিক্রি</span>
@@ -137,8 +159,8 @@ export function AppShell() {
                   onClick={() => navigate(item.id)}
                   className={`flex min-h-[44px] w-full items-center gap-3 rounded-2xl px-3.5 text-sm font-medium whitespace-nowrap transition-colors ${
                     active
-                      ? 'bg-[#E6F4EE] font-semibold text-[#0D7A56]'
-                      : 'text-[#3F564B] hover:bg-[#F3F7F5] hover:text-[#0F1F18]'
+                      ? 'bg-secondary font-semibold text-primary'
+                      : 'text-ink-muted hover:bg-surface-muted hover:text-ink'
                   }`}
                 >
                   <Icon className="h-5 w-5 shrink-0" />
@@ -148,7 +170,7 @@ export function AppShell() {
             })}
           </nav>
 
-          <div className="border-t border-[#EDF3F0] px-4 py-3 text-[11px] text-[#667B71]">
+          <div className="border-t border-border px-4 py-3 text-xs text-ink-subtle">
             দোকানের সব হিসাব, এক খাতায়।
           </div>
         </aside>
@@ -156,16 +178,16 @@ export function AppShell() {
         {/* Main Content Area */}
         <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
           {/* Mobile Sticky Top App Bar (56px — stays well within 15% mobile sticky cap with bottom bar) */}
-          <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-[#E5EDE8] bg-white/95 px-4 backdrop-blur-md lg:h-16 lg:px-8">
+          <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-white/95 px-4 backdrop-blur-md lg:h-16 lg:px-8">
             <div className="flex min-w-0 items-center gap-2.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0D7A56] text-sm font-bold text-white lg:hidden">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold text-white lg:hidden">
                 জ
               </div>
               <div className="min-w-0">
-                <p className="truncate text-base font-bold text-[#0F1F18]">
+                <p className="truncate text-base font-bold text-ink">
                   {data?.businessProfile.shopName || 'জমারখাতা'}
                 </p>
-                <p className="hidden text-xs text-[#586B62] lg:block">
+                <p className="hidden text-xs text-ink-muted lg:block">
                   দোকানের সব হিসাব, এক খাতায়।
                 </p>
               </div>
@@ -175,7 +197,7 @@ export function AppShell() {
               <button
                 type="button"
                 onClick={() => openSheet({ type: 'expense' })}
-                className="hidden h-10 items-center gap-1.5 rounded-xl bg-[#EEF5F1] px-3.5 text-xs font-semibold text-[#0D7A56] hover:bg-[#DFECE6] lg:inline-flex"
+                className="hidden h-10 items-center gap-1.5 rounded-xl bg-secondary px-3.5 text-xs font-semibold text-primary hover:bg-secondary-hover lg:inline-flex"
               >
                 <Receipt className="h-4 w-4" />
                 <span>সহজ খরচ</span>
@@ -184,7 +206,7 @@ export function AppShell() {
                 type="button"
                 onClick={() => navigate('settings')}
                 aria-label="সেটিংস"
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F3F7F5] text-[#2F463B] transition-colors hover:bg-[#E6F4EE] hover:text-[#0D7A56]"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-muted text-ink transition-colors hover:bg-secondary hover:text-primary"
               >
                 <Settings className="h-5 w-5" />
               </button>
@@ -197,12 +219,12 @@ export function AppShell() {
               <DashboardSkeleton />
             ) : error ? (
               <div className="mx-auto max-w-md rounded-3xl bg-white p-6 text-center shadow-card">
-                <p className="text-base font-semibold text-[#DC2626]">ডেটা লোড করতে সমস্যা হয়েছে</p>
-                <p className="mt-1 text-xs text-[#586B62]">{error}</p>
+                <p className="text-base font-semibold text-danger">ডেটা লোড করতে সমস্যা হয়েছে</p>
+                <p className="mt-1 text-xs text-ink-muted">{error}</p>
                 <button
                   type="button"
                   onClick={refresh}
-                  className="mt-4 h-11 rounded-2xl bg-[#0D7A56] px-6 text-sm font-semibold text-white"
+                  className="mt-4 h-11 rounded-2xl bg-primary px-6 text-sm font-semibold text-white"
                 >
                   আবার চেষ্টা করুন
                 </button>
@@ -217,7 +239,7 @@ export function AppShell() {
       {/* Mobile Fixed 5-Tab Bottom Bar (< lg) — Reference Image 1 Clean Emerald Active Tabs */}
       <nav
         aria-label="মোবাইল নেভিগেশন"
-        className="fixed right-0 bottom-0 left-0 z-40 border-t border-[#E4ECE7] bg-white/95 backdrop-blur-md lg:hidden"
+        className="fixed right-0 bottom-0 left-0 z-40 border-t border-border bg-white/95 backdrop-blur-md lg:hidden"
       >
         <div className="grid h-16 grid-cols-5 items-center pb-safe">
           {MOBILE_TABS.map((tab) => {
@@ -229,17 +251,17 @@ export function AppShell() {
                 type="button"
                 onClick={() => navigate(tab.id)}
                 className={`flex min-h-[48px] flex-col items-center justify-center gap-0.5 transition-colors ${
-                  active ? 'text-[#0D7A56]' : 'text-[#6A7F75]'
+                  active ? 'text-primary' : 'text-ink-subtle'
                 }`}
               >
                 <span
                   className={`flex h-7 w-11 items-center justify-center rounded-full transition-colors ${
-                    active ? 'bg-[#E6F4EE]' : ''
+                    active ? 'bg-secondary' : ''
                   }`}
                 >
                   <Icon className="h-5 w-5" />
                 </span>
-                <span className={`text-[11px] leading-tight ${active ? 'font-bold' : 'font-medium'}`}>
+                <span className={`text-xs leading-tight ${active ? 'font-bold' : 'font-medium'}`}>
                   {tab.label}
                 </span>
               </button>

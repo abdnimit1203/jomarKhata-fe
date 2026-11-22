@@ -70,7 +70,7 @@ export function ExpenseFormSheet({ open, editExpense, onClose }: ExpenseFormShee
           type="submit"
           form="expense-form"
           disabled={isSubmitting || amount <= 0}
-          className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#0D7A56] text-base font-semibold text-white shadow-sm transition-colors hover:bg-[#096244] disabled:opacity-50"
+          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover disabled:opacity-50"
         >
           {isSubmitting ? 'সংরক্ষণ হচ্ছে...' : editExpense ? 'সংশোধন সংরক্ষণ করুন' : 'খরচ সংরক্ষণ করুন'}
         </button>
@@ -78,14 +78,14 @@ export function ExpenseFormSheet({ open, editExpense, onClose }: ExpenseFormShee
     >
       <form id="expense-form" onSubmit={handleSubmit} className="space-y-4">
         {formError && (
-          <div className="flex items-start gap-2 rounded-2xl bg-[#FEF2F2] p-3 text-xs font-medium text-[#DC2626]">
+          <div className="flex items-start gap-2 rounded-2xl bg-danger-soft p-3 text-xs font-medium text-danger">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{formError}</span>
           </div>
         )}
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-[#354B41]">খরচের টাকা *</label>
+          <label className="mb-1.5 block text-xs font-semibold text-ink-muted">খরচের টাকা *</label>
           <NumericInput
             value={amountRaw}
             onChange={(raw) => setAmountRaw(raw)}
@@ -96,7 +96,7 @@ export function ExpenseFormSheet({ open, editExpense, onClose }: ExpenseFormShee
         </div>
 
         <div>
-          <label className="mb-2 block text-xs font-semibold text-[#354B41]">খরচের খাত (এক ট্যাপে বেছে নিন)</label>
+          <label className="mb-2 block text-xs font-semibold text-ink-muted">খরচের খাত (এক ট্যাপে বেছে নিন)</label>
           <div className="flex flex-wrap gap-2">
             {EXPENSE_CATEGORIES.map((cat) => {
               const active = category === cat;
@@ -107,8 +107,8 @@ export function ExpenseFormSheet({ open, editExpense, onClose }: ExpenseFormShee
                   onClick={() => setCategory(cat)}
                   className={`min-h-[40px] rounded-xl border px-3.5 text-xs font-semibold transition-colors ${
                     active
-                      ? 'border-[#0D7A56] bg-[#0D7A56] text-white'
-                      : 'border-[#DCE6E0] bg-[#F7FAF8] text-[#32493E] hover:bg-[#EBF2EE]'
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-border-strong bg-canvas text-ink hover:bg-surface-muted'
                   }`}
                 >
                   {cat}
@@ -125,13 +125,13 @@ export function ExpenseFormSheet({ open, editExpense, onClose }: ExpenseFormShee
         />
 
         <div>
-          <label className="mb-1 block text-xs text-[#586B62]">বিবরণ / নোট (ঐচ্ছিক)</label>
+          <label className="mb-1 block text-xs text-ink-muted">বিবরণ / নোট (ঐচ্ছিক)</label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={`যেমন: ${category}`}
-            className="h-11 w-full rounded-xl border border-[#DCE6E0] bg-[#F8FBF9] px-3.5 text-sm text-[#0F1F18] focus:border-[#0D7A56] focus:bg-white focus:outline-none"
+            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
           />
         </div>
       </form>

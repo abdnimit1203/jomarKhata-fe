@@ -34,15 +34,15 @@ export function StockView() {
     <div className="mx-auto max-w-5xl space-y-4 pb-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-[#0F1F18]">স্টকের হিসাব ও প্রোডাক্ট লিস্ট</h1>
-          <p className="text-xs text-[#586B62]">
+          <h1 className="text-xl font-bold text-ink">স্টকের হিসাব ও প্রোডাক্ট লিস্ট</h1>
+          <p className="text-xs text-ink-muted">
             সম্পূর্ণ ঐচ্ছিক মডিউল — চাইলে পণ্য যোগ করে স্টক ও সঠিক লাভের হিসাব রাখুন
           </p>
         </div>
         <button
           type="button"
           onClick={() => openSheet({ type: 'product' })}
-          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-[#0D7A56] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#096244]"
+          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
         >
           <Plus className="h-4 w-4" />
           <span>নতুন পণ্য</span>
@@ -52,14 +52,14 @@ export function StockView() {
       {/* Stock Summary Strip */}
       <div className="grid grid-cols-3 gap-2.5">
         <div className="rounded-2xl bg-white p-3.5 shadow-card">
-          <p className="text-xs text-[#586B62]">মোট পণ্য</p>
-          <p className="mt-1 text-lg font-bold tabular-nums text-[#0F1F18]">
+          <p className="text-xs text-ink-muted">মোট পণ্য</p>
+          <p className="mt-1 text-lg font-bold tabular-nums text-ink">
             {formatBanglaNumber(data.products.filter((p) => p.isActive).length)} টি
           </p>
         </div>
         <div className="rounded-2xl bg-white p-3.5 shadow-card">
-          <p className="text-xs text-[#586B62]">স্টক মূল্য (ক্রয়দর)</p>
-          <p className="mt-1 text-lg font-bold tabular-nums text-[#0D7A56]">
+          <p className="text-xs text-ink-muted">স্টক মূল্য (ক্রয়দর)</p>
+          <p className="mt-1 text-lg font-bold tabular-nums text-primary">
             {formatTaka(currentBalances.totalStockValue)}
           </p>
         </div>
@@ -67,11 +67,11 @@ export function StockView() {
           type="button"
           onClick={() => setOnlyLowStock((v) => !v)}
           className={`rounded-2xl p-3.5 text-left shadow-card transition-colors ${
-            onlyLowStock ? 'bg-[#FFFBEB] ring-1 ring-[#D97706]' : 'bg-white'
+            onlyLowStock ? 'bg-warning-soft ring-1 ring-accent' : 'bg-white'
           }`}
         >
-          <p className="text-xs text-[#92400E]">কম স্টক</p>
-          <p className="mt-1 text-lg font-bold tabular-nums text-[#D97706]">
+          <p className="text-xs text-warning-ink">কম স্টক</p>
+          <p className="mt-1 text-lg font-bold tabular-nums text-accent-ink">
             {formatBanglaNumber(currentBalances.lowStockCount)} টি
           </p>
         </button>
@@ -80,13 +80,13 @@ export function StockView() {
       {/* Filters */}
       <div className="flex flex-col gap-2.5 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-[#6F847A]" />
+          <Search className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="পণ্যের নাম খুঁজুন..."
-            className="h-11 w-full rounded-2xl border border-[#DCE6E0] bg-white pr-4 pl-11 text-sm text-[#0F1F18] shadow-card focus:border-[#0D7A56] focus:outline-none"
+            className="h-11 w-full rounded-2xl border border-border-strong bg-white pr-4 pl-11 text-sm text-ink shadow-card focus:border-primary focus:outline-none"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -94,7 +94,7 @@ export function StockView() {
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             aria-label="ক্যাটাগরি"
-            className="h-11 rounded-2xl border border-[#DCE6E0] bg-white px-3 text-xs font-semibold text-[#354B41] shadow-card focus:border-[#0D7A56] focus:outline-none"
+            className="h-11 rounded-2xl border border-border-strong bg-white px-3 text-xs font-semibold text-ink-muted shadow-card focus:border-primary focus:outline-none"
           >
             <option value="all">সব ক্যাটাগরি</option>
             {PRODUCT_CATEGORIES.map((c) => (
@@ -108,8 +108,8 @@ export function StockView() {
             onClick={() => setOnlyLowStock((v) => !v)}
             className={`h-11 rounded-2xl border px-3 text-xs font-semibold whitespace-nowrap shadow-card ${
               onlyLowStock
-                ? 'border-[#D97706] bg-[#FFFBEB] text-[#B45309]'
-                : 'border-[#DCE6E0] bg-white text-[#486055]'
+                ? 'border-accent bg-warning-soft text-accent-ink'
+                : 'border-border-strong bg-white text-ink-muted'
             }`}
           >
             কম স্টক
@@ -137,22 +137,22 @@ export function StockView() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-[#0F1F18]">{prod.name}</p>
-                    <p className="mt-0.5 text-xs text-[#586B62]">
+                    <p className="truncate text-sm font-bold text-ink">{prod.name}</p>
+                    <p className="mt-0.5 text-xs text-ink-muted">
                       {prod.category} · ক্রয় {formatTaka(prod.purchasePrice)} · বিক্রয়{' '}
-                      <strong className="text-[#0F1F18]">{formatTaka(prod.sellingPrice)}</strong>
+                      <strong className="text-ink">{formatTaka(prod.sellingPrice)}</strong>
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
                     <p
                       className={`text-lg font-bold tabular-nums ${
-                        isLow ? 'text-[#D97706]' : 'text-[#0D7A56]'
+                        isLow ? 'text-accent-ink' : 'text-primary'
                       }`}
                     >
                       {formatBanglaNumber(prod.stockQty)} {prod.unit}
                     </p>
                     {isLow && (
-                      <p className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#B45309]">
+                      <p className="inline-flex items-center gap-1 text-xs font-semibold text-accent-ink">
                         <AlertTriangle className="h-3 w-3" />
                         <span>কম স্টক</span>
                       </p>
@@ -160,11 +160,11 @@ export function StockView() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 border-t border-[#EFF4F1] pt-2.5">
+                <div className="flex items-center gap-2 border-t border-border pt-2.5">
                   <button
                     type="button"
                     onClick={() => openSheet({ type: 'stock_adjust', product: prod })}
-                    className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#E6F4EE] text-xs font-semibold text-[#0D7A56] transition-colors hover:bg-[#D5ECE1]"
+                    className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-secondary text-xs font-semibold text-primary transition-colors hover:bg-secondary-hover"
                   >
                     <SlidersHorizontal className="h-3.5 w-3.5" />
                     <span>স্টক যোগ / কমান</span>
@@ -172,7 +172,7 @@ export function StockView() {
                   <button
                     type="button"
                     onClick={() => openSheet({ type: 'product', editProduct: prod })}
-                    className="flex h-10 items-center justify-center gap-1.5 rounded-xl bg-[#F2F6F4] px-3.5 text-xs font-semibold text-[#354B41] transition-colors hover:bg-[#E4ECE7]"
+                    className="flex h-10 items-center justify-center gap-1.5 rounded-xl bg-surface-muted px-3.5 text-xs font-semibold text-ink-muted transition-colors hover:bg-surface-muted"
                   >
                     <Edit3 className="h-3.5 w-3.5" />
                     <span>এডিট</span>
