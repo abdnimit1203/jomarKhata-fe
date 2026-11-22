@@ -109,7 +109,7 @@ export function ReportsView() {
         <button
           type="button"
           onClick={handleExportCsv}
-          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-white px-4 text-xs font-semibold text-primary shadow-card hover:bg-secondary"
+          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-white px-4 text-xs font-semibold text-primary-ink shadow-card hover:bg-secondary"
         >
           <Download className="h-4 w-4" />
           <span>CSV ডাউনলোড</span>
@@ -131,7 +131,7 @@ export function ReportsView() {
             type="button"
             onClick={() => setPeriod(t.id)}
             className={`min-h-[40px] rounded-full px-4 text-xs font-semibold whitespace-nowrap transition-colors ${
-              period === t.id ? 'bg-primary text-white shadow-xs' : 'text-ink-muted'
+              period === t.id ? 'bg-primary text-on-primary shadow-xs' : 'text-ink-muted'
             }`}
           >
             {t.label}
@@ -156,11 +156,11 @@ export function ReportsView() {
           </div>
 
           <div className="rounded-2xl bg-secondary p-3.5">
-            <p className="text-xs text-primary">মোট টাকা আদায়</p>
-            <p className="mt-1 text-lg font-bold tabular-nums text-primary">
+            <p className="text-xs text-primary-ink">মোট টাকা আদায়</p>
+            <p className="mt-1 text-lg font-bold tabular-nums text-primary-ink">
               {formatTaka(flows.totalCollected)}
             </p>
-            <p className="text-xs text-primary tabular-nums">
+            <p className="text-xs text-primary-ink tabular-nums">
               বিক্রি {formatTaka(flows.salePaymentCollected)} · বাকি আদায়{' '}
               {formatTaka(flows.customerDueCollected)}
             </p>
@@ -199,19 +199,19 @@ export function ReportsView() {
           {/* Explicit Completeness Indicator */}
           <div className="flex items-center gap-1.5 text-xs font-semibold">
             {profit.completeness === 'complete' ? (
-              <span className="inline-flex items-center gap-1 text-primary">
+              <span className="inline-flex items-center gap-1 text-primary-ink">
                 <CheckCircle2 className="h-4 w-4" />
                 <span>সম্পূর্ণ হিসাব (১০০% ক্রয়মূল্য আছে)</span>
               </span>
             ) : profit.completeness === 'partial' ? (
-              <span className="inline-flex items-center gap-1 text-accent-ink">
+              <span className="inline-flex items-center gap-1 text-warning-ink">
                 <AlertTriangle className="h-4 w-4" />
                 <span>
                   অসম্পূর্ণ / আনুমানিক ({formatBanglaNumber(profit.costCoveragePercent)}% ক্রয়মূল্য আছে)
                 </span>
               </span>
             ) : profit.completeness === 'unavailable' ? (
-              <span className="inline-flex items-center gap-1 text-accent-ink">
+              <span className="inline-flex items-center gap-1 text-warning-ink">
                 <Info className="h-4 w-4" />
                 <span>ক্রয়মূল্য নেই — লাভ নির্ণয় অসম্পূর্ণ</span>
               </span>
@@ -224,7 +224,7 @@ export function ReportsView() {
         {/* Missing Cost Warning Banner when incomplete */}
         {profit.uncostedSalesCount > 0 && (
           <div className="mt-3 flex items-start gap-2.5 rounded-2xl bg-warning-soft p-3.5 text-xs text-warning-ink">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-accent-ink" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning-ink" />
             <p className="leading-relaxed">
               এই সময়ে মোট{' '}
               <strong>{formatBanglaNumber(profit.totalSalesCount)}টি</strong> বিক্রির মধ্যে{' '}
@@ -252,7 +252,7 @@ export function ReportsView() {
             <span className="font-semibold text-ink">
               মোট লাভ {profit.completeness === 'partial' ? '(শুধু ক্রয়মূল্যসহ বিক্রির)' : ''}
             </span>
-            <span className="font-bold tabular-nums text-primary">
+            <span className="font-bold tabular-nums text-primary-ink">
               {profit.grossProfitOnCostedSales !== null
                 ? formatTaka(profit.grossProfitOnCostedSales)
                 : 'নির্ণয়যোগ্য নয়'}
@@ -273,7 +273,7 @@ export function ReportsView() {
                 profit.netProfitEstimate === null
                   ? 'text-ink-subtle'
                   : profit.netProfitEstimate >= 0
-                    ? 'text-primary'
+                    ? 'text-primary-ink'
                     : 'text-danger'
               }`}
             >
@@ -294,8 +294,8 @@ export function ReportsView() {
               <p className="text-xs text-ink-muted">বার-এ ট্যাপ করে দিনের হিসাব দেখুন</p>
             </div>
             {selectedBar && (
-              <div className="rounded-xl bg-primary px-3 py-1.5 text-right text-xs text-white tabular-nums">
-                <p className="text-xs text-white/80">{selectedBar.label}</p>
+              <div className="rounded-xl bg-primary px-3 py-1.5 text-right text-xs text-on-primary tabular-nums">
+                <p className="text-xs text-on-primary/80">{selectedBar.label}</p>
                 <p className="font-bold">বিক্রি {formatTaka(selectedBar.sales)}</p>
               </div>
             )}
@@ -330,7 +330,7 @@ export function ReportsView() {
                   </div>
                   <span
                     className={`text-xs whitespace-nowrap ${
-                      isSelected ? 'font-bold text-primary' : 'text-ink-muted'
+                      isSelected ? 'font-bold text-primary-ink' : 'text-ink-muted'
                     }`}
                   >
                     {pt.label}
@@ -385,7 +385,7 @@ export function ReportsView() {
             <div className="mt-3 space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-ink-muted">হাতে ক্যাশ</span>
-                <span className="font-bold tabular-nums text-primary">
+                <span className="font-bold tabular-nums text-primary-ink">
                   {formatTaka(currentBalances.cashInHand)}
                 </span>
               </div>
@@ -403,7 +403,7 @@ export function ReportsView() {
               </div>
               <div className="flex justify-between">
                 <span className="text-ink-muted">মোট দিবো (সাপ্লায়ার)</span>
-                <span className="font-bold tabular-nums text-primary">
+                <span className="font-bold tabular-nums text-primary-ink">
                   {formatTaka(currentBalances.totalPayables)}
                 </span>
               </div>

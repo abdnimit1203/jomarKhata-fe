@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   // Must be a literal colour for the browser UI; mirrors --color-primary in globals.css.
-  themeColor: '#145C46',
+  themeColor: '#E9A23B',
   width: 'device-width',
   initialScale: 1,
 };

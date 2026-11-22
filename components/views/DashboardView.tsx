@@ -70,7 +70,7 @@ export function DashboardView() {
       {/* Top Grid: Hero Balance Card + Period Summary (2 cols on desktop, stacked on mobile) */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-stretch">
         {/* Emerald Hero Balance Card — STRICTLY Cumulative All-Time Balances */}
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary-hover to-primary-deep p-5 text-white shadow-hero lg:col-span-7 lg:p-6">
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary-hover to-primary-deep p-5 text-on-primary shadow-hero lg:col-span-7 lg:p-6">
           {/* Subtle decorative radial light */}
           <div
             aria-hidden="true"
@@ -79,7 +79,7 @@ export function DashboardView() {
 
           <div className="relative z-10 flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-medium text-white/80">
+              <p className="text-xs font-medium text-on-primary/80">
                 হাতে ক্যাশ · বর্তমান ব্যালেন্স (সব সময়ের)
               </p>
               <div className="mt-1.5 flex items-center gap-2.5">
@@ -90,19 +90,19 @@ export function DashboardView() {
                   type="button"
                   onClick={() => setHideBalance((v) => !v)}
                   aria-label={hideBalance ? 'ব্যালেন্স দেখান' : 'ব্যালেন্স লুকান'}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/12 text-white transition-colors hover:bg-white/20 active:scale-95"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/30 text-on-primary transition-colors hover:bg-white/45 active:scale-95"
                 >
                   {hideBalance ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="mt-1 text-xs text-white/80 tabular-nums">
+              <p className="mt-1 text-xs text-on-primary/80 tabular-nums">
                 মোট ক্যাশ ও ডিজিটাল ব্যালেন্স: {mask(formatTaka(currentBalances.totalLiquidBalance))}
               </p>
             </div>
             <button
               type="button"
               onClick={() => navigate('cash')}
-              className="rounded-xl bg-white/14 px-3 py-2 text-xs font-semibold text-white whitespace-nowrap transition-colors hover:bg-white/22"
+              className="rounded-xl bg-white/30 px-3 py-2 text-xs font-semibold text-on-primary whitespace-nowrap transition-colors hover:bg-white/45"
             >
               ক্যাশ বক্স →
             </button>
@@ -111,19 +111,19 @@ export function DashboardView() {
           {/* All-Time Channel & Due Position Strip */}
           <div className="relative z-10 mt-5 grid grid-cols-3 gap-2 border-t border-white/15 pt-4 text-xs sm:grid-cols-5">
             <div>
-              <p className="text-white/80">বিকাশ</p>
+              <p className="text-on-primary/80">বিকাশ</p>
               <p className="mt-0.5 font-semibold tabular-nums">
                 {mask(formatTaka(currentBalances.channelBalances.bkash))}
               </p>
             </div>
             <div>
-              <p className="text-white/80">নগদ</p>
+              <p className="text-on-primary/80">নগদ</p>
               <p className="mt-0.5 font-semibold tabular-nums">
                 {mask(formatTaka(currentBalances.channelBalances.nagad))}
               </p>
             </div>
             <div>
-              <p className="text-white/80">ব্যাংক</p>
+              <p className="text-on-primary/80">ব্যাংক</p>
               <p className="mt-0.5 font-semibold tabular-nums">
                 {mask(formatTaka(currentBalances.channelBalances.bank))}
               </p>
@@ -133,8 +133,8 @@ export function DashboardView() {
               onClick={() => navigate('dues')}
               className="text-left transition-opacity hover:opacity-85"
             >
-              <p className="text-white/80">মোট পাবো</p>
-              <p className="mt-0.5 font-semibold text-white tabular-nums">
+              <p className="text-on-primary/80">মোট পাবো</p>
+              <p className="mt-0.5 font-semibold text-on-primary tabular-nums">
                 {mask(formatTaka(currentBalances.totalReceivables))}
               </p>
             </button>
@@ -143,8 +143,8 @@ export function DashboardView() {
               onClick={() => navigate('dues')}
               className="text-left transition-opacity hover:opacity-85"
             >
-              <p className="text-white/80">মোট দিবো</p>
-              <p className="mt-0.5 font-semibold text-white tabular-nums">
+              <p className="text-on-primary/80">মোট দিবো</p>
+              <p className="mt-0.5 font-semibold text-on-primary tabular-nums">
                 {mask(formatTaka(currentBalances.totalPayables))}
               </p>
             </button>
@@ -165,7 +165,7 @@ export function DashboardView() {
                 type="button"
                 onClick={() => setPeriod('today')}
                 className={`rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
-                  period === 'today' ? 'bg-primary text-white shadow-xs' : 'text-ink-muted'
+                  period === 'today' ? 'bg-primary text-on-primary shadow-xs' : 'text-ink-muted'
                 }`}
               >
                 দিন
@@ -174,7 +174,7 @@ export function DashboardView() {
                 type="button"
                 onClick={() => setPeriod('month')}
                 className={`rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
-                  period === 'month' ? 'bg-primary text-white shadow-xs' : 'text-ink-muted'
+                  period === 'month' ? 'bg-primary text-on-primary shadow-xs' : 'text-ink-muted'
                 }`}
               >
                 মাস
@@ -194,11 +194,11 @@ export function DashboardView() {
             </div>
 
             <div className="rounded-2xl bg-secondary p-3">
-              <p className="text-xs text-primary">মোট টাকা আদায়</p>
-              <p className="mt-1 text-lg font-bold tabular-nums text-primary">
+              <p className="text-xs text-primary-ink">মোট টাকা আদায়</p>
+              <p className="mt-1 text-lg font-bold tabular-nums text-primary-ink">
                 {formatTaka(periodFlows.totalCollected)}
               </p>
-              <p className="text-xs text-primary">বিক্রি + বাকি আদায়</p>
+              <p className="text-xs text-primary-ink">বিক্রি + বাকি আদায়</p>
             </div>
 
             <div className="rounded-2xl bg-danger-soft p-3">
@@ -225,23 +225,23 @@ export function DashboardView() {
         <button
           type="button"
           onClick={() => openSheet({ type: 'sale' })}
-          className="flex min-h-[60px] items-center justify-center gap-2.5 rounded-2xl bg-primary px-4 py-3.5 text-white shadow-sm transition-all hover:bg-primary-hover active:scale-[0.98]"
+          className="flex min-h-[60px] items-center justify-center gap-2.5 rounded-2xl bg-primary px-4 py-3.5 text-on-primary shadow-sm transition-all hover:bg-primary-hover active:scale-[0.98]"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/30">
             <ShoppingBag className="h-5 w-5" />
           </span>
           <div className="text-left">
             <p className="text-base font-bold leading-tight">বেচা</p>
-            <p className="text-xs text-white/80">দ্রুত বা পণ্য বিক্রি</p>
+            <p className="text-xs text-on-primary/80">দ্রুত বা পণ্য বিক্রি</p>
           </div>
         </button>
 
         <button
           type="button"
           onClick={() => openSheet({ type: 'purchase' })}
-          className="flex min-h-[60px] items-center justify-center gap-2.5 rounded-2xl border border-border-strong bg-white px-4 py-3.5 text-ink shadow-card transition-all hover:border-primary/50 active:scale-[0.98]"
+          className="flex min-h-[60px] items-center justify-center gap-2.5 rounded-2xl border border-border-strong bg-white px-4 py-3.5 text-ink shadow-card transition-all hover:border-primary-ink/50 active:scale-[0.98]"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-primary">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-primary-ink">
             <ShoppingCart className="h-5 w-5" />
           </span>
           <div className="text-left">
@@ -283,7 +283,7 @@ export function DashboardView() {
               onClick={item.onClick}
               className="flex flex-col items-center gap-2 rounded-2xl bg-white py-3.5 px-2 shadow-card transition-transform active:scale-[0.97]"
             >
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-primary">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-primary-ink">
                 <Icon className="h-5 w-5" />
               </span>
               <span className="text-xs font-semibold text-ink whitespace-nowrap">
@@ -315,7 +315,7 @@ export function DashboardView() {
                     onClick={() => navigate(b.route)}
                     className="flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-2xl bg-canvas p-2 text-center transition-colors hover:bg-secondary active:scale-[0.97]"
                   >
-                    <Icon className="h-5 w-5 text-primary" />
+                    <Icon className="h-5 w-5 text-primary-ink" />
                     <span className="text-xs font-semibold text-ink leading-tight">
                       {b.label}
                     </span>
@@ -346,7 +346,7 @@ export function DashboardView() {
                     onClick={() => navigate(t.route)}
                     className="flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-2xl bg-canvas p-2 text-center transition-colors hover:bg-secondary active:scale-[0.97]"
                   >
-                    <Icon className="h-5 w-5 text-primary" />
+                    <Icon className="h-5 w-5 text-primary-ink" />
                     <span className="text-xs font-semibold text-ink leading-tight">
                       {t.label}
                     </span>
@@ -364,7 +364,7 @@ export function DashboardView() {
             <button
               type="button"
               onClick={() => navigate('ledger')}
-              className="inline-flex items-center gap-0.5 text-xs font-semibold text-primary hover:underline"
+              className="inline-flex items-center gap-0.5 text-xs font-semibold text-primary-ink hover:underline"
             >
               <span>সব দেখুন</span>
               <ChevronRight className="h-3.5 w-3.5" />
@@ -405,10 +405,10 @@ export function DashboardView() {
                     <span
                       className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
                         isPositive
-                          ? 'bg-secondary text-primary'
+                          ? 'bg-secondary text-primary-ink'
                           : item.sourceType === 'expense'
                             ? 'bg-danger-soft text-danger'
-                            : 'bg-warning-soft text-accent-ink'
+                            : 'bg-warning-soft text-warning-ink'
                       }`}
                     >
                       {isPositive ? (
@@ -431,7 +431,7 @@ export function DashboardView() {
                     <div className="shrink-0 text-right">
                       <p
                         className={`text-sm font-bold tabular-nums ${
-                          isPositive ? 'text-primary' : 'text-ink'
+                          isPositive ? 'text-primary-ink' : 'text-ink'
                         }`}
                       >
                         {isPositive ? '+' : '-'} {formatTaka(item.amount)}

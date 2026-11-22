@@ -6,9 +6,9 @@ export type FinancialState = 'receivable' | 'payable' | 'settled' | 'money_in' |
 
 const STATE: Record<FinancialState, { word: string; className: string; sign?: string }> = {
   receivable: { word: 'পাবো', className: 'text-danger' },
-  payable: { word: 'দিবো', className: 'text-primary' },
+  payable: { word: 'দিবো', className: 'text-primary-ink' },
   settled: { word: 'বাকি নেই', className: 'text-ink-muted' },
-  money_in: { word: 'জমা', className: 'text-primary', sign: '+' },
+  money_in: { word: 'জমা', className: 'text-primary-ink', sign: '+' },
   money_out: { word: 'পরিশোধ', className: 'text-ink', sign: '−' },
   expense: { word: 'খরচ', className: 'text-danger', sign: '−' },
 };

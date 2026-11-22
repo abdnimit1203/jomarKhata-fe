@@ -44,7 +44,7 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center rounded-3xl bg-white px-6 py-12 text-center shadow-card">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-primary">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-primary-ink">
         {icon}
       </div>
       <h3 className="mt-4 text-base font-semibold text-ink">{title}</h3>
@@ -53,7 +53,7 @@ export function EmptyState({
         <button
           type="button"
           onClick={onAction}
-          className="mt-5 flex h-12 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover active:scale-[0.98]"
+          className="mt-5 flex h-12 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-hover active:scale-[0.98]"
         >
           {actionLabel}
         </button>
@@ -84,7 +84,7 @@ export function ToastContainer({
                 ? 'bg-danger text-white'
                 : t.type === 'info'
                   ? 'bg-ink text-white'
-                  : 'bg-primary text-white'
+                  : 'bg-primary text-on-primary'
             }`}
           >
             {t.type === 'error' ? (

@@ -61,9 +61,10 @@ describe('tokens only — no raw colours in components', () => {
 
   it('owner-approved base palette is defined exactly', () => {
     expect(token('canvas')).toBe('#F7F5EF');
-    expect(token('primary')).toBe('#145C46');
-    expect(token('secondary')).toBe('#DCECE4');
-    expect(token('accent')).toBe('#E9A23B');
+    // S1 revision D22: amber is the main colour, deep emerald the accent.
+    expect(token('primary')).toBe('#E9A23B');
+    expect(token('secondary')).toBe('#FCEBCB');
+    expect(token('accent')).toBe('#145C46');
     expect(token('danger-soft')).toBe('#FCE7E5');
     expect(token('surface')).toBe('#FFFFFF');
   });
@@ -79,18 +80,21 @@ describe('contrast (WCAG ≥ 4.5:1 for text pairs in use)', () => {
     ['ink-subtle', 'surface', 'meta on cards'],
     ['ink-subtle', 'canvas', 'meta on page / tiles'],
     ['ink-subtle', 'surface-muted', 'meta on tracks / hover fills'],
-    ['primary', 'surface', 'primary text on cards'],
-    ['primary', 'canvas', 'primary text on page'],
-    ['primary', 'secondary', 'দিবো / selected states'],
-    ['surface', 'primary', 'white on primary buttons'],
-    ['surface', 'primary-hover', 'white on pressed primary'],
+    ['primary-ink', 'surface', 'primary text / দিবো on cards'],
+    ['primary-ink', 'canvas', 'primary text on page'],
+    ['primary-ink', 'secondary', 'দিবো / selected states'],
+    ['on-primary', 'primary', 'text on amber buttons'],
+    ['on-primary', 'primary-hover', 'text on pressed amber'],
+    ['on-primary', 'primary-deep', 'text on hero gradient end'],
+    ['on-primary', 'secondary', 'text on soft amber'],
     ['danger', 'danger-soft', 'পাবো on soft red'],
     ['danger', 'surface', 'পাবো amounts on cards'],
     ['surface', 'danger', 'white on danger buttons'],
-    ['on-accent', 'accent', 'text on amber'],
-    ['accent-ink', 'canvas', 'amber used as text'],
-    ['accent-ink', 'surface', 'amber used as text on cards'],
+    ['on-accent', 'accent', 'white on emerald accent'],
+    ['accent-ink', 'canvas', 'emerald used as text'],
+    ['accent-ink', 'surface', 'emerald used as text on cards'],
     ['warning-ink', 'warning-soft', 'warning / local-only badge'],
+    ['warning-ink', 'surface', 'warning text on cards'],
   ];
   for (const [fg, bg, use] of PAIRS) {
     it(`${fg} on ${bg} (${use})`, () => {
@@ -99,8 +103,23 @@ describe('contrast (WCAG ≥ 4.5:1 for text pairs in use)', () => {
   }
 
   it('documented forbidden pairs really fail (white on amber, amber as text)', () => {
-    expect(contrast('#FFFFFF', token('accent'))).toBeLessThan(4.5);
-    expect(contrast(token('accent'), token('canvas'))).toBeLessThan(4.5);
+    expect(contrast('#FFFFFF', token('primary'))).toBeLessThan(4.5);
+    expect(contrast(token('primary'), token('canvas'))).toBeLessThan(4.5);
+  });
+
+  it('no white text on an amber fill (use text-on-primary)', () => {
+    const offenders: string[] = [];
+    for (const f of UI_FILES) {
+      read(f).split('\n').forEach((line, i) => {
+        if (/\bbg-primary(?![-\w])/.test(line) && /\btext-white\b/.test(line)) offenders.push(`${f}:${i + 1}`);
+      });
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('amber is never used as text (text-primary is banned; use text-primary-ink)', () => {
+    const offenders = UI_FILES.filter((f) => /\btext-primary(?![-\w])/.test(read(f)));
+    expect(offenders).toEqual([]);
   });
 
   it('cards need an outline: white on ivory is nearly invisible, so .shadow-card draws border-strong', () => {

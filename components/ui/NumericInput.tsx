@@ -47,7 +47,7 @@ export function NumericInput({
         value={value}
         onChange={handleChange}
         placeholder={placeholder}
-        className={`w-full rounded-2xl border border-border-strong bg-surface font-semibold tabular-nums text-ink placeholder:font-normal placeholder:text-ink-subtle transition-colors focus:border-primary focus:bg-white focus:outline-none disabled:opacity-60 ${
+        className={`w-full rounded-2xl border border-border-strong bg-surface font-semibold tabular-nums text-ink placeholder:font-normal placeholder:text-ink-subtle transition-colors focus:border-primary-ink focus:bg-white focus:outline-none disabled:opacity-60 ${
           inputSize === 'lg' ? 'h-14 pl-4 pr-11 text-2xl' : 'h-12 pl-4 pr-10 text-base'
         }`}
       />

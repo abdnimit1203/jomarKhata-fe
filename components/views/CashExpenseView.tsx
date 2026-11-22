@@ -61,7 +61,7 @@ export function CashExpenseView() {
         <button
           type="button"
           onClick={() => openSheet({ type: 'expense' })}
-          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
+          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm hover:bg-primary-hover"
         >
           <Plus className="h-4 w-4" />
           <span>সহজ খরচ</span>
@@ -79,7 +79,7 @@ export function CashExpenseView() {
               শুরুর ব্যালেন্স + সব সক্রিয় আদায় − সব সক্রিয় পরিশোধ ও খরচ
             </p>
           </div>
-          <span className="text-sm font-bold tabular-nums text-primary">
+          <span className="text-sm font-bold tabular-nums text-primary-ink">
             মোট {formatTaka(currentBalances.totalLiquidBalance)}
           </span>
         </div>
@@ -116,14 +116,14 @@ export function CashExpenseView() {
               <div
                 key={c.label}
                 className={`rounded-2xl p-3.5 ${
-                  c.highlight ? 'bg-primary text-white' : 'bg-canvas text-ink'
+                  c.highlight ? 'bg-primary text-on-primary' : 'bg-canvas text-ink'
                 }`}
               >
                 <div className="flex items-center gap-1.5">
                   <Icon
-                    className={`h-4 w-4 ${c.highlight ? 'text-white/80' : 'text-primary'}`}
+                    className={`h-4 w-4 ${c.highlight ? 'text-on-primary/80' : 'text-primary-ink'}`}
                   />
-                  <span className={`text-xs font-medium ${c.highlight ? 'text-white/80' : 'text-ink-muted'}`}>
+                  <span className={`text-xs font-medium ${c.highlight ? 'text-on-primary/80' : 'text-ink-muted'}`}>
                     {c.label}
                   </span>
                 </div>
@@ -136,8 +136,8 @@ export function CashExpenseView() {
         {/* Today's Cash Flow Strip (Strictly Today!) */}
         <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3.5 text-xs">
           <div className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2.5">
-            <span className="text-primary">আজ ক্যাশ এসেছে</span>
-            <span className="font-bold tabular-nums text-primary">
+            <span className="text-primary-ink">আজ ক্যাশ এসেছে</span>
+            <span className="font-bold tabular-nums text-primary-ink">
               + {formatTaka(todayFlows.cashInflow)}
             </span>
           </div>
@@ -166,7 +166,7 @@ export function CashExpenseView() {
               type="button"
               onClick={() => setPeriod(t.id)}
               className={`min-h-[38px] rounded-full px-3.5 text-xs font-semibold ${
-                period === t.id ? 'bg-primary text-white' : 'text-ink-muted'
+                period === t.id ? 'bg-primary text-on-primary' : 'text-ink-muted'
               }`}
             >
               {t.label}
@@ -179,7 +179,7 @@ export function CashExpenseView() {
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
             aria-label="খরচের খাত"
-            className="h-10 rounded-xl border border-border-strong bg-white px-3 text-xs font-semibold text-ink-muted focus:border-primary focus:outline-none"
+            className="h-10 rounded-xl border border-border-strong bg-white px-3 text-xs font-semibold text-ink-muted focus:border-primary-ink focus:outline-none"
           >
             <option value="all">সব খাত</option>
             {EXPENSE_CATEGORIES.map((c) => (

@@ -66,7 +66,7 @@ export function ConfirmDialog({
             <div className="flex items-start gap-3.5">
               <div
                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
-                  tone === 'danger' ? 'bg-danger-soft text-danger' : 'bg-secondary text-primary'
+                  tone === 'danger' ? 'bg-danger-soft text-danger' : 'bg-secondary text-primary-ink'
                 }`}
               >
                 <AlertTriangle className="h-5 w-5" />
@@ -84,7 +84,7 @@ export function ConfirmDialog({
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder={reasonPlaceholder}
-                  className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink placeholder:text-ink-subtle focus:border-primary focus:bg-white focus:outline-none"
+                  className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink placeholder:text-ink-subtle focus:border-primary-ink focus:bg-white focus:outline-none"
                 />
               </div>
             )}
@@ -102,10 +102,10 @@ export function ConfirmDialog({
                 type="button"
                 disabled={isSubmitting}
                 onClick={handleConfirm}
-                className={`flex h-12 flex-1 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white transition-colors disabled:opacity-50 ${
+                className={`flex h-12 flex-1 items-center justify-center rounded-xl px-4 text-sm font-semibold transition-colors disabled:opacity-50 ${
                   tone === 'danger'
-                    ? 'bg-danger hover:bg-danger-hover'
-                    : 'bg-primary hover:bg-primary-hover'
+                    ? 'bg-danger text-white hover:bg-danger-hover'
+                    : 'bg-primary text-on-primary hover:bg-primary-hover'
                 }`}
               >
                 {isSubmitting ? 'অপেক্ষা করুন...' : confirmLabel}

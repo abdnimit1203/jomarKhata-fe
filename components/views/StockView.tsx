@@ -42,7 +42,7 @@ export function StockView() {
         <button
           type="button"
           onClick={() => openSheet({ type: 'product' })}
-          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
+          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm hover:bg-primary-hover"
         >
           <Plus className="h-4 w-4" />
           <span>নতুন পণ্য</span>
@@ -59,7 +59,7 @@ export function StockView() {
         </div>
         <div className="rounded-2xl bg-white p-3.5 shadow-card">
           <p className="text-xs text-ink-muted">স্টক মূল্য (ক্রয়দর)</p>
-          <p className="mt-1 text-lg font-bold tabular-nums text-primary">
+          <p className="mt-1 text-lg font-bold tabular-nums text-primary-ink">
             {formatTaka(currentBalances.totalStockValue)}
           </p>
         </div>
@@ -67,11 +67,11 @@ export function StockView() {
           type="button"
           onClick={() => setOnlyLowStock((v) => !v)}
           className={`rounded-2xl p-3.5 text-left shadow-card transition-colors ${
-            onlyLowStock ? 'bg-warning-soft ring-1 ring-accent' : 'bg-white'
+            onlyLowStock ? 'bg-warning-soft ring-1 ring-warning-ink' : 'bg-white'
           }`}
         >
           <p className="text-xs text-warning-ink">কম স্টক</p>
-          <p className="mt-1 text-lg font-bold tabular-nums text-accent-ink">
+          <p className="mt-1 text-lg font-bold tabular-nums text-warning-ink">
             {formatBanglaNumber(currentBalances.lowStockCount)} টি
           </p>
         </button>
@@ -86,7 +86,7 @@ export function StockView() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="পণ্যের নাম খুঁজুন..."
-            className="h-11 w-full rounded-2xl border border-border-strong bg-white pr-4 pl-11 text-sm text-ink shadow-card focus:border-primary focus:outline-none"
+            className="h-11 w-full rounded-2xl border border-border-strong bg-white pr-4 pl-11 text-sm text-ink shadow-card focus:border-primary-ink focus:outline-none"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -94,7 +94,7 @@ export function StockView() {
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             aria-label="ক্যাটাগরি"
-            className="h-11 rounded-2xl border border-border-strong bg-white px-3 text-xs font-semibold text-ink-muted shadow-card focus:border-primary focus:outline-none"
+            className="h-11 rounded-2xl border border-border-strong bg-white px-3 text-xs font-semibold text-ink-muted shadow-card focus:border-primary-ink focus:outline-none"
           >
             <option value="all">সব ক্যাটাগরি</option>
             {PRODUCT_CATEGORIES.map((c) => (
@@ -108,7 +108,7 @@ export function StockView() {
             onClick={() => setOnlyLowStock((v) => !v)}
             className={`h-11 rounded-2xl border px-3 text-xs font-semibold whitespace-nowrap shadow-card ${
               onlyLowStock
-                ? 'border-accent bg-warning-soft text-accent-ink'
+                ? 'border-warning-ink bg-warning-soft text-warning-ink'
                 : 'border-border-strong bg-white text-ink-muted'
             }`}
           >
@@ -146,13 +146,13 @@ export function StockView() {
                   <div className="shrink-0 text-right">
                     <p
                       className={`text-lg font-bold tabular-nums ${
-                        isLow ? 'text-accent-ink' : 'text-primary'
+                        isLow ? 'text-warning-ink' : 'text-primary-ink'
                       }`}
                     >
                       {formatBanglaNumber(prod.stockQty)} {prod.unit}
                     </p>
                     {isLow && (
-                      <p className="inline-flex items-center gap-1 text-xs font-semibold text-accent-ink">
+                      <p className="inline-flex items-center gap-1 text-xs font-semibold text-warning-ink">
                         <AlertTriangle className="h-3 w-3" />
                         <span>কম স্টক</span>
                       </p>
@@ -164,7 +164,7 @@ export function StockView() {
                   <button
                     type="button"
                     onClick={() => openSheet({ type: 'stock_adjust', product: prod })}
-                    className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-secondary text-xs font-semibold text-primary transition-colors hover:bg-secondary-hover"
+                    className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-secondary text-xs font-semibold text-primary-ink transition-colors hover:bg-secondary-hover"
                   >
                     <SlidersHorizontal className="h-3.5 w-3.5" />
                     <span>স্টক যোগ / কমান</span>

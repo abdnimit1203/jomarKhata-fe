@@ -243,7 +243,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
             type="submit"
             form="sale-form"
             disabled={isSubmitting || total <= 0}
-            className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover active:scale-[0.99] disabled:opacity-50"
+            className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-hover active:scale-[0.99] disabled:opacity-50"
           >
             {isSubmitting
               ? 'সংরক্ষণ হচ্ছে...'
@@ -261,7 +261,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
             onClick={() => setMode('quick')}
             className={`h-11 rounded-xl text-sm font-semibold transition-all ${
               mode === 'quick'
-                ? 'bg-primary text-white shadow-sm'
+                ? 'bg-primary text-on-primary shadow-sm'
                 : 'text-ink-muted hover:text-ink'
             }`}
           >
@@ -272,7 +272,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
             onClick={() => setMode('product')}
             className={`h-11 rounded-xl text-sm font-semibold transition-all ${
               mode === 'product'
-                ? 'bg-primary text-white shadow-sm'
+                ? 'bg-primary text-on-primary shadow-sm'
                 : 'text-ink-muted hover:text-ink'
             }`}
           >
@@ -296,7 +296,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
               <button
                 type="button"
                 onClick={() => setUseQuickItemBreakdown((v) => !v)}
-                className="text-xs font-semibold text-primary hover:underline"
+                className="text-xs font-semibold text-primary-ink hover:underline"
               >
                 {useQuickItemBreakdown ? 'সরাসরি মোট টাকা লিখুন' : '+ পরিমাণ ও দর দিন'}
               </button>
@@ -339,7 +339,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
                 value={quickDescription}
                 onChange={(e) => setQuickDescription(e.target.value)}
                 placeholder="যেমন: চাল-ডাল, চা-বিস্কুট, খুচরা মালামাল"
-                className="h-11 w-full rounded-xl border border-border-strong bg-white px-3.5 text-sm text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none"
+                className="h-11 w-full rounded-xl border border-border-strong bg-white px-3.5 text-sm text-ink placeholder:text-ink-subtle focus:border-primary-ink focus:outline-none"
               />
             </div>
 
@@ -363,7 +363,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
                 placeholder="পণ্য খুঁজুন..."
-                className="h-11 w-full rounded-xl border border-border-strong bg-canvas pr-3.5 pl-10 text-sm text-ink placeholder:text-ink-subtle focus:border-primary focus:bg-white focus:outline-none"
+                className="h-11 w-full rounded-xl border border-border-strong bg-canvas pr-3.5 pl-10 text-sm text-ink placeholder:text-ink-subtle focus:border-primary-ink focus:bg-white focus:outline-none"
               />
             </div>
 
@@ -385,7 +385,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
                       key={prod.id}
                       className={`flex items-center justify-between gap-2 rounded-2xl border p-3 transition-colors ${
                         qty > 0
-                          ? 'border-primary bg-secondary'
+                          ? 'border-primary-ink bg-secondary'
                           : 'border-border bg-white'
                       }`}
                     >
@@ -406,7 +406,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
                             >
                               <Minus className="h-4 w-4" />
                             </button>
-                            <span className="w-7 text-center text-sm font-bold tabular-nums text-primary">
+                            <span className="w-7 text-center text-sm font-bold tabular-nums text-primary-ink">
                               {formatBanglaNumber(qty)}
                             </span>
                           </>
@@ -415,7 +415,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
                           type="button"
                           onClick={() => handleToggleProduct(prod.id, 1)}
                           aria-label="যোগ করুন"
-                          className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white active:scale-95"
+                          className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-on-primary active:scale-95"
                         >
                           <Plus className="h-4 w-4" />
                         </button>
@@ -439,7 +439,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
                   setPaidRaw(String(total));
                 }}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  isFullyPaid ? 'bg-primary text-white' : 'text-ink-muted'
+                  isFullyPaid ? 'bg-primary text-on-primary' : 'text-ink-muted'
                 }`}
               >
                 পুরোটা জমা
@@ -503,7 +503,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
             <button
               type="button"
               onClick={() => setShowInlineCustomer((v) => !v)}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary-ink hover:underline"
             >
               <UserPlus className="h-3.5 w-3.5" />
               <span>নতুন কাস্টমার</span>
@@ -514,7 +514,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
             <select
               value={partyId}
               onChange={(e) => setPartyId(e.target.value)}
-              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm font-medium text-ink focus:border-primary focus:bg-white focus:outline-none"
+              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm font-medium text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
             >
               <option value="">
                 {dueAmount > 0 ? '— কাস্টমার নির্বাচন করুন —' : 'নগদ ক্রেতা (নাম ছাড়া)'}
@@ -532,14 +532,14 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
                 value={newCustomerName}
                 onChange={(e) => setNewCustomerName(e.target.value)}
                 placeholder="কাস্টমারের নাম *"
-                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary focus:outline-none"
+                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary-ink focus:outline-none"
               />
               <input
                 type="tel"
                 value={newCustomerPhone}
                 onChange={(e) => setNewCustomerPhone(e.target.value)}
                 placeholder="মোবাইল নম্বর (ঐচ্ছিক)"
-                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary focus:outline-none"
+                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary-ink focus:outline-none"
               />
               <div className="flex gap-2">
                 <button
@@ -553,7 +553,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
                   type="button"
                   disabled={creatingCustomer}
                   onClick={handleQuickCreateCustomer}
-                  className="h-10 flex-1 rounded-xl bg-primary text-xs font-semibold text-white"
+                  className="h-10 flex-1 rounded-xl bg-primary text-xs font-semibold text-on-primary"
                 >
                   {creatingCustomer ? 'যোগ হচ্ছে...' : 'কাস্টমার যোগ করুন'}
                 </button>
@@ -575,7 +575,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="সংক্ষিপ্ত নোট লিখুন"
-            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink placeholder:text-ink-subtle focus:border-primary focus:bg-white focus:outline-none"
+            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink placeholder:text-ink-subtle focus:border-primary-ink focus:bg-white focus:outline-none"
           />
         </div>
       </form>

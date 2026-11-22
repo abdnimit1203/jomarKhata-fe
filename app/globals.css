@@ -10,18 +10,22 @@
   /* Font: Noto Sans Bengali (generic, Android-native Bangla family), then system UI */
   --font-sans: var(--font-noto-sans-bengali), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
-  /* Base palette (owner-approved) */
+  /* Base palette (owner-approved; S1 revision D22: amber = main colour, emerald = accent) */
   --color-canvas: #F7F5EF;         /* Warm Ivory — app background */
   --color-surface: #FFFFFF;        /* Cards, sheets, inputs */
-  --color-primary: #145C46;        /* Deep Emerald — brand, primary actions, money in, দিবো */
-  --color-secondary: #DCECE4;      /* Soft Sage — selected states, icon tiles, দিবো background */
-  --color-accent: #E9A23B;         /* Amber — highlights, global “+” action */
+  --color-primary: #E9A23B;        /* Amber — brand, primary buttons, hero, active states (FILL only) */
+  --color-secondary: #FCEBCB;      /* Soft Amber — selected states, icon tiles, tonal buttons */
+  --color-accent: #145C46;         /* Deep Emerald — accent: global “+” action, highlights */
   --color-danger-soft: #FCE7E5;    /* Soft Red — পাবো / due / danger backgrounds (never text) */
 
   /* Supporting tokens (contrast-verified) */
-  --color-primary-hover: #0F4A38;
-  --color-primary-deep: #0B3A2C;
-  --color-secondary-hover: #CFE4D9;
+  --color-on-primary: #2B1D05;     /* text/icons ON amber fills — 7.6:1 (white on amber fails: 2.2:1) */
+  --color-primary-ink: #8A5A00;    /* "primary" used as TEXT or outline — 5.9 white · 5.4 canvas · 5.1 secondary */
+  --color-primary-hover: #D8901F;  /* on-primary 6.2:1 */
+  --color-primary-deep: #C98314;   /* hero gradient end; on-primary 5.3:1 */
+  --color-secondary-hover: #F8DDA8;
+  --color-on-accent: #FFFFFF;      /* white on emerald — 7.9:1 */
+  --color-accent-ink: #145C46;     /* emerald used as text — 7.3 canvas */
   --color-surface-muted: #EFECE3;  /* Neutral tracks, hover fills on white */
   --color-ink: #1A2420;            /* 14.6:1 on canvas */
   --color-ink-muted: #4F5B55;      /* 6.5:1 on canvas */
@@ -29,10 +33,8 @@
   --color-danger: #B42318;         /* 5.5:1 on danger-soft; পাবো amounts, danger buttons */
   --color-danger-hover: #912018;
   --color-danger-border: #F2B8B2;
-  --color-on-accent: #2B1D05;      /* text on amber, 7.6:1 */
-  --color-accent-ink: #8A5A00;     /* amber used as text, 5.4:1 */
   --color-warning-soft: #FDF1DC;
-  --color-warning-ink: #7A4B00;    /* 6.6:1 on warning-soft */
+  --color-warning-ink: #7A4B00;    /* warnings (low stock, unknown cost) — 6.6:1 on warning-soft */
   --color-border: #E4DFD3;         /* dividers inside cards */
   --color-border-strong: #CFC8B8;  /* card & input outlines */
 
@@ -79,7 +81,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-primary);
+    outline: 2px solid var(--color-primary-ink);
     outline-offset: 2px;
   }
 }
@@ -97,7 +99,7 @@
 }
 
 .shadow-hero {
-  box-shadow: 0 12px 28px rgba(11, 58, 44, 0.24), 0 3px 8px rgba(11, 58, 44, 0.14);
+  box-shadow: 0 12px 28px rgba(122, 75, 0, 0.22), 0 3px 8px rgba(122, 75, 0, 0.12);
 }
 
 .pb-safe {

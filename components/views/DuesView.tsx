@@ -124,7 +124,7 @@ export function DuesView() {
           <button
             type="button"
             onClick={() => openSheet({ type: 'party', editParty: selectedParty })}
-            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-2xl bg-white px-3.5 text-xs font-semibold text-primary shadow-card hover:bg-secondary"
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-2xl bg-white px-3.5 text-xs font-semibold text-primary-ink shadow-card hover:bg-secondary"
           >
             <Edit3 className="h-4 w-4" />
             <span>তথ্য এডিট</span>
@@ -146,7 +146,7 @@ export function DuesView() {
               )}
               <p
                 className={`mt-2 text-lg font-bold tabular-nums ${
-                  isReceivable ? 'text-danger' : isPayable ? 'text-primary' : 'text-ink-muted'
+                  isReceivable ? 'text-danger' : isPayable ? 'text-primary-ink' : 'text-ink-muted'
                 }`}
               >
                 {isReceivable
@@ -162,7 +162,7 @@ export function DuesView() {
                 <a
                   href={`tel:${selectedParty.phone}`}
                   aria-label="কল করুন"
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary transition-colors hover:bg-secondary-hover"
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary-ink transition-colors hover:bg-secondary-hover"
                 >
                   <Phone className="h-5 w-5" />
                 </a>
@@ -171,7 +171,7 @@ export function DuesView() {
                 <button
                   type="button"
                   onClick={handleCopyReminder}
-                  className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary px-3.5 text-xs font-semibold text-white transition-colors hover:bg-primary-hover"
+                  className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary px-3.5 text-xs font-semibold text-on-primary transition-colors hover:bg-primary-hover"
                 >
                   <Copy className="h-4 w-4" />
                   <span className="hidden sm:inline">তাগাদা কপি</span>
@@ -183,7 +183,7 @@ export function DuesView() {
           {/* Due Reminder Date Row */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-canvas px-3.5 py-2.5">
             <div className="flex items-center gap-2 text-xs font-medium text-ink-muted">
-              <Calendar className="h-4 w-4 text-primary" />
+              <Calendar className="h-4 w-4 text-primary-ink" />
               <span>পরিশোধের সম্ভাব্য তারিখ:</span>
             </div>
             <DateInput
@@ -211,7 +211,7 @@ export function DuesView() {
               onClick={() => setDetailPeriod(tab.id)}
               className={`min-h-[40px] rounded-full px-4 text-xs font-semibold whitespace-nowrap transition-colors ${
                 detailPeriod === tab.id
-                  ? 'bg-primary text-white shadow-xs'
+                  ? 'bg-primary text-on-primary shadow-xs'
                   : 'bg-white text-ink-muted shadow-card hover:bg-surface-muted'
               }`}
             >
@@ -224,7 +224,7 @@ export function DuesView() {
         <section className="overflow-hidden rounded-3xl bg-white shadow-card">
           <div className="grid grid-cols-12 border-b border-border bg-canvas px-4 py-3 text-xs font-semibold text-ink-muted">
             <div className="col-span-5">বাকির ইতিহাস</div>
-            <div className="col-span-2 text-right text-primary">নিয়েছি</div>
+            <div className="col-span-2 text-right text-primary-ink">নিয়েছি</div>
             <div className="col-span-2 text-right text-danger">দিয়েছি</div>
             <div className="col-span-3 text-right">ব্যালেন্স</div>
           </div>
@@ -274,7 +274,7 @@ export function DuesView() {
                       </p>
                     </div>
 
-                    <div className="col-span-2 rounded-lg bg-secondary/70 py-1.5 px-1 text-right text-xs font-semibold tabular-nums text-primary">
+                    <div className="col-span-2 rounded-lg bg-secondary/70 py-1.5 px-1 text-right text-xs font-semibold tabular-nums text-primary-ink">
                       {t.direction === 'received' ? (
                         <span className={isVoided ? 'line-through' : ''}>{formatTaka(t.amount)}</span>
                       ) : (
@@ -306,7 +306,7 @@ export function DuesView() {
           {/* Totals Footer Row */}
           <div className="grid grid-cols-12 items-center border-t border-border bg-canvas px-4 py-3 text-xs font-bold tabular-nums">
             <div className="col-span-5 text-ink">মোট</div>
-            <div className="col-span-2 text-right text-primary">
+            <div className="col-span-2 text-right text-primary-ink">
               {formatTaka(partyTotals.totalReceived)}
             </div>
             <div className="col-span-2 text-right text-danger">
@@ -345,7 +345,7 @@ export function DuesView() {
                     selectedParty.role === 'customer' ? 'customer_collection' : 'manual_due_received',
                 })
               }
-              className="flex h-12 items-center justify-center rounded-2xl bg-primary text-base font-bold text-white shadow-sm transition-colors hover:bg-primary-hover active:scale-[0.98]"
+              className="flex h-12 items-center justify-center rounded-2xl bg-primary text-base font-bold text-on-primary shadow-sm transition-colors hover:bg-primary-hover active:scale-[0.98]"
             >
               নিচ্ছি {selectedParty.role === 'customer' ? '(আদায়)' : '(বাকি)'}
             </button>
@@ -373,8 +373,8 @@ export function DuesView() {
             </p>
           </div>
           <div className="rounded-2xl bg-secondary p-4 text-center">
-            <p className="text-xs font-semibold text-primary">বর্তমান মোট দিবো (সাপ্লায়ার)</p>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+            <p className="text-xs font-semibold text-primary-ink">বর্তমান মোট দিবো (সাপ্লায়ার)</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-primary-ink">
               {formatTaka(currentBalances.totalPayables)}
             </p>
           </div>
@@ -385,7 +385,7 @@ export function DuesView() {
             পাবো/দিবো সমন্বয়ের পর নিট:{' '}
             <strong
               className={`tabular-nums ${
-                currentBalances.netDuePosition >= 0 ? 'text-danger' : 'text-primary'
+                currentBalances.netDuePosition >= 0 ? 'text-danger' : 'text-primary-ink'
               }`}
             >
               {currentBalances.netDuePosition >= 0 ? 'পাবো' : 'দিবো'}{' '}
@@ -397,14 +397,14 @@ export function DuesView() {
             <button
               type="button"
               onClick={() => openSheet({ type: 'due', defaultEntryType: 'customer_collection' })}
-              className="rounded-xl bg-secondary px-3 py-1.5 font-semibold text-primary hover:bg-secondary-hover"
+              className="rounded-xl bg-secondary px-3 py-1.5 font-semibold text-primary-ink hover:bg-secondary-hover"
             >
               + বাকি আদায়
             </button>
             <button
               type="button"
               onClick={() => openSheet({ type: 'party', defaultRole: roleTab === 'supplier' ? 'supplier' : 'customer' })}
-              className="inline-flex items-center gap-1 rounded-xl bg-primary px-3 py-1.5 font-semibold text-white hover:bg-primary-hover"
+              className="inline-flex items-center gap-1 rounded-xl bg-primary px-3 py-1.5 font-semibold text-on-primary hover:bg-primary-hover"
             >
               <UserPlus className="h-3.5 w-3.5" />
               <span>নতুন পার্টি</span>
@@ -426,7 +426,7 @@ export function DuesView() {
               type="button"
               onClick={() => setRoleTab(tab.id)}
               className={`min-h-[40px] rounded-full px-4 text-xs font-semibold whitespace-nowrap transition-colors ${
-                roleTab === tab.id ? 'bg-primary text-white shadow-xs' : 'text-ink-muted'
+                roleTab === tab.id ? 'bg-primary text-on-primary shadow-xs' : 'text-ink-muted'
               }`}
             >
               {tab.label}
@@ -440,7 +440,7 @@ export function DuesView() {
             onClick={() => setOnlyWithDue((v) => !v)}
             className={`min-h-[40px] rounded-xl border px-3 text-xs font-semibold transition-colors ${
               onlyWithDue
-                ? 'border-primary bg-secondary text-primary'
+                ? 'border-primary-ink bg-secondary text-primary-ink'
                 : 'border-border-strong bg-white text-ink-muted'
             }`}
           >
@@ -450,7 +450,7 @@ export function DuesView() {
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'due' | 'recent' | 'name')}
             aria-label="সাজানোর ক্রম"
-            className="h-10 rounded-xl border border-border-strong bg-white px-3 text-xs font-semibold text-ink-muted focus:border-primary focus:outline-none"
+            className="h-10 rounded-xl border border-border-strong bg-white px-3 text-xs font-semibold text-ink-muted focus:border-primary-ink focus:outline-none"
           >
             <option value="due">বেশি বাকি আগে</option>
             <option value="recent">সাম্প্রতিক</option>
@@ -467,7 +467,7 @@ export function DuesView() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="খুঁজুন (নাম বা মোবাইল নম্বর)"
-          className="h-12 w-full rounded-2xl border border-border-strong bg-white pr-4 pl-11 text-sm text-ink shadow-card placeholder:text-ink-subtle focus:border-primary focus:outline-none"
+          className="h-12 w-full rounded-2xl border border-border-strong bg-white pr-4 pl-11 text-sm text-ink shadow-card placeholder:text-ink-subtle focus:border-primary-ink focus:outline-none"
         />
       </div>
 
@@ -497,8 +497,8 @@ export function DuesView() {
                 <div
                   className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-base font-bold ${
                     party.role === 'customer'
-                      ? 'bg-secondary text-primary'
-                      : 'bg-warning-soft text-accent-ink'
+                      ? 'bg-secondary text-primary-ink'
+                      : 'bg-warning-soft text-warning-ink'
                   }`}
                 >
                   {initial}
@@ -520,7 +520,7 @@ export function DuesView() {
                       isReceivable
                         ? 'text-danger'
                         : isPayable
-                          ? 'text-primary'
+                          ? 'text-primary-ink'
                           : 'text-ink-subtle'
                     }`}
                   >
@@ -547,7 +547,7 @@ export function DuesView() {
         <button
           type="button"
           onClick={() => openSheet({ type: 'due', defaultEntryType: 'customer_collection' })}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover active:scale-[0.99]"
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-hover active:scale-[0.99]"
         >
           <Plus className="h-4 w-4" />
           <span>বাকি আদায় / পরিশোধ যোগ করুন</span>

@@ -193,7 +193,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
             <div className="flex items-center gap-3 tabular-nums">
               <span className="text-lg font-bold text-ink">{formatTaka(total)}</span>
               {dueAmount > 0 && (
-                <span className="text-xs font-semibold text-primary">
+                <span className="text-xs font-semibold text-primary-ink">
                   দিবো {formatTaka(dueAmount)}
                 </span>
               )}
@@ -203,7 +203,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
             type="submit"
             form="purchase-form"
             disabled={isSubmitting || total <= 0}
-            className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover disabled:opacity-50"
+            className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-hover disabled:opacity-50"
           >
             {isSubmitting ? 'সংরক্ষণ হচ্ছে...' : editPurchase ? 'সংশোধন সংরক্ষণ করুন' : 'ক্রয় সংরক্ষণ করুন'}
           </button>
@@ -216,7 +216,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
             type="button"
             onClick={() => setMode('quick')}
             className={`h-11 rounded-xl text-sm font-semibold transition-all ${
-              mode === 'quick' ? 'bg-primary text-white shadow-sm' : 'text-ink-muted'
+              mode === 'quick' ? 'bg-primary text-on-primary shadow-sm' : 'text-ink-muted'
             }`}
           >
             সহজ কেনা
@@ -225,7 +225,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
             type="button"
             onClick={() => setMode('product')}
             className={`h-11 rounded-xl text-sm font-semibold transition-all ${
-              mode === 'product' ? 'bg-primary text-white shadow-sm' : 'text-ink-muted'
+              mode === 'product' ? 'bg-primary text-on-primary shadow-sm' : 'text-ink-muted'
             }`}
           >
             স্টকে পণ্য কেনা
@@ -258,7 +258,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                 value={quickDescription}
                 onChange={(e) => setQuickDescription(e.target.value)}
                 placeholder="যেমন: পাইকারি বাজারের মালামাল"
-                className="h-11 w-full rounded-xl border border-border-strong bg-white px-3.5 text-sm text-ink focus:border-primary focus:outline-none"
+                className="h-11 w-full rounded-xl border border-border-strong bg-white px-3.5 text-sm text-ink focus:border-primary-ink focus:outline-none"
               />
             </div>
           </div>
@@ -271,7 +271,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
                 placeholder="পণ্য খুঁজুন..."
-                className="h-11 w-full rounded-xl border border-border-strong bg-canvas pr-3.5 pl-10 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
+                className="h-11 w-full rounded-xl border border-border-strong bg-canvas pr-3.5 pl-10 text-sm text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
               />
             </div>
 
@@ -289,7 +289,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                     <div
                       key={prod.id}
                       className={`flex items-center justify-between gap-2 rounded-2xl border p-3 ${
-                        qty > 0 ? 'border-primary bg-secondary' : 'border-border bg-white'
+                        qty > 0 ? 'border-primary-ink bg-secondary' : 'border-border bg-white'
                       }`}
                     >
                       <div className="min-w-0 flex-1">
@@ -308,7 +308,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                             >
                               <Minus className="h-4 w-4" />
                             </button>
-                            <span className="w-7 text-center text-sm font-bold tabular-nums text-primary">
+                            <span className="w-7 text-center text-sm font-bold tabular-nums text-primary-ink">
                               {formatBanglaNumber(qty)}
                             </span>
                           </>
@@ -316,7 +316,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                         <button
                           type="button"
                           onClick={() => handleToggleProduct(prod.id, 1)}
-                          className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white"
+                          className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-on-primary"
                         >
                           <Plus className="h-4 w-4" />
                         </button>
@@ -340,7 +340,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                   setPaidRaw(String(total));
                 }}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                  isFullyPaid ? 'bg-primary text-white' : 'text-ink-muted'
+                  isFullyPaid ? 'bg-primary text-on-primary' : 'text-ink-muted'
                 }`}
               >
                 পুরোটা পরিশোধ
@@ -352,7 +352,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                   setPaidRaw('0');
                 }}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                  !isFullyPaid ? 'bg-accent text-white' : 'text-ink-muted'
+                  !isFullyPaid ? 'bg-warning-ink text-white' : 'text-ink-muted'
                 }`}
               >
                 বাকি / আংশিক
@@ -388,7 +388,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
             <button
               type="button"
               onClick={() => setShowInlineSupplier((v) => !v)}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary-ink hover:underline"
             >
               <UserPlus className="h-3.5 w-3.5" />
               <span>নতুন সাপ্লায়ার</span>
@@ -399,7 +399,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
             <select
               value={partyId}
               onChange={(e) => setPartyId(e.target.value)}
-              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm font-medium text-ink focus:border-primary focus:bg-white focus:outline-none"
+              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm font-medium text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
             >
               <option value="">
                 {dueAmount > 0 ? '— সাপ্লায়ার নির্বাচন করুন —' : 'নগদ সরবরাহকারী'}
@@ -417,14 +417,14 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                 value={newSupplierName}
                 onChange={(e) => setNewSupplierName(e.target.value)}
                 placeholder="সাপ্লায়ারের নাম *"
-                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary focus:outline-none"
+                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary-ink focus:outline-none"
               />
               <input
                 type="tel"
                 value={newSupplierPhone}
                 onChange={(e) => setNewSupplierPhone(e.target.value)}
                 placeholder="মোবাইল নম্বর (ঐচ্ছিক)"
-                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary focus:outline-none"
+                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary-ink focus:outline-none"
               />
               <div className="flex gap-2">
                 <button
@@ -438,7 +438,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
                   type="button"
                   disabled={creatingSupplier}
                   onClick={handleQuickCreateSupplier}
-                  className="h-10 flex-1 rounded-xl bg-primary text-xs font-semibold text-white"
+                  className="h-10 flex-1 rounded-xl bg-primary text-xs font-semibold text-on-primary"
                 >
                   {creatingSupplier ? 'যোগ হচ্ছে...' : 'সাপ্লায়ার যোগ করুন'}
                 </button>
@@ -454,7 +454,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="সংক্ষিপ্ত মন্তব্য"
-            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
+            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
           />
         </div>
       </form>

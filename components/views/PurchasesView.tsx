@@ -63,7 +63,7 @@ export function PurchasesView() {
         <button
           type="button"
           onClick={() => openSheet({ type: 'purchase' })}
-          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
+          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm hover:bg-primary-hover"
         >
           <Plus className="h-4 w-4" />
           <span>নতুন ক্রয়</span>
@@ -79,13 +79,13 @@ export function PurchasesView() {
         </div>
         <div className="rounded-2xl bg-white p-3.5 shadow-card">
           <p className="text-xs text-ink-muted">পরিশোধিত</p>
-          <p className="mt-1 text-base font-bold tabular-nums text-primary sm:text-lg">
+          <p className="mt-1 text-base font-bold tabular-nums text-primary-ink sm:text-lg">
             {formatTaka(summary.paid)}
           </p>
         </div>
         <div className="rounded-2xl bg-white p-3.5 shadow-card">
           <p className="text-xs text-ink-muted">সাপ্লায়ার বাকি</p>
-          <p className="mt-1 text-base font-bold tabular-nums text-accent-ink sm:text-lg">
+          <p className="mt-1 text-base font-bold tabular-nums text-warning-ink sm:text-lg">
             {formatTaka(summary.due)}
           </p>
         </div>
@@ -106,7 +106,7 @@ export function PurchasesView() {
               type="button"
               onClick={() => setPeriod(t.id)}
               className={`min-h-[38px] rounded-full px-3.5 text-xs font-semibold whitespace-nowrap ${
-                period === t.id ? 'bg-primary text-white' : 'text-ink-muted'
+                period === t.id ? 'bg-primary text-on-primary' : 'text-ink-muted'
               }`}
             >
               {t.label}
@@ -119,7 +119,7 @@ export function PurchasesView() {
           onClick={() => setShowVoided((v) => !v)}
           className={`min-h-[38px] rounded-xl border px-3 text-xs font-semibold ${
             showVoided
-              ? 'border-primary bg-secondary text-primary'
+              ? 'border-primary-ink bg-secondary text-primary-ink'
               : 'border-border-strong bg-white text-ink-muted'
           }`}
         >
@@ -134,7 +134,7 @@ export function PurchasesView() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="সাপ্লায়ার বা বিল নম্বর খুঁজুন"
-          className="h-12 w-full rounded-2xl border border-border-strong bg-white pr-4 pl-11 text-sm text-ink shadow-card focus:border-primary focus:outline-none"
+          className="h-12 w-full rounded-2xl border border-border-strong bg-white pr-4 pl-11 text-sm text-ink shadow-card focus:border-primary-ink focus:outline-none"
         />
       </div>
 
@@ -184,11 +184,11 @@ export function PurchasesView() {
                     {isVoided ? (
                       <span className="font-semibold text-danger">বাতিলকৃত</span>
                     ) : p.dueAmount > 0 ? (
-                      <span className="font-semibold text-accent-ink">
+                      <span className="font-semibold text-warning-ink">
                         দিবো {formatTaka(p.dueAmount)}
                       </span>
                     ) : (
-                      <span className="font-medium text-primary">
+                      <span className="font-medium text-primary-ink">
                         পরিশোধ ({getChannelShortLabel(p.paymentMethod)})
                       </span>
                     )}

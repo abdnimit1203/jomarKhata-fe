@@ -1,13 +1,13 @@
 # Development Status — Jomarkhata Frontend
 
-_Last updated: 2026-11-22 (after S1)_
+_Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 
 ## Step tracker (approved plan, one step at a time with owner approval)
 
 | Step | Name | Status |
 |---|---|---|
 | S0 | Safety net (tests) | ✅ Accepted by owner |
-| S1 | Design system foundation (colours, type, font, shared components, welcome screen design, ক্যাশ/নগদ wording) | ✅ Done, awaiting owner review |
+| S1 | Design system foundation (colours, type, font, shared components, welcome screen design, ক্যাশ/নগদ wording) + revision D22 (amber main, emerald accent) | ✅ Done, awaiting owner review |
 | S2 | App shell & navigation | ⏸ Not started (needs approval) |
 | S3 | First run, local mode, business profile (+ wiring the welcome screen) | ⏸ |
 | S4 | Dashboard & cash summary | ⏸ |
@@ -23,14 +23,14 @@ _Last updated: 2026-11-22 (after S1)_
 
 ## What works today
 - **Fully local bookkeeping in IndexedDB:** sales, purchases, customers and suppliers, due collection and payment, expenses, stock, reports, edit/void with audit history, and JSON backup export.
-- **New visual system:** ivory/emerald theme, larger and bolder type, outlined cards, Noto Sans Bengali.
+- **New visual system:** ivory canvas, **amber main colour with an emerald accent**, larger and bolder type, outlined cards, Noto Sans Bengali.
 - **Welcome screen designed;** viewable only as a dev preview at `/?preview=welcome`.
 - **No backend, login or cloud sync.** The sync outbox is recorded locally and never sent.
 
 ## Quality gates
 | Check | Command | S0 | S1 |
 |---|---|---|---|
-| Tests | `npm test` | 49 / 49 | **81 / 81** (5 files) |
+| Tests | `npm test` | 49 / 49 | **86 / 86** (5 files) |
 | TypeScript | `npm run typecheck` | 0 errors | **0 errors** |
 | Production build | `npm run build` | — | **✓ compiled, 3/3 static pages** |
 | Mobile render check (360px, Edge via puppeteer) | manual | — | Welcome and Dashboard render with **0px horizontal overflow** |

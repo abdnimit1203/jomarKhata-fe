@@ -4,6 +4,23 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### S1 revision — Amber main colour, emerald accent (owner decision D22) — 2026-11-23
+**Changed (visual only; no accounting, schema or service-behaviour change)**
+- **Tokens:**
+  - `--color-primary` is now **Amber `#E9A23B`**; `--color-accent` is now **Deep Emerald `#145C46`**; secondary is Soft Amber `#FCEBCB`.
+  - New `--color-on-primary` `#2B1D05` (text on amber, 7.6:1) and `--color-primary-ink` `#8A5A00` (amber as text or outline, ≥5:1).
+  - The browser `themeColor` is now amber.
+- **Class migration:**
+  - 53 `text-white` on amber fills → `text-on-primary`; 82 `text-primary` → `text-primary-ink`; 47 stand-alone `border-primary` → `border-primary-ink`.
+  - The hero card children were converted by hand.
+  - Conditional buttons (the due form submit, the confirm dialog) now carry their text colour per branch.
+- **Warnings keep their warm colour:** former amber-accent uses (low stock, unknown cost, supplier payable, the purchase-due toggle) moved to the `warning` tokens.
+- **Focus ring** uses `primary-ink`.
+- **Removed:** the temporary `?theme=amber` preview override and its switch.
+
+**Tests**
+- `design-system.test.ts`: updated palette and contrast pairs (now 22 pairs). New guards: **no white text on an amber fill** and **no amber used as text** (bare `text-primary` banned). 37 tests.
+
 ### S1 — Design system foundation — 2026-11-22
 **Changed (visual only; no accounting, schema or service-behaviour change)**
 - **Colour tokens:** `app/globals.css` `@theme` holds the owner palette (Warm Ivory `#F7F5EF`, Deep Emerald `#145C46`, Soft Sage `#DCECE4`, Amber `#E9A23B`, Soft Red `#FCE7E5`, White cards) plus contrast-verified supporting tokens.

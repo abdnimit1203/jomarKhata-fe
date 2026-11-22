@@ -70,7 +70,7 @@ export function ExpenseFormSheet({ open, editExpense, onClose }: ExpenseFormShee
           type="submit"
           form="expense-form"
           disabled={isSubmitting || amount <= 0}
-          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover disabled:opacity-50"
+          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-hover disabled:opacity-50"
         >
           {isSubmitting ? 'সংরক্ষণ হচ্ছে...' : editExpense ? 'সংশোধন সংরক্ষণ করুন' : 'খরচ সংরক্ষণ করুন'}
         </button>
@@ -107,7 +107,7 @@ export function ExpenseFormSheet({ open, editExpense, onClose }: ExpenseFormShee
                   onClick={() => setCategory(cat)}
                   className={`min-h-[40px] rounded-xl border px-3.5 text-xs font-semibold transition-colors ${
                     active
-                      ? 'border-primary bg-primary text-white'
+                      ? 'border-primary bg-primary text-on-primary'
                       : 'border-border-strong bg-canvas text-ink hover:bg-surface-muted'
                   }`}
                 >
@@ -131,7 +131,7 @@ export function ExpenseFormSheet({ open, editExpense, onClose }: ExpenseFormShee
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={`যেমন: ${category}`}
-            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
+            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
           />
         </div>
       </form>

@@ -38,7 +38,7 @@ export function PaymentChannelPicker({ value, onChange, label }: PaymentChannelP
               onClick={() => onChange(ch.id)}
               className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold whitespace-nowrap transition-all active:scale-[0.98] ${
                 active
-                  ? 'border-primary bg-primary text-white shadow-sm'
+                  ? 'border-primary bg-primary text-on-primary shadow-sm'
                   : 'border-border-strong bg-canvas text-ink hover:bg-surface-muted'
               }`}
             >

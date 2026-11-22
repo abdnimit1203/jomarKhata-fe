@@ -69,7 +69,7 @@ export function SalesView() {
         <button
           type="button"
           onClick={() => openSheet({ type: 'sale' })}
-          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover active:scale-[0.98]"
+          className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm hover:bg-primary-hover active:scale-[0.98]"
         >
           <Plus className="h-4 w-4" />
           <span>নতুন বিক্রি</span>
@@ -86,7 +86,7 @@ export function SalesView() {
         </div>
         <div className="rounded-2xl bg-white p-3.5 shadow-card">
           <p className="text-xs text-ink-muted">বিক্রিতে আদায়</p>
-          <p className="mt-1 text-base font-bold tabular-nums text-primary sm:text-lg">
+          <p className="mt-1 text-base font-bold tabular-nums text-primary-ink sm:text-lg">
             {formatTaka(summary.paid)}
           </p>
         </div>
@@ -114,7 +114,7 @@ export function SalesView() {
               type="button"
               onClick={() => setPeriod(t.id)}
               className={`min-h-[38px] rounded-full px-3.5 text-xs font-semibold whitespace-nowrap ${
-                period === t.id ? 'bg-primary text-white' : 'text-ink-muted'
+                period === t.id ? 'bg-primary text-on-primary' : 'text-ink-muted'
               }`}
             >
               {t.label}
@@ -137,7 +137,7 @@ export function SalesView() {
               onClick={() => setStatusFilter(f.id)}
               className={`min-h-[38px] rounded-xl border px-3 text-xs font-semibold whitespace-nowrap ${
                 statusFilter === f.id
-                  ? 'border-primary bg-secondary text-primary'
+                  ? 'border-primary-ink bg-secondary text-primary-ink'
                   : 'border-border-strong bg-white text-ink-muted'
               }`}
             >
@@ -155,7 +155,7 @@ export function SalesView() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="কাস্টমার, ইনভয়েস বা বিবরণ খুঁজুন"
-          className="h-12 w-full rounded-2xl border border-border-strong bg-white pr-4 pl-11 text-sm text-ink shadow-card focus:border-primary focus:outline-none"
+          className="h-12 w-full rounded-2xl border border-border-strong bg-white pr-4 pl-11 text-sm text-ink shadow-card focus:border-primary-ink focus:outline-none"
         />
       </div>
 
@@ -212,7 +212,7 @@ export function SalesView() {
                         বাকি {formatTaka(sale.dueAmount)}
                       </span>
                     ) : (
-                      <span className="font-medium text-primary">
+                      <span className="font-medium text-primary-ink">
                         পরিশোধ ({getChannelShortLabel(sale.paymentMethod)})
                       </span>
                     )}

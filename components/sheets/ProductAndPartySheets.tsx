@@ -94,7 +94,7 @@ export function ProductFormSheet({
           type="submit"
           form="product-form"
           disabled={isSubmitting}
-          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
+          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-on-primary hover:bg-primary-hover disabled:opacity-50"
         >
           {isSubmitting ? 'সংরক্ষণ হচ্ছে...' : 'পণ্য সংরক্ষণ করুন'}
         </button>
@@ -116,7 +116,7 @@ export function ProductFormSheet({
             onChange={(e) => setName(e.target.value)}
             placeholder="যেমন: মিনিকেট চাল (১ কেজি)"
             autoFocus
-            className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
+            className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
           />
         </div>
 
@@ -126,7 +126,7 @@ export function ProductFormSheet({
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
+              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3 text-sm text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
             >
               {PRODUCT_CATEGORIES.map((c) => (
                 <option key={c} value={c}>
@@ -140,7 +140,7 @@ export function ProductFormSheet({
             <select
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
-              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
+              className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3 text-sm text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
             >
               {PRODUCT_UNITS.map((u) => (
                 <option key={u} value={u}>
@@ -225,7 +225,7 @@ export function StockAdjustSheet({
           type="submit"
           form="stock-adjust-form"
           disabled={isSubmitting || qty <= 0}
-          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
+          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-on-primary hover:bg-primary-hover disabled:opacity-50"
         >
           {isSubmitting ? 'আপডেট হচ্ছে...' : 'স্টক হালনাগাদ করুন'}
         </button>
@@ -237,7 +237,7 @@ export function StockAdjustSheet({
             type="button"
             onClick={() => setDirection('add')}
             className={`h-11 rounded-xl text-sm font-semibold ${
-              direction === 'add' ? 'bg-primary text-white' : 'text-ink-muted'
+              direction === 'add' ? 'bg-primary text-on-primary' : 'text-ink-muted'
             }`}
           >
             স্টক যোগ করুন (+)
@@ -265,7 +265,7 @@ export function StockAdjustSheet({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="যেমন: নতুন চালান এসেছে / নষ্ট পণ্য বাদ"
-            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
+            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
           />
         </div>
       </form>
@@ -335,7 +335,7 @@ export function PartyFormSheet({
           type="submit"
           form="party-form"
           disabled={isSubmitting}
-          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
+          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-on-primary hover:bg-primary-hover disabled:opacity-50"
         >
           {isSubmitting ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ করুন'}
         </button>
@@ -348,7 +348,7 @@ export function PartyFormSheet({
               type="button"
               onClick={() => setRole('customer')}
               className={`h-11 rounded-xl text-sm font-semibold ${
-                role === 'customer' ? 'bg-primary text-white' : 'text-ink-muted'
+                role === 'customer' ? 'bg-primary text-on-primary' : 'text-ink-muted'
               }`}
             >
               কাস্টমার
@@ -357,7 +357,7 @@ export function PartyFormSheet({
               type="button"
               onClick={() => setRole('supplier')}
               className={`h-11 rounded-xl text-sm font-semibold ${
-                role === 'supplier' ? 'bg-primary text-white' : 'text-ink-muted'
+                role === 'supplier' ? 'bg-primary text-on-primary' : 'text-ink-muted'
               }`}
             >
               সাপ্লায়ার
@@ -380,7 +380,7 @@ export function PartyFormSheet({
             onChange={(e) => setName(e.target.value)}
             placeholder={role === 'customer' ? 'কাস্টমারের নাম লিখুন' : 'সাপ্লায়ার বা প্রতিষ্ঠানের নাম'}
             autoFocus
-            className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
+            className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
           />
         </div>
 
@@ -391,7 +391,7 @@ export function PartyFormSheet({
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="017XXXXXXXX"
-            className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
+            className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
           />
         </div>
 
@@ -402,7 +402,7 @@ export function PartyFormSheet({
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="এলাকা বা বাজারের নাম"
-            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
+            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
           />
         </div>
 

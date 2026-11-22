@@ -7,7 +7,7 @@ type Tone = 'warning' | 'danger' | 'info';
 const TONE: Record<Tone, { className: string; Icon: React.ComponentType<{ className?: string }> }> = {
   warning: { className: 'bg-warning-soft text-warning-ink', Icon: AlertTriangle },
   danger: { className: 'bg-danger-soft text-danger', Icon: XCircle },
-  info: { className: 'bg-secondary text-primary', Icon: Info },
+  info: { className: 'bg-secondary text-primary-ink', Icon: Info },
 };
 
 /** Persistent inline banner: demo data, offline, read-only, errors (UI_GUIDELINES §6). */

@@ -114,12 +114,12 @@ export function DueEntrySheet({
           type="submit"
           form="due-entry-form"
           disabled={isSubmitting || amount <= 0 || !partyId}
-          className={`flex h-12 w-full items-center justify-center rounded-2xl text-base font-semibold text-white shadow-sm transition-colors disabled:opacity-50 ${
+          className={`flex h-12 w-full items-center justify-center rounded-2xl text-base font-semibold shadow-sm transition-colors disabled:opacity-50 ${
             entryType === 'customer_collection'
-              ? 'bg-primary hover:bg-primary-hover'
+              ? 'bg-primary text-on-primary hover:bg-primary-hover'
               : entryType === 'supplier_payment' || entryType === 'manual_due_given'
-                ? 'bg-danger hover:bg-danger-hover'
-                : 'bg-primary hover:bg-primary-hover'
+                ? 'bg-danger text-white hover:bg-danger-hover'
+                : 'bg-primary text-on-primary hover:bg-primary-hover'
           }`}
         >
           {isSubmitting ? 'সংরক্ষণ হচ্ছে...' : 'নিশ্চিত করুন'}
@@ -134,7 +134,7 @@ export function DueEntrySheet({
               onClick={() => setEntryType('customer_collection')}
               className={`min-h-[48px] rounded-2xl border px-3 py-2 text-xs font-semibold transition-all ${
                 entryType === 'customer_collection'
-                  ? 'border-primary bg-primary text-white'
+                  ? 'border-primary bg-primary text-on-primary'
                   : 'border-border-strong bg-canvas text-ink'
               }`}
             >
@@ -167,7 +167,7 @@ export function DueEntrySheet({
               onClick={() => setEntryType('manual_due_received')}
               className={`min-h-[44px] rounded-2xl border px-3 py-2 text-xs font-medium transition-all ${
                 entryType === 'manual_due_received'
-                  ? 'border-primary bg-secondary text-primary'
+                  ? 'border-primary-ink bg-secondary text-primary-ink'
                   : 'border-border bg-white text-ink-muted'
               }`}
             >
@@ -191,7 +191,7 @@ export function DueEntrySheet({
             value={partyId}
             disabled={!!editDue}
             onChange={(e) => setPartyId(e.target.value)}
-            className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm font-medium text-ink focus:border-primary focus:bg-white focus:outline-none disabled:opacity-60"
+            className="h-12 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm font-medium text-ink focus:border-primary-ink focus:bg-white focus:outline-none disabled:opacity-60"
           >
             <option value="">— নির্বাচন করুন —</option>
             {parties.map((p) => (
@@ -209,7 +209,7 @@ export function DueEntrySheet({
             <div className="mt-1.5 flex items-center justify-between text-xs text-ink-muted">
               <span>
                 বর্তমান স্থিতি:{' '}
-                <strong className={selectedParty.balance > 0 ? 'text-danger' : 'text-primary'}>
+                <strong className={selectedParty.balance > 0 ? 'text-danger' : 'text-primary-ink'}>
                   {selectedParty.balance > 0 ? 'পাবো' : 'দিবো'}{' '}
                   {formatTaka(Math.abs(selectedParty.balance))}
                 </strong>
@@ -217,7 +217,7 @@ export function DueEntrySheet({
               <button
                 type="button"
                 onClick={() => setAmountRaw(String(Math.abs(selectedParty.balance)))}
-                className="font-semibold text-primary hover:underline"
+                className="font-semibold text-primary-ink hover:underline"
               >
                 পুরো বাকি বসান
               </button>
@@ -255,7 +255,7 @@ export function DueEntrySheet({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="যেমন: বিকাশে পাঠিয়েছে / পুরোনো বাকি শোধ"
-            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary focus:bg-white focus:outline-none"
+            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
           />
         </div>
       </form>

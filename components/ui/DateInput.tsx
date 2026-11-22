@@ -53,7 +53,7 @@ export function DateInput({
     <div className={cn('relative', className)}>
       <CalendarDays
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-3.5 z-10 h-5 w-5 -translate-y-1/2 text-primary"
+        className="pointer-events-none absolute top-1/2 left-3.5 z-10 h-5 w-5 -translate-y-1/2 text-primary-ink"
       />
       <button
         type="button"
@@ -62,7 +62,7 @@ export function DateInput({
         disabled={disabled}
         aria-label={ariaLabel}
         className={cn(
-          'flex min-h-12 w-full items-center rounded-xl border-[1.5px] border-border-strong bg-surface pr-3.5 pl-11 text-left text-base font-semibold tabular-nums transition-colors focus:border-primary focus:outline-none disabled:opacity-60',
+          'flex min-h-12 w-full items-center rounded-xl border-[1.5px] border-border-strong bg-surface pr-3.5 pl-11 text-left text-base font-semibold tabular-nums transition-colors focus:border-primary-ink focus:outline-none disabled:opacity-60',
           display ? 'text-ink' : 'font-medium text-ink-subtle'
         )}
       >

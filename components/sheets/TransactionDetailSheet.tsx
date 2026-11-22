@@ -117,7 +117,7 @@ export function TransactionDetailSheet({
               <button
                 type="button"
                 onClick={handleEdit}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-secondary text-sm font-semibold text-primary transition-colors hover:bg-secondary-hover"
+                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-secondary text-sm font-semibold text-primary-ink transition-colors hover:bg-secondary-hover"
               >
                 <Edit3 className="h-4 w-4" />
                 <span>সংশোধন করুন</span>
@@ -167,7 +167,7 @@ export function TransactionDetailSheet({
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-ink-muted">আদায় হয়েছে</span>
-                  <span className="text-sm font-semibold tabular-nums text-primary">
+                  <span className="text-sm font-semibold tabular-nums text-primary-ink">
                     {formatTaka(record.paidAmount)}
                   </span>
                 </div>
@@ -215,7 +215,7 @@ export function TransactionDetailSheet({
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-ink-muted">পরিশোধিত</span>
-                  <span className="text-sm font-semibold tabular-nums text-primary">
+                  <span className="text-sm font-semibold tabular-nums text-primary-ink">
                     {formatTaka(record.paidAmount)}
                   </span>
                 </div>
@@ -286,7 +286,7 @@ export function TransactionDetailSheet({
           {/* Linked Canonical MoneyMovement */}
           <div className="rounded-2xl border border-border bg-white p-3.5">
             <div className="flex items-center gap-2 text-xs font-semibold text-ink-muted">
-              <ShieldCheck className="h-4 w-4 text-primary" />
+              <ShieldCheck className="h-4 w-4 text-primary-ink" />
               <span>ক্যাশ ও পেমেন্ট হিসাব (একক উৎস)</span>
             </div>
             {linkedMovement ? (

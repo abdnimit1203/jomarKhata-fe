@@ -101,7 +101,7 @@ export function LedgerView() {
             onClick={() => setFilter(tab.id)}
             className={`min-h-[40px] rounded-full px-4 text-xs font-semibold whitespace-nowrap transition-colors ${
               filter === tab.id
-                ? 'bg-primary text-white shadow-xs'
+                ? 'bg-primary text-on-primary shadow-xs'
                 : 'bg-white text-ink-muted shadow-card hover:bg-surface-muted'
             }`}
           >
@@ -119,7 +119,7 @@ export function LedgerView() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="লেনদেন বা নাম খুঁজুন..."
-            className="h-11 w-full rounded-2xl border border-border-strong bg-white pr-4 pl-11 text-sm text-ink shadow-card focus:border-primary focus:outline-none"
+            className="h-11 w-full rounded-2xl border border-border-strong bg-white pr-4 pl-11 text-sm text-ink shadow-card focus:border-primary-ink focus:outline-none"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -127,7 +127,7 @@ export function LedgerView() {
             value={channelFilter}
             onChange={(e) => setChannelFilter(e.target.value as 'all' | PaymentChannel)}
             aria-label="পেমেন্ট মাধ্যম"
-            className="h-11 rounded-2xl border border-border-strong bg-white px-3 text-xs font-semibold text-ink-muted shadow-card focus:border-primary focus:outline-none"
+            className="h-11 rounded-2xl border border-border-strong bg-white px-3 text-xs font-semibold text-ink-muted shadow-card focus:border-primary-ink focus:outline-none"
           >
             <option value="all">সব মাধ্যম</option>
             {PAYMENT_CHANNELS.map((c) => (
@@ -194,10 +194,10 @@ export function LedgerView() {
                       <span
                         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
                           isPositive
-                            ? 'bg-secondary text-primary'
+                            ? 'bg-secondary text-primary-ink'
                             : item.sourceType === 'expense'
                               ? 'bg-danger-soft text-danger'
-                              : 'bg-warning-soft text-accent-ink'
+                              : 'bg-warning-soft text-warning-ink'
                         }`}
                       >
                         {isPositive ? (
@@ -222,7 +222,7 @@ export function LedgerView() {
                             isVoided
                               ? 'line-through text-ink-subtle'
                               : isPositive
-                                ? 'text-primary'
+                                ? 'text-primary-ink'
                                 : 'text-ink'
                           }`}
                         >
