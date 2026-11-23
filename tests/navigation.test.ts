@@ -12,11 +12,11 @@ const read = (p: string) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 const shell = read('components/layout/AppShell.tsx');
 const ctx = read('context/JomarkhataContext.tsx');
 
-describe('bottom bar: হোম · বাকি · [+] · লেনদেন · আরও (D2)', () => {
+describe('bottom bar: হোম · পাওনা-দেনা · [+] · লেনদেন · আরও (D2, own wording)', () => {
   it('has exactly these tabs in this order', () => {
     const nav = shell.slice(shell.indexOf('aria-label="মোবাইল নেভিগেশন"'));
     const labels = [...nav.matchAll(/label: '([^']+)'/g)].map((m) => m[1]).slice(0, 5);
-    expect(labels).toEqual(['হোম', 'বাকি', 'নতুন', 'লেনদেন', 'আরও']);
+    expect(labels).toEqual(['হোম', 'পাওনা-দেনা', 'নতুন', 'লেনদেন', 'আরও']);
   });
 
   it('every screen is reachable in ≤ 2 taps: tabs + the আরও menu cover all routes', () => {
@@ -29,7 +29,7 @@ describe('bottom bar: হোম · বাকি · [+] · লেনদেন · 
   it('"+" opens the quick-add sheet with the 5 everyday entries', () => {
     expect(shell).toMatch(/openSheet\(\{ type: 'quick_add' \}\)/);
     const sheets = read('components/layout/NavSheets.tsx');
-    for (const l of ['বেচা', 'কেনা', 'বাকি আদায়', 'পরিশোধ', 'খরচ']) expect(sheets).toContain(`label: '${l}'`);
+    for (const l of ['বিক্রি', 'কেনা', 'টাকা আদায়', 'দেনা শোধ', 'খরচ']) expect(sheets).toContain(`label: '${l}'`);
   });
 });
 

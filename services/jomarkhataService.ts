@@ -1920,7 +1920,7 @@ export const jomarkhataService = {
           source = 'customer_collection';
           usedPaymentMethod = channel;
           moneyMovementId = generateId();
-          defaultNote = 'বাকি আদায় (নিচ্ছি)';
+          defaultNote = 'টাকা পেলাম';
           const mm: MoneyMovement = {
             id: moneyMovementId,
             direction: 'in',
@@ -1943,7 +1943,7 @@ export const jomarkhataService = {
           source = 'supplier_payment';
           usedPaymentMethod = channel;
           moneyMovementId = generateId();
-          defaultNote = 'সাপ্লায়ার পরিশোধ (দিচ্ছি)';
+          defaultNote = 'টাকা দিলাম';
           const mm: MoneyMovement = {
             id: moneyMovementId,
             direction: 'out',
@@ -1964,11 +1964,11 @@ export const jomarkhataService = {
         } else if (input.entryType === 'manual_due_given') {
           direction = 'given';
           source = 'manual_due';
-          defaultNote = 'বাকি দিচ্ছি';
+          defaultNote = 'বাকিতে দিলাম';
         } else {
           direction = 'received';
           source = 'manual_due';
-          defaultNote = 'বাকি নিচ্ছি';
+          defaultNote = 'বাকিতে নিলাম';
         }
 
         created = {

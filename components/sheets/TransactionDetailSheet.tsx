@@ -264,9 +264,9 @@ export function TransactionDetailSheet({
                   <span className="text-xs text-ink-muted">ধরন</span>
                   <span className="text-sm font-semibold text-ink">
                     {record.source === 'customer_collection'
-                      ? 'বাকি আদায় (নিচ্ছি)'
+                      ? 'টাকা পেলাম (পাওনা আদায়)'
                       : record.source === 'supplier_payment'
-                        ? 'সাপ্লায়ার পরিশোধ (দিচ্ছি)'
+                        ? 'টাকা দিলাম (দেনা শোধ)'
                         : record.direction === 'given'
                           ? 'বাকি দেওয়া'
                           : 'বাকি নেওয়া'}

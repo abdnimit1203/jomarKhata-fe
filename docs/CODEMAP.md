@@ -67,6 +67,10 @@ A compact map of the project for anyone (human or tool) starting work. Kept up t
 ## Conventions (enforced by tests)
 - **Colours:** tokens only (`app/globals.css` `@theme`). No raw hex in components. Use `text-primary-ink` for blue text (never `text-primary`) and `text-on-primary` on blue fills.
 - **Controls:** no native `<select>` (use `SimpleSelect`) and no hand-made tab ternaries (use `SegmentedControl`).
+- **Wording:** all user-facing domain words come from `lib/terms.ts`, our own wording (পাওনা / দেনা / পাওনা-দেনা / লেনদেন লিখুন). **Never reuse another khata app's labels or layout.** `tests/identity.test.ts` bans them.
+- **Balance colours:** পাওনা = green (`text-success`), দেনা = red (`text-danger`).
+- **Months:** use `MonthYearPicker` + `lib/months.ts` for any "which month" choice.
+- **Help:** WhatsApp support appears only when `NEXT_PUBLIC_SUPPORT_WHATSAPP` is set (`lib/support.ts`).
 - **Text:** minimum size `text-xs` (13px); no `text-[Npx]`.
 - **Wording:**
   - Cash = **ক্যাশ**. **নগদ** = the Nagad wallet only.

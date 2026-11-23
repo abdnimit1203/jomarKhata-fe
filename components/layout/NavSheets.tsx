@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, MessageCircle, RefreshCw } from 'lucide-react';
+import { supportLink } from '@/lib/support';
 import { ModalSheet } from '@/components/ui/ModalSheet';
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { FeatureIcon, type FeatureTone } from '@/components/ui/FeatureIcon';
@@ -10,18 +11,18 @@ import { formatBanglaNumber } from '@/lib/format';
 import { MORE_ITEMS } from './navigation';
 
 const QUICK_ACTIONS: Array<{ label: string; hint: string; icon: AppIconName; tone: FeatureTone; sheet: ActiveSheet }> = [
-  { label: 'বেচা', hint: 'নতুন বিক্রি', icon: 'sale', tone: 'green', sheet: { type: 'sale' } },
+  { label: 'বিক্রি', hint: 'নতুন বিক্রি লিখুন', icon: 'sale', tone: 'green', sheet: { type: 'sale' } },
   { label: 'কেনা', hint: 'মাল কেনা', icon: 'purchase', tone: 'blue', sheet: { type: 'purchase' } },
   {
-    label: 'বাকি আদায়',
-    hint: 'কাস্টমার টাকা দিল',
+    label: 'টাকা আদায়',
+    hint: 'পাওনা টাকা পেলাম',
     icon: 'due-collect',
     tone: 'orange',
     sheet: { type: 'due', defaultEntryType: 'customer_collection' },
   },
   {
-    label: 'পরিশোধ',
-    hint: 'মহাজনকে টাকা দিলাম',
+    label: 'দেনা শোধ',
+    hint: 'দেনার টাকা দিলাম',
     icon: 'supplier-pay',
     tone: 'teal',
     sheet: { type: 'due', defaultEntryType: 'supplier_payment' },
@@ -60,8 +61,9 @@ export function QuickAddSheet({ onClose }: { onClose: () => void }) {
 
 /** "আরও" tab: every screen that isn't on the bottom bar. */
 export function MoreSheet({ onClose }: { onClose: () => void }) {
-  const { navigate, data } = useJomarkhata();
+  const { navigate, data, openSheet } = useJomarkhata();
   const pending = data?.pendingSyncCount ?? 0;
+  const help = supportLink(data?.businessProfile.shopName);
   return (
     <ModalSheet open onClose={onClose} title="আরও" subtitle={data?.businessProfile.shopName || 'জমারখাতা'}>
       <div className="divide-y divide-border">
@@ -82,6 +84,25 @@ export function MoreSheet({ onClose }: { onClose: () => void }) {
             <ChevronRight className="h-5 w-5 text-ink-subtle" />
           </button>
         ))}
+      </div>
+      <div className="mt-3 grid grid-cols-1 gap-2">
+        <button
+          type="button"
+          onClick={() => openSheet({ type: 'sync_status' })}
+          className="flex min-h-12 items-center gap-3 rounded-2xl bg-surface-muted px-3.5 text-left text-sm font-semibold text-ink"
+        >
+          <RefreshCw className="h-4 w-4 text-primary-ink" /> সিঙ্ক অবস্থা
+        </button>
+        {help && (
+          <a
+            href={help}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex min-h-12 items-center gap-3 rounded-2xl bg-tile-green-bg px-3.5 text-sm font-bold text-tile-green-fg"
+          >
+            <MessageCircle className="h-4 w-4" /> সাহায্য দরকার? WhatsApp-এ লিখুন
+          </a>
+        )}
       </div>
       <p className="mt-3 rounded-2xl bg-surface-muted p-3 text-xs font-medium text-ink-muted">
         সব হিসাব এই ফোনে সংরক্ষিত।{' '}

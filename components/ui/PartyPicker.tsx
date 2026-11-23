@@ -160,7 +160,7 @@ export function PartyPicker({ value, onChange, label, role, emptyLabel, disabled
                 <span
                   className={cn(
                     'shrink-0 text-xs font-bold tabular-nums',
-                    p.balance > 0 ? 'text-danger' : p.balance < 0 ? 'text-primary-ink' : 'text-ink-subtle'
+                    p.balance > 0 ? 'text-success' : p.balance < 0 ? 'text-danger' : 'text-ink-subtle'
                   )}
                 >
                   {balanceText(p.balance)}

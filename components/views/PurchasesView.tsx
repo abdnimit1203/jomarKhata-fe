@@ -60,7 +60,7 @@ export function PurchasesView() {
     <div className="mx-auto max-w-5xl space-y-4 pb-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-ink">কেনার খাতা (ক্রয়)</h1>
+          <h1 className="text-xl font-bold text-ink">কেনার হিসাব (ক্রয়)</h1>
           <p className="text-xs text-ink-muted">পাইকারি ক্রয় ও সাপ্লায়ার বিলের হিসাব</p>
         </div>
         <button
@@ -179,7 +179,7 @@ export function PurchasesView() {
                       <span className="font-semibold text-danger">বাতিলকৃত</span>
                     ) : p.dueAmount > 0 ? (
                       <span className="font-semibold text-warning-ink">
-                        দিবো {formatTaka(p.dueAmount)}
+                        দেনা {formatTaka(p.dueAmount)}
                       </span>
                     ) : (
                       <span className="font-medium text-primary-ink">

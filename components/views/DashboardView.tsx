@@ -21,6 +21,8 @@ import {
   getRelativeDateGroupLabel,
 } from '@/lib/format';
 import { SegmentedControl } from '@/components/ui/segmented';
+import { MonthYearPicker } from '@/components/ui/MonthYearPicker';
+import { currentMonth, monthLabel, monthRange, yearOptions, type MonthValue } from '@/lib/months';
 
 export function DashboardView() {
   const { data, currentBalances, navigate, openSheet, mode, actions, showToast } = useJomarkhata();
@@ -30,10 +32,11 @@ export function DashboardView() {
   }, [actions]);
   const [hideBalance, setHideBalance] = useState(false);
   const [period, setPeriod] = useState<'today' | 'month'>('today');
+  const [picked, setPicked] = useState<MonthValue>(() => currentMonth());
 
   const periodFlows = useMemo(() => {
     if (!data) return null;
-    const range = getPeriodBounds(period);
+    const range = period === 'month' ? monthRange(picked) : getPeriodBounds('today');
     return computePeriodFlows(
       range,
       data.sales,
@@ -42,7 +45,7 @@ export function DashboardView() {
       data.expenses,
       data.dueTransactions
     );
-  }, [data, period]);
+  }, [data, period, picked]);
 
   const recentLedger = useMemo(() => {
     if (!data) return [];
@@ -94,7 +97,7 @@ export function DashboardView() {
               </button>
             </div>
           )}
-        {/* 1. Compact hero: cash in hand + পাবো / দিবো (all-time balances) */}
+        {/* 1. Compact hero: cash in hand + পাওনা / দেনা (all-time balances) */}
         <section className="relative overflow-hidden rounded-3xl bg-primary-gradient p-4 text-on-primary shadow-hero lg:p-6">
           <div
             aria-hidden="true"
@@ -135,7 +138,7 @@ export function DashboardView() {
               onClick={() => navigate('dues')}
               className="rounded-2xl bg-white/20 px-3 py-2 text-left transition-colors hover:bg-white/30"
             >
-              <p className="text-xs text-on-primary">মোট পাবো</p>
+              <p className="text-xs text-on-primary">মোট পাওনা</p>
               <p className="text-base font-bold tabular-nums">{mask(formatTaka(currentBalances.totalReceivables))}</p>
             </button>
             <button
@@ -143,7 +146,7 @@ export function DashboardView() {
               onClick={() => navigate('dues')}
               className="rounded-2xl bg-white/20 px-3 py-2 text-left transition-colors hover:bg-white/30"
             >
-              <p className="text-xs text-on-primary">মোট দিবো</p>
+              <p className="text-xs text-on-primary">মোট দেনা</p>
               <p className="text-base font-bold tabular-nums">{mask(formatTaka(currentBalances.totalPayables))}</p>
             </button>
           </div>
@@ -160,7 +163,7 @@ export function DashboardView() {
               <AppIcon name="sale" className="h-8 w-8" />
             </span>
             <span className="text-left">
-              <span className="block text-lg font-bold leading-tight">বেচা</span>
+              <span className="block text-lg font-bold leading-tight">বিক্রি</span>
               <span className="block text-xs text-on-primary">বিক্রি লিখুন</span>
             </span>
           </button>
@@ -183,7 +186,7 @@ export function DashboardView() {
         <section className="grid grid-cols-4 gap-2.5 sm:gap-4">
           {[
             {
-              label: 'বাকি আদায়',
+              label: 'টাকা আদায়',
               icon: 'due-collect' as AppIconName,
               tone: 'orange' as FeatureTone,
               onClick: () => openSheet({ type: 'due', defaultEntryType: 'customer_collection' }),
@@ -195,7 +198,7 @@ export function DashboardView() {
               onClick: () => openSheet({ type: 'expense' }),
             },
             {
-              label: 'পরিশোধ',
+              label: 'দেনা শোধ',
               icon: 'supplier-pay' as AppIconName,
               tone: 'teal' as FeatureTone,
               onClick: () => openSheet({ type: 'due', defaultEntryType: 'supplier_payment' }),
@@ -227,7 +230,7 @@ export function DashboardView() {
         <section className="rounded-3xl bg-white p-4 shadow-card">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-ink">
-              {period === 'today' ? 'আজকের হিসাব' : 'এই মাসের হিসাব'}
+              {period === 'today' ? 'আজকের হিসাব' : `${monthLabel(picked)}-এর হিসাব`}
             </h2>
             <SegmentedControl
               aria-label="সময়কাল"
@@ -241,6 +244,14 @@ export function DashboardView() {
               ]}
             />
           </div>
+          {period === 'month' && (
+            <MonthYearPicker
+              className="mt-3"
+              value={picked}
+              onChange={setPicked}
+              years={yearOptions(data.sales.map((x) => x.date))}
+            />
+          )}
           <div className="mt-3 grid grid-cols-2 gap-2.5">
             <div className="rounded-2xl bg-canvas p-3">
               <p className="text-xs text-ink-muted">মোট বিক্রি</p>
@@ -258,7 +269,7 @@ export function DashboardView() {
               <p className="text-xs text-danger">দোকানের ব্যয়</p>
             </div>
             <div className="rounded-2xl bg-canvas p-3">
-              <p className="text-xs text-ink-muted">নতুন বাকি দিয়েছি</p>
+              <p className="text-xs text-ink-muted">বাকিতে দিয়েছি</p>
               <p className="mt-0.5 text-lg font-bold tabular-nums text-ink">{formatTaka(periodFlows.newReceivablesAdded)}</p>
               <p className="text-xs text-ink-subtle">কাস্টমার বাকি</p>
             </div>
@@ -267,13 +278,13 @@ export function DashboardView() {
 
         {/* খাতা: the four books (lists). Other tools live in আরও (no duplicate grid, plan 3.2). */}
         <section className="rounded-3xl bg-white p-4 shadow-card">
-          <h2 className="mb-2 px-1 text-sm font-semibold text-ink">খাতা</h2>
+          <h2 className="mb-2 px-1 text-sm font-semibold text-ink">সব হিসাব</h2>
           <div className="grid grid-cols-4 gap-2">
             {[
-              { label: 'বেচার খাতা', icon: 'book-sales' as AppIconName, route: 'sales' as const, tone: 'green' as FeatureTone },
-              { label: 'কেনার খাতা', icon: 'book-purchase' as AppIconName, route: 'purchases' as const, tone: 'blue' as FeatureTone },
-              { label: 'বাকির খাতা', icon: 'book-due' as AppIconName, route: 'dues' as const, tone: 'orange' as FeatureTone },
-              { label: 'খরচের খাতা', icon: 'book-expense' as AppIconName, route: 'cash' as const, tone: 'red' as FeatureTone },
+              { label: 'বিক্রির হিসাব', icon: 'book-sales' as AppIconName, route: 'sales' as const, tone: 'green' as FeatureTone },
+              { label: 'কেনার হিসাব', icon: 'book-purchase' as AppIconName, route: 'purchases' as const, tone: 'blue' as FeatureTone },
+              { label: 'পাওনা-দেনা', icon: 'book-due' as AppIconName, route: 'dues' as const, tone: 'orange' as FeatureTone },
+              { label: 'খরচের হিসাব', icon: 'book-expense' as AppIconName, route: 'cash' as const, tone: 'red' as FeatureTone },
             ].map((b) => (
               <button
                 key={b.label}

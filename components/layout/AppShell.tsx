@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ArrowLeft,
+  WifiOff,
   BarChart3,
   BookOpen,
   BookText,
@@ -51,9 +52,9 @@ import type { AppRoute } from '@/types/domain';
 
 const DESKTOP_NAV: Array<{ id: AppRoute; label: string; icon: React.ComponentType<{ className?: string }> }> = [
   { id: 'dashboard', label: 'হোম (ড্যাশবোর্ড)', icon: Home },
-  { id: 'sales', label: 'বেচার খাতা (বিক্রি)', icon: ShoppingBag },
-  { id: 'purchases', label: 'কেনার খাতা (ক্রয়)', icon: ShoppingCart },
-  { id: 'dues', label: 'বাকির খাতা', icon: BookOpen },
+  { id: 'sales', label: 'বিক্রির হিসাব', icon: ShoppingBag },
+  { id: 'purchases', label: 'কেনার হিসাব', icon: ShoppingCart },
+  { id: 'dues', label: 'পাওনা-দেনা', icon: BookOpen },
   { id: 'ledger', label: 'সব লেনদেন (লেজার)', icon: BookText },
   { id: 'cash', label: 'দৈনিক ক্যাশ ও খরচ', icon: Wallet },
   { id: 'stock', label: 'স্টকের হিসাব', icon: Package },
@@ -61,23 +62,44 @@ const DESKTOP_NAV: Array<{ id: AppRoute; label: string; icon: React.ComponentTyp
   { id: 'settings', label: 'বিজনেস সেটিংস', icon: Settings },
 ];
 
-/** Online/offline pill (S2). It shows connectivity only. It never claims cloud backup. */
-function ConnectionPill({ pending, onInfo }: { pending: number; onInfo: () => void }) {
+/**
+ * Connection indicator: just a softly pulsing green dot when online, a Wi-Fi-off icon when offline.
+ * Hover (desktop) or tap (phone) shows a tiny label for a moment. Never claims cloud backup.
+ */
+function ConnectionDot() {
   const online = useOnline();
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (!show) return;
+    const t = window.setTimeout(() => setShow(false), 2500);
+    return () => window.clearTimeout(t);
+  }, [show]);
+  const label = online ? 'অনলাইন' : 'অফলাইন — হিসাব ফোনে সংরক্ষিত হচ্ছে';
   return (
-    <button
-      type="button"
-      onClick={onInfo}
-      aria-label={online ? 'অনলাইন — বিস্তারিত' : 'অফলাইন — বিস্তারিত'}
-      className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white/20 px-2.5 text-xs font-semibold text-on-primary"
-    >
-      <span
-        aria-hidden="true"
-        className={`h-2.5 w-2.5 rounded-full ring-2 ring-white/60 ${online ? 'bg-success' : 'bg-surface-muted'}`}
-      />
-      {online ? 'অনলাইন' : 'অফলাইন'}
-      {pending > 0 && <span className="sr-only">, {formatBanglaNumber(pending)}টি পরিবর্তন ফোনে সংরক্ষিত</span>}
-    </button>
+    <span className="relative inline-flex">
+      <button
+        type="button"
+        onClick={() => setShow((v) => !v)}
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+        aria-label={online ? 'অনলাইন' : 'অফলাইন'}
+        className="flex h-10 w-10 items-center justify-center rounded-full"
+      >
+        {online ? (
+          <span aria-hidden="true" className="jk-pulse relative h-2.5 w-2.5 rounded-full bg-success ring-2 ring-white/70" />
+        ) : (
+          <WifiOff aria-hidden="true" className="h-5 w-5 text-on-primary" />
+        )}
+      </button>
+      {show && (
+        <span
+          role="status"
+          className="absolute top-full right-0 z-50 mt-1 rounded-xl bg-ink px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap text-white shadow-hero"
+        >
+          {label}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -108,8 +130,6 @@ export function AppShell() {
   const [setupOpen, setSetupOpen] = useState(false);
   const pending = data?.pendingSyncCount ?? 0;
   const isHome = activeRoute === 'dashboard';
-  // The pill opens the সিঙ্ক অবস্থা sheet (S9). Wording stays honest: the cloud isn't on yet.
-  const showConnectionInfo = () => openSheet({ type: 'sync_status' });
 
   // S3 first run: welcome → shop setup (empty khata), or the D15 choice for an older build's data.
   if (!isLoading && !error && phase === 'welcome') {
@@ -260,7 +280,7 @@ export function AppShell() {
               )}
 
               <div className="flex shrink-0 items-center gap-2">
-                <ConnectionPill pending={pending} onInfo={showConnectionInfo} />
+                <ConnectionDot />
                 <button
                   type="button"
                   onClick={() => openSheet({ type: 'expense' })}
@@ -342,7 +362,7 @@ export function AppShell() {
         <div className="grid h-16 grid-cols-5 items-center pb-safe">
           {([
             { id: 'dashboard', label: 'হোম', icon: Home, active: activeRoute === 'dashboard', onClick: () => navigate('dashboard') },
-            { id: 'dues', label: 'বাকি', icon: BookOpen, active: activeRoute === 'dues', onClick: () => navigate('dues') },
+            { id: 'dues', label: 'পাওনা-দেনা', icon: BookOpen, active: activeRoute === 'dues', onClick: () => navigate('dues') },
             { id: 'add', label: 'নতুন', icon: Plus, active: false, onClick: () => openSheet({ type: 'quick_add' }) },
             { id: 'ledger', label: 'লেনদেন', icon: BookText, active: activeRoute === 'ledger', onClick: () => navigate('ledger') },
             {

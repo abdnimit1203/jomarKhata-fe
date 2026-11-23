@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Database, FlaskConical, RotateCcw, Save, Store } from 'lucide-react';
 import { BackupSection } from '@/components/settings/BackupSection';
 import { InstallCard } from '@/components/pwa/PwaPrompts';
+import { supportLink } from '@/lib/support';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { NumericInput } from '@/components/ui/NumericInput';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -201,6 +202,17 @@ export function SettingsView() {
       <BackupSection />
 
       <InstallCard dismissible={false} />
+
+      {supportLink(data.businessProfile.shopName) && (
+        <a
+          href={supportLink(data.businessProfile.shopName) ?? undefined}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex min-h-14 items-center justify-center gap-2 rounded-3xl bg-tile-green-bg text-base font-bold text-tile-green-fg shadow-card"
+        >
+          সাহায্য দরকার? WhatsApp-এ লিখুন
+        </a>
+      )}
 
       <section className="space-y-3.5 rounded-3xl bg-white p-5 shadow-card">
         <div className="flex items-start gap-3">

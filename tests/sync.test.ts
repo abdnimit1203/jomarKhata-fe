@@ -149,6 +149,6 @@ describe('honest status in the app (static + service)', () => {
     const read = (p: string) => fs.readFileSync(path.resolve(__dirname, '..', p), 'utf8');
     expect(read('components/layout/SyncStatusSheet.tsx')).toMatch(/ক্লাউড ব্যাকআপ এখনও চালু হয়নি/);
     expect(read('components/sheets/TransactionDetailSheet.tsx')).toMatch(/: 'ফোনে সংরক্ষিত'/);
-    expect(read('components/layout/AppShell.tsx')).toMatch(/openSheet\(\{ type: 'sync_status' \}\)/);
+    expect(read('components/layout/NavSheets.tsx')).toMatch(/openSheet\(\{ type: 'sync_status' \}\)/);
   });
 });

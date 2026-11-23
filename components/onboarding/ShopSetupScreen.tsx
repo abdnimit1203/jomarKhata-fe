@@ -16,7 +16,7 @@ const inputClass =
 
 /**
  * S3 shop setup: starts an EMPTY real khata (D3). Only the shop name is required now;
- * owner name / mobile help later (account linking, তাগাদা). Opening balances are optional.
+ * owner name / mobile help later (account linking, মনে করানো). Opening balances are optional.
  */
 export function ShopSetupScreen({ onBack }: { onBack: () => void }) {
   const { actions } = useJomarkhata();

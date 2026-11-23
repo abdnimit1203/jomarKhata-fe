@@ -3,6 +3,7 @@
  * Balance sign everywhere: positive = পাবো (they owe us), negative = দিবো (we owe them).
  */
 import { formatTaka } from './format';
+import { T } from './terms';
 import type { Party } from '@/types/domain';
 
 export type DueEntryType = 'customer_collection' | 'supplier_payment' | 'manual_due_given' | 'manual_due_received';
@@ -48,9 +49,58 @@ export function partyMatches(p: Pick<Party, 'name' | 'phone'>, query: string): b
 }
 
 export function balanceText(balance: number): string {
-  if (balance > 0) return `পাবো ${formatTaka(balance)}`;
-  if (balance < 0) return `দিবো ${formatTaka(Math.abs(balance))}`;
-  return 'বাকি নেই';
+  if (balance > 0) return `${T.receivable} ${formatTaka(balance)}`;
+  if (balance < 0) return `${T.payable} ${formatTaka(Math.abs(balance))}`;
+  return T.settled;
+}
+
+/** One plain sentence about where a party stands. */
+export function balanceSentence(name: string, balance: number): string {
+  if (balance > 0) return `${name} আপনাকে ${formatTaka(balance)} দেবেন`;
+  if (balance < 0) return `আপনি ${name}-কে ${formatTaka(Math.abs(balance))} দেবেন`;
+  return 'হিসাব মিটে গেছে — কেউ কারো কাছে পায় না';
+}
+
+/**
+ * The four everyday cases, in plain words. Each maps to one existing service entry type.
+ * tone = colour family (green money in, red money out, orange credit given, purple credit taken).
+ */
+export type DueChoice = 'got' | 'paid' | 'gave_credit' | 'took_credit';
+export const DUE_CHOICES: Array<{
+  key: DueChoice;
+  label: string;
+  hint: string;
+  entryType: DueEntryType;
+  withMoney: boolean;
+  tone: 'green' | 'red' | 'orange' | 'purple';
+}> = [
+  { key: 'got', label: 'টাকা পেলাম', hint: 'উনি আপনাকে টাকা দিলেন', entryType: 'customer_collection', withMoney: true, tone: 'green' },
+  { key: 'paid', label: 'টাকা দিলাম', hint: 'আপনি ওনাকে টাকা দিলেন', entryType: 'supplier_payment', withMoney: true, tone: 'red' },
+  { key: 'gave_credit', label: 'বাকিতে দিলাম', hint: 'মাল দিলেন, দাম পরে পাবেন', entryType: 'manual_due_given', withMoney: false, tone: 'orange' },
+  { key: 'took_credit', label: 'বাকিতে নিলাম', hint: 'মাল নিলেন, দাম পরে দেবেন', entryType: 'manual_due_received', withMoney: false, tone: 'purple' },
+];
+
+export const choiceOf = (t: DueEntryType): DueChoice => DUE_CHOICES.find((c) => c.entryType === t)!.key;
+export const entryOf = (c: DueChoice): DueEntryType => DUE_CHOICES.find((x) => x.key === c)!.entryType;
+
+/**
+ * Notes the app writes by itself (older builds used other words). They repeat the row's label,
+ * so the timeline hides them; a note the owner typed is always shown.
+ */
+const AUTO_NOTES = new Set([
+  'বাকি আদায় (নিচ্ছি)', 'সাপ্লায়ার পরিশোধ (দিচ্ছি)', 'বাকি দিচ্ছি', 'বাকি নিচ্ছি',
+  'টাকা পেলাম', 'টাকা দিলাম', 'বাকিতে দিলাম', 'বাকিতে নিলাম',
+]);
+export function ownNote(note?: string | null): string {
+  return note && !AUTO_NOTES.has(note.trim()) ? note : '';
+}
+
+/** How a recorded due row reads in the party timeline. */
+export function dueRowLabel(row: { direction: 'given' | 'received'; moneyMovementId?: string | null; source?: string }): DueChoice {
+  if (row.source === 'sale') return 'gave_credit';
+  if (row.source === 'purchase') return 'took_credit';
+  if (row.direction === 'received') return row.moneyMovementId ? 'got' : 'took_credit';
+  return row.moneyMovementId ? 'paid' : 'gave_credit';
 }
 
 /** Bangladeshi mobile → international digits for wa.me (01XXXXXXXXX → 8801XXXXXXXXX). */

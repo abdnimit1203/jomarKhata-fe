@@ -1,28 +1,31 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ArrowDownLeft, ArrowUpRight, HandCoins, PackageOpen } from 'lucide-react';
 import { ModalSheet } from '@/components/ui/ModalSheet';
 import { NumericInput } from '@/components/ui/NumericInput';
 import { PaymentChannelPicker } from '@/components/ui/PaymentChannelPicker';
 import { PartyPicker, balanceText } from '@/components/ui/PartyPicker';
-import { SegmentedControl } from '@/components/ui/segmented';
+import { FeatureIcon } from '@/components/ui/FeatureIcon';
 import { DateInput } from '@/components/ui/DateInput';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { dateInputToIso, formatTaka, parseNumericInput, toDateInputValue } from '@/lib/format';
 import type { DueTransaction, PaymentChannel, PartyRole } from '@/types/domain';
 import type { RecordDueEntryInput } from '@/services/jomarkhataService';
-import { fromEntryType, toEntryType, type DueFlow } from '@/lib/dues';
+import { DUE_CHOICES, choiceOf, entryOf, type DueChoice } from '@/lib/dues';
 
 type EntryType = RecordDueEntryInput['entryType'];
-type Flow = DueFlow;
 
-// Mapping of দিচ্ছি/নিচ্ছি × টাকা দিয়ে/শুধু বাকিতে to service entry types: see lib/dues.ts.
+const CHOICE_ICON: Record<DueChoice, React.ComponentType<{ className?: string }>> = {
+  got: ArrowDownLeft,
+  paid: ArrowUpRight,
+  gave_credit: PackageOpen,
+  took_credit: HandCoins,
+};
 
-/** The usual "with money?" answer for a role: customers pay us cash; we pay suppliers cash. */
-function defaultWithMoney(flow: Flow, role: PartyRole | undefined): boolean {
-  if (!role) return true;
-  return role === 'customer' ? flow === 'take' : flow === 'give';
+/** Sensible first choice for a role: customers usually pay us; we usually pay suppliers. */
+function defaultChoice(role: PartyRole | undefined): DueChoice {
+  return role === 'supplier' ? 'paid' : 'got';
 }
 
 function entryTypeOfDue(d: DueTransaction): EntryType {
@@ -39,11 +42,16 @@ interface DueEntrySheetProps {
   onClose: () => void;
 }
 
+/**
+ * পাওনা-দেনা entry. Four plain choices (টাকা পেলাম / টাকা দিলাম / বাকিতে দিলাম / বাকিতে নিলাম),
+ * each mapped to one existing service entry type in lib/dues.ts (no service change).
+ */
 export function DueEntrySheet({ open, initialPartyId, defaultEntryType, editDue, onClose }: DueEntrySheetProps) {
   const { data, actions } = useJomarkhata();
-  const initial = fromEntryType(editDue ? entryTypeOfDue(editDue) : defaultEntryType ?? 'customer_collection');
-  const [flow, setFlow] = useState<Flow>(initial.flow);
-  const [withMoney, setWithMoney] = useState(initial.withMoney);
+  const initialParty = data?.parties.find((p) => p.id === (editDue?.partyId ?? initialPartyId));
+  const [choice, setChoice] = useState<DueChoice>(() =>
+    editDue ? choiceOf(entryTypeOfDue(editDue)) : defaultEntryType ? choiceOf(defaultEntryType) : defaultChoice(initialParty?.role)
+  );
   const [partyId, setPartyId] = useState(() => editDue?.partyId ?? initialPartyId ?? '');
   const [amountRaw, setAmountRaw] = useState(() => (editDue ? String(editDue.amount) : ''));
   const [paymentMethod, setPaymentMethod] = useState<PaymentChannel>(() => editDue?.paymentMethod ?? 'cash');
@@ -54,40 +62,28 @@ export function DueEntrySheet({ open, initialPartyId, defaultEntryType, editDue,
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const party = useMemo(() => data?.parties.find((p) => p.id === partyId) ?? null, [data?.parties, partyId]);
-  const fromPartyScreen = !!initialPartyId && !editDue;
   const preferredRole: PartyRole | undefined =
     defaultEntryType === 'supplier_payment' ? 'supplier' : defaultEntryType === 'customer_collection' ? 'customer' : undefined;
 
-  const entryType = toEntryType(flow, withMoney);
+  const picked = DUE_CHOICES.find((c) => c.key === choice)!;
+  const entryType = entryOf(choice);
+  const withMoney = picked.withMoney;
   const amount = Math.round(Math.max(0, parseNumericInput(amountRaw)));
-  const delta = flow === 'give' ? amount : -amount;
+  const gives = entryType === 'supplier_payment' || entryType === 'manual_due_given';
+  const delta = gives ? amount : -amount;
   const baseBalance = party ? party.balance - (editDue ? (editDue.direction === 'given' ? editDue.amount : -editDue.amount) : 0) : 0;
   const after = baseBalance + delta;
 
-  const chooseFlow = (f: Flow) => {
-    setFlow(f);
-    setWithMoney(defaultWithMoney(f, party?.role));
-  };
   const choosePartyId = (id: string) => {
     setPartyId(id);
     const p = data?.parties.find((x) => x.id === id);
-    if (p && !fromPartyScreen && !defaultEntryType) setWithMoney(defaultWithMoney(flow, p.role));
+    if (p && !defaultEntryType && !editDue) setChoice(defaultChoice(p.role));
   };
-
-  const name = party?.name ?? 'পার্টি';
-  const explanation =
-    flow === 'take'
-      ? withMoney
-        ? `${name}-এর কাছ থেকে টাকা নিচ্ছেন`
-        : `${name}-এর কাছ থেকে বাকিতে নিচ্ছেন (টাকা দেননি)`
-      : withMoney
-        ? `${name}-কে টাকা দিচ্ছেন`
-        : `${name}-কে বাকিতে দিচ্ছেন (টাকা নেননি)`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
-    if (!partyId) return setFormError('কাস্টমার বা সাপ্লায়ার বাছুন।');
+    if (!partyId) return setFormError('কার সাথে লেনদেন, আগে বাছুন।');
     if (amount <= 0) return setFormError('টাকার পরিমাণ লিখুন।');
     setIsSubmitting(true);
     try {
@@ -117,33 +113,29 @@ export function DueEntrySheet({ open, initialPartyId, defaultEntryType, editDue,
     }
   };
 
-  const title = editDue ? 'বাকি লেনদেন সংশোধন' : party ? `${party.name} — বাকির হিসাব` : 'বাকির হিসাব';
+  const title = editDue ? 'লেনদেন সংশোধন' : party ? `${party.name} — লেনদেন` : 'নতুন লেনদেন';
 
   return (
     <ModalSheet
       open={open}
       onClose={onClose}
       title={title}
-      subtitle={party ? `এখন: ${balanceText(party.balance)}` : 'আগে কাস্টমার বা সাপ্লায়ার বাছুন'}
+      subtitle={party ? `এখন: ${balanceText(party.balance)}` : 'কার সাথে লেনদেন, আগে বাছুন'}
       footer={
         <button
           type="submit"
           form="due-entry-form"
           disabled={isSubmitting || amount <= 0 || !partyId}
-          className={`flex h-12 w-full items-center justify-center rounded-2xl text-base font-bold shadow-sm transition-colors disabled:opacity-50 ${
-            flow === 'give'
-              ? 'bg-danger text-white hover:bg-danger-hover'
-              : 'bg-primary-gradient text-on-primary hover:brightness-[0.97]'
-          }`}
+          className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary-gradient text-base font-bold text-on-primary shadow-sm transition-colors hover:brightness-[0.97] disabled:opacity-50"
         >
-          {isSubmitting ? 'সংরক্ষণ হচ্ছে…' : flow === 'give' ? 'দিচ্ছি — নিশ্চিত করুন' : 'নিচ্ছি — নিশ্চিত করুন'}
+          {isSubmitting ? 'সংরক্ষণ হচ্ছে…' : `${picked.label} — সংরক্ষণ করুন`}
         </button>
       }
     >
       <form id="due-entry-form" onSubmit={handleSubmit} className="space-y-4">
-        {!fromPartyScreen && (
+        {!initialPartyId && (
           <PartyPicker
-            label="কাস্টমার / সাপ্লায়ার *"
+            label="কার সাথে? *"
             value={partyId}
             onChange={choosePartyId}
             role={party?.role ?? preferredRole}
@@ -152,38 +144,36 @@ export function DueEntrySheet({ open, initialPartyId, defaultEntryType, editDue,
           />
         )}
 
-        {partyId && (
-          <>
-            {!editDue && (
-              <div className="space-y-2.5">
-                <SegmentedControl
-                  aria-label="দিচ্ছি না নিচ্ছি"
-                  variant="track"
-                  fullWidth
-                  value={flow}
-                  onValueChange={chooseFlow}
-                  activeTone={(v) => (v === 'give' ? 'danger' : 'primary')}
-                  options={[
-                    { value: 'give', label: 'দিচ্ছি' },
-                    { value: 'take', label: 'নিচ্ছি' },
-                  ]}
-                />
-                <SegmentedControl
-                  aria-label="টাকা দিয়ে না শুধু বাকিতে"
-                  variant="chips"
-                  size="sm"
-                  fullWidth
-                  value={withMoney ? 'money' : 'credit'}
-                  onValueChange={(v) => setWithMoney(v === 'money')}
-                  options={[
-                    { value: 'money', label: 'টাকা দিয়ে' },
-                    { value: 'credit', label: 'শুধু বাকিতে' },
-                  ]}
-                />
-              </div>
-            )}
-            <p className="rounded-2xl bg-surface-muted px-3.5 py-2.5 text-sm font-semibold text-ink">{explanation}</p>
-          </>
+        {partyId && !editDue && (
+          <div role="radiogroup" aria-label="কী হলো?" className="grid grid-cols-2 gap-2.5">
+            {DUE_CHOICES.map((c) => {
+              const Icon = CHOICE_ICON[c.key];
+              const active = c.key === choice;
+              return (
+                <button
+                  key={c.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setChoice(c.key)}
+                  className={`flex items-center gap-2.5 rounded-2xl border-2 bg-white p-2.5 text-left transition-colors ${
+                    active ? 'border-primary-ink shadow-card' : 'border-border'
+                  }`}
+                >
+                  <FeatureIcon tone={c.tone} size="sm">
+                    <Icon />
+                  </FeatureIcon>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold text-ink">{c.label}</span>
+                    <span className="block text-xs leading-snug text-ink-muted">{c.hint}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {editDue && (
+          <p className="rounded-2xl bg-surface-muted px-3.5 py-2.5 text-sm font-semibold text-ink">{picked.label}</p>
         )}
 
         {formError && (
@@ -204,7 +194,7 @@ export function DueEntrySheet({ open, initialPartyId, defaultEntryType, editDue,
                 onClick={() => setAmountRaw(String(Math.abs(party.balance)))}
                 className="text-sm font-semibold text-primary-ink hover:underline"
               >
-                পুরো বাকি ({formatTaka(Math.abs(party.balance))})
+                পুরো হিসাব ({formatTaka(Math.abs(party.balance))})
               </button>
             )}
           </div>
@@ -219,7 +209,7 @@ export function DueEntrySheet({ open, initialPartyId, defaultEntryType, editDue,
 
         {withMoney && (
           <PaymentChannelPicker
-            label={flow === 'take' ? 'কোন মাধ্যমে টাকা পেলেন?' : 'কোন মাধ্যমে টাকা দিলেন?'}
+            label={choice === 'got' ? 'কোন মাধ্যমে টাকা পেলেন?' : 'কোন মাধ্যমে টাকা দিলেন?'}
             value={paymentMethod}
             onChange={setPaymentMethod}
           />

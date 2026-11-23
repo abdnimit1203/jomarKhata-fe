@@ -5,15 +5,15 @@ import { cn } from '@/lib/utils';
 export type FinancialState = 'receivable' | 'payable' | 'settled' | 'money_in' | 'money_out' | 'expense';
 
 const STATE: Record<FinancialState, { word: string; className: string; sign?: string }> = {
-  receivable: { word: 'পাবো', className: 'text-danger' },
-  payable: { word: 'দিবো', className: 'text-primary-ink' },
+  receivable: { word: 'পাওনা', className: 'text-success' },
+  payable: { word: 'দেনা', className: 'text-danger' },
   settled: { word: 'বাকি নেই', className: 'text-ink-muted' },
   money_in: { word: 'জমা', className: 'text-success', sign: '+' },
   money_out: { word: 'পরিশোধ', className: 'text-ink', sign: '−' },
   expense: { word: 'খরচ', className: 'text-danger', sign: '−' },
 };
 
-/** Derives পাবো / দিবো / বাকি নেই from a party balance (positive = shop will receive). */
+/** Derives পাওনা / দেনা / settled from a party balance (positive = shop will receive). */
 export function stateFromBalance(balance: number): FinancialState {
   if (balance > 0) return 'receivable';
   if (balance < 0) return 'payable';
@@ -23,7 +23,7 @@ export function stateFromBalance(balance: number): FinancialState {
 interface AmountWithStateProps {
   amount: number;
   state: FinancialState;
-  /** inline: "পাবো ১,২০০ ৳" · stacked: amount on top, word below (list rows) */
+  /** inline: "পাওনা ১,২০০ ৳" · stacked: amount on top, word below (list rows) */
   layout?: 'inline' | 'stacked';
   className?: string;
 }

@@ -66,7 +66,7 @@ export function SalesView() {
     <div className="mx-auto max-w-5xl space-y-4 pb-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-ink">বেচার খাতা (বিক্রি)</h1>
+          <h1 className="text-xl font-bold text-ink">বিক্রির হিসাব (বিক্রি)</h1>
           <p className="text-xs text-ink-muted">সহজ বিক্রি ও পণ্য বিক্রির সম্পূর্ণ হিসাব</p>
         </div>
         <button

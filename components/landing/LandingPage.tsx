@@ -18,9 +18,9 @@ const TRUST = [
 ];
 
 const FEATURES: Array<{ icon: AppIconName; tone: FeatureTone; title: string; text: string }> = [
-  { icon: 'sale', tone: 'green', title: 'বেচার খাতা', text: 'দ্রুত বিক্রি বা পণ্য ধরে বিক্রি, ক্যাশ বা বাকিতে।' },
-  { icon: 'purchase', tone: 'blue', title: 'কেনার খাতা', text: 'মহাজনের কাছ থেকে কেনা, স্টক নিজে থেকেই বাড়ে।' },
-  { icon: 'book-due', tone: 'orange', title: 'বাকির খাতা', text: 'কে কত পাবো, কাকে কত দিবো — এক নজরে।' },
+  { icon: 'sale', tone: 'green', title: 'বিক্রির হিসাব', text: 'দ্রুত বিক্রি বা পণ্য ধরে বিক্রি, ক্যাশ বা বাকিতে।' },
+  { icon: 'purchase', tone: 'blue', title: 'কেনার হিসাব', text: 'মহাজনের কাছ থেকে কেনা, স্টক নিজে থেকেই বাড়ে।' },
+  { icon: 'book-due', tone: 'orange', title: 'পাওনা-দেনা', text: 'কার কাছে কত পাওনা, কার কত দেনা — এক নজরে।' },
   { icon: 'expense', tone: 'red', title: 'খরচের হিসাব', text: 'ভাড়া, বিল, বেতন — খাত ধরে খরচ লিখুন।' },
   { icon: 'cashbox', tone: 'gold', title: 'ক্যাশ বক্স', text: 'ক্যাশ, বিকাশ, নগদ, ব্যাংক — আলাদা আলাদা ব্যালেন্স।' },
   { icon: 'stock', tone: 'indigo', title: 'স্টক', text: 'কোন মাল কত আছে, কম পড়লে সতর্কতা।' },
@@ -116,7 +116,7 @@ export function LandingPage() {
                 </a>
               </div>
               <ul className="mt-5 space-y-1.5 text-sm font-semibold text-ink-muted">
-                {['দুই ট্যাপে বিক্রি লেখা', 'পাবো/দিবো সবসময় পরিষ্কার', 'ক্যাশ · বিকাশ · নগদ · ব্যাংক আলাদা'].map((t) => (
+                {['দুই ট্যাপে বিক্রি লেখা', 'পাওনা-দেনা সবসময় পরিষ্কার', 'ক্যাশ · বিকাশ · নগদ · ব্যাংক আলাদা'].map((t) => (
                   <li key={t} className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-success" /> {t}
                   </li>

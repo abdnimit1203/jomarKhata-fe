@@ -30,7 +30,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 ## Quality gates
 | Check | Command | S0 | S1 |
 |---|---|---|---|
-| Tests | `npm test` | 49 / 49 | **213 / 213** (21 files) |
+| Tests | `npm test` | 49 / 49 | **225 / 225** (22 files) |
 | TypeScript | `npm run typecheck` | 0 errors | **0 errors** |
 | Production build | `npm run build` | — | **✓ compiled, 3/3 static pages** |
 | Mobile render check (360px, Edge via puppeteer) | manual | — | Welcome and Dashboard render with **0px horizontal overflow** |

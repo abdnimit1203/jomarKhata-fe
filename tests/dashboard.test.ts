@@ -14,14 +14,14 @@ const at = (needle: string) => {
 };
 
 describe('Dashboard (S4)', () => {
-  it('mobile order: hero (cash + পাবো/দিবো) → বেচা/কেনা → quick actions → আজ/মাস → খাতা → recent', () => {
+  it('mobile order: hero (cash + পাওনা/দেনা) → বিক্রি/কেনা → quick actions → আজ/মাস → সব হিসাব → recent', () => {
     const order = [
       at('হাতে ক্যাশ'),
-      at('মোট পাবো'),
+      at('মোট পাওনা'),
       at("openSheet({ type: 'sale' })"),
-      at("label: 'বাকি আদায়'"),
+      at("label: 'টাকা আদায়'"),
       at("'আজকের হিসাব'"),
-      at('>খাতা</h2>'),
+      at('>সব হিসাব</h2>'),
       at('সাম্প্রতিক লেনদেন'),
     ];
     expect([...order].sort((a, b) => a - b)).toEqual(order);
@@ -32,9 +32,9 @@ describe('Dashboard (S4)', () => {
     expect(dash).not.toMatch(/পার্টি তালিকা/);
   });
 
-  it('hero is compact: one cash figure, channel line and a পাবো/দিবো row', () => {
+  it('hero is compact: one cash figure, channel line and a পাওনা/দেনা row', () => {
     expect(dash).toMatch(/text-3xl font-bold/);
     expect(dash).not.toMatch(/sm:text-4xl/);
-    expect(dash).toMatch(/মোট দিবো/);
+    expect(dash).toMatch(/মোট দেনা/);
   });
 });

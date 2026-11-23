@@ -4,6 +4,48 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### Own identity, month/year selector, WhatsApp help, compact connection dot, 2026-11-23
+Owner request: the app must not look or read like another khata app.
+
+**Changed: our own wording and layout**
+- All wording now lives in one file, `lib/terms.ts`:
+  - **পাওনা / দেনা** instead of পাবো/দিবো
+  - **পাওনা-দেনা** instead of বাকির খাতা
+  - বিক্রির / কেনার / খরচের **হিসাব** instead of "…র খাতা"
+  - **টাকা আদায় / দেনা শোধ**
+  - **মনে করান / আদায়ের দিন** instead of তাগাদা / পরিশোধের তারিখ
+  - **লেনদেন লিখুন** instead of নতুন বাকি
+  - **বিক্রি** instead of বেচা
+- **Colours:** পাওনা is **green** (money will come to you) and দেনা is **red** (you have to pay).
+- **Due Book list:**
+  - tabs **সবাই / পাওনা / দেনা** (role moved into the filter panel)
+  - each row has a colour bar and shows the last transaction date
+  - the summary cards use plain sentences ("আপনি পাবেন" / "আপনাকে দিতে হবে") and act as filters
+- **Party screen:**
+  - a colour status card with a plain sentence ("রহিম আপনাকে ৳২,৪০০ দেবেন")
+  - 4 round actions: **কল · মনে করান · আদায়ের দিন · এডিট**
+  - a **timeline grouped by month** with each month's change, instead of a 3-column table
+  - **one "লেনদেন লিখুন" button** instead of the red/green দিচ্ছি/নিচ্ছি pair
+- **Entry form:** **four plain choices** in colour tiles: টাকা পেলাম (green), টাকা দিলাম (red), বাকিতে দিলাম (orange), বাকিতে নিলাম (purple).
+  - They map to the same 4 service entry types; the real service confirms the balance and cash direction for each.
+  - Auto-written notes are hidden in the timeline (`ownNote`); typed notes still show.
+- **Display-only text** from the calculator and service default notes uses the new words. No logic changed.
+
+**Added**
+- **Month + year selector** (`MonthYearPicker`, `lib/months.ts`): ‹ মাস ▾ বছর ▾ ›, never in the future. Available on the dashboard summary, reports ("মাস বাছুন") and the party timeline.
+- **WhatsApp help** (`lib/support.ts`): "সাহায্য দরকার? WhatsApp-এ লিখুন" with a ready message (shop name and app version, no money data), in the আরও menu and settings.
+  - **It stays hidden until `NEXT_PUBLIC_SUPPORT_WHATSAPP` is set in Vercel.**
+- **Header connection status:** only a **softly pulsing green dot** online (pure CSS keyframes, no library, respects reduced-motion) and a **Wi-Fi-off icon** offline. Hover or tap shows a tiny label.
+- **সিঙ্ক অবস্থা** moved into the আরও menu.
+- `tests/identity.test.ts` (12):
+  - **bans the other app's labels anywhere in the UI and in service/calculator strings**
+  - the four choices against the real service
+  - months, including leap years and year steps
+  - the support link is hidden until configured
+  - the connection dot
+
+**Verified on the production build:** new header dot and offline icon, the dashboard month picker, the পাওনা-দেনা list, party sentence + single action, the four-choice form; offline reload, tabs and an offline sale all still work.
+
 ### S13: performance, large-data fixtures, MVP acceptance, 2026-11-23
 **Measured** on the production build with **4× CPU throttling**:
 - **Typical shop** (2,000 sales, 500 parties): open 0.76 s, save → visible 302 ms, search 38 ms, 2k-row ledger 181 ms, restore 0.8 s.

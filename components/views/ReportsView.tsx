@@ -12,14 +12,18 @@ import {
 } from '@/services/financeCalculator';
 import { downloadTextFile, formatBanglaNumber, formatTaka } from '@/lib/format';
 import type { PeriodPreset } from '@/types/domain';
+import { MonthYearPicker } from '@/components/ui/MonthYearPicker';
+import { currentMonth, monthRange, yearOptions, type MonthValue } from '@/lib/months';
 import { SegmentedControl } from '@/components/ui/segmented';
 
 export function ReportsView() {
   const { data, currentBalances, showToast } = useJomarkhata();
-  const [period, setPeriod] = useState<PeriodPreset>('month');
+  const [period, setPeriod] = useState<PeriodPreset | 'pick'>('month');
+  const [picked, setPicked] = useState<MonthValue>(() => currentMonth());
+  const years = useMemo(() => yearOptions((data?.sales ?? []).map((s) => s.date)), [data?.sales]);
   const [activeBarIdx, setActiveBarIdx] = useState<number>(6);
 
-  const range = useMemo(() => getPeriodBounds(period), [period]);
+  const range = useMemo(() => (period === 'pick' ? monthRange(picked) : getPeriodBounds(period)), [period, picked]);
 
   const flows = useMemo(() => {
     if (!data) return null;
@@ -73,8 +77,8 @@ export function ReportsView() {
       ['বিকাশ (বর্তমান)', String(currentBalances.channelBalances.bkash)],
       ['নগদ (বর্তমান)', String(currentBalances.channelBalances.nagad)],
       ['ব্যাংক (বর্তমান)', String(currentBalances.channelBalances.bank)],
-      ['বর্তমান মোট পাবো', String(currentBalances.totalReceivables)],
-      ['বর্তমান মোট দিবো', String(currentBalances.totalPayables)],
+      ['বর্তমান মোট পাওনা', String(currentBalances.totalReceivables)],
+      ['বর্তমান মোট দেনা', String(currentBalances.totalPayables)],
       ['নির্বাচিত সময়ে মোট বিক্রি', String(flows.salesRevenue)],
       ['নির্বাচিত সময়ে মোট আদায়', String(flows.totalCollected)],
       ['নির্বাচিত সময়ে মোট খরচ', String(flows.expensesTotal)],
@@ -94,7 +98,7 @@ export function ReportsView() {
       ],
     ];
     const csv = '\uFEFF' + rows.map((r) => r.join(',')).join('\n');
-    downloadTextFile(`jomarkhata-report-${period}.csv`, csv, 'text/csv;charset=utf-8;');
+    downloadTextFile(`jomarkhata-report-${period === 'pick' ? `${picked.year}-${String(picked.month + 1).padStart(2, '0')}` : period}.csv`, csv, 'text/csv;charset=utf-8;');
     showToast('রিপোর্ট CSV ডাউনলোড হয়েছে।');
   };
 
@@ -122,14 +126,15 @@ export function ReportsView() {
         aria-label="সময়কাল"
         variant="track"
         value={period}
-        onValueChange={(v) => setPeriod(v as PeriodPreset)}
+        onValueChange={(v) => setPeriod(v as PeriodPreset | 'pick')}
         options={[
           { value: 'today', label: 'আজ' },
-          { value: 'week', label: 'সপ্তাহ' },
-          { value: 'month', label: 'মাস' },
+          { value: 'month', label: 'এই মাস' },
+          { value: 'pick', label: 'মাস বাছুন' },
           { value: 'all', label: 'সব সময়' },
         ]}
       />
+      {period === 'pick' && <MonthYearPicker value={picked} onChange={setPicked} years={years} />}
 
       {/* 1. Strictly Separated Period Flows */}
       <section className="rounded-3xl bg-white p-5 shadow-card">
@@ -388,13 +393,13 @@ export function ReportsView() {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-ink-muted">মোট পাবো (কাস্টমার)</span>
+                <span className="text-ink-muted">মোট পাওনা (কাস্টমার)</span>
                 <span className="font-bold tabular-nums text-danger">
                   {formatTaka(currentBalances.totalReceivables)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-ink-muted">মোট দিবো (সাপ্লায়ার)</span>
+                <span className="text-ink-muted">মোট দেনা (সাপ্লায়ার)</span>
                 <span className="font-bold tabular-nums text-primary-ink">
                   {formatTaka(currentBalances.totalPayables)}
                 </span>
