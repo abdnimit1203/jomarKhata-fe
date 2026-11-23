@@ -82,7 +82,7 @@ export function LedgerView() {
       <div>
         <h1 className="text-xl font-bold text-ink">সব লেনদেন (লেজার)</h1>
         <p className="text-xs text-ink-muted">
-          যেকোনো লেনদেনে ট্যাপ করে সংশোধন, বাতিল (Void) বা অডিট ইতিহাস দেখুন
+          যেকোনো লেনদেনে ট্যাপ করে সংশোধন, বাতিল বা পরিবর্তনের ইতিহাস দেখুন
         </p>
       </div>
 

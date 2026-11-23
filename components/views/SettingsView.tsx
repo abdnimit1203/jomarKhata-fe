@@ -220,7 +220,7 @@ export function SettingsView() {
               ক্লাউড ব্যাকআপ ও লগইন পরবর্তী ব্যাকএন্ড পর্যায়ে যুক্ত হবে।
             </p>
             <p className="mt-1.5 text-xs font-medium text-ink-muted tabular-nums">
-              লোকাল সিঙ্ক কিউ: {formatBanglaNumber(data.pendingSyncCount)}টি রেকর্ড · মোট অডিট লগ:{' '}
+              লোকাল সিঙ্ক কিউ: {formatBanglaNumber(data.pendingSyncCount)}টি রেকর্ড · পরিবর্তনের রেকর্ড:{' '}
               {formatBanglaNumber(data.auditLogs.length)}টি
             </p>
           </div>

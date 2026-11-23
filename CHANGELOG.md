@@ -4,6 +4,24 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### S7: corrections & history, 2026-11-23
+AP-6 approved under D32.
+
+**Added / changed**
+- **পরিবর্তনের ইতিহাস** (previously "অডিট ইতিহাস"):
+  - every entry carries an action badge (তৈরি / সংশোধন / বাতিল)
+  - **edits show before → after for each changed field**: মোট, টাকা, ছাড়, জমা, বাকি, পণ্য, মাধ্যম, তারিখ, পার্টি, খাত, বিবরণ, নোট
+  - the diff comes from the stored snapshots via `lib/audit-diff.ts`, a pure function; broken snapshots show nothing rather than crash
+- **AP-6: optional edit reason.**
+  - `editSale`, `editPurchase`, `editDueEntry` and `editExpense` take an optional `reason`, stored trimmed on the audit entry. Without one it stays `null`, as before.
+  - All 4 edit forms have "সংশোধনের কারণ (ঐচ্ছিক)".
+- **Plain wording:** "বাতিল (Void)" → "বাতিল করুন". The void dialog now says the entry isn't deleted and stays in the history marked বাতিল. The ledger hint and settings copy are updated too.
+- **A failed void shows an error toast** and keeps the dialog open; it never fails silently.
+- **After an edit you return to the detail sheet:** edit sheets carry `returnTo`, and `closeSheet` goes back to it within the same history entry.
+- `tests/history.test.ts` (9).
+
+**Verified e2e:** sale ৳500 → detail → edit to ৳650 with a reason → saved → back on the detail, and the history shows সংশোধন, the reason and ৫০০ → ৬৫০.
+
 ### AP-9 fixed: no stock clamp, oversell allowed with a warning (D33), 2026-11-23
 **Release blocker D20 cleared.**
 

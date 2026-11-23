@@ -11,6 +11,7 @@ import {
   formatTaka,
   getChannelLabel,
 } from '@/lib/format';
+import { AUDIT_ACTION_LABEL, diffAudit } from '@/lib/audit-diff';
 
 interface TransactionDetailSheetProps {
   open: boolean;
@@ -25,7 +26,8 @@ export function TransactionDetailSheet({
   sourceId,
   onClose,
 }: TransactionDetailSheetProps) {
-  const { data, actions, openSheet } = useJomarkhata();
+  const { data, actions, openSheet, showToast } = useJomarkhata();
+  const self = { type: 'transaction_detail' as const, sourceType, sourceId };
   const [confirmVoidOpen, setConfirmVoidOpen] = useState(false);
   const [isVoiding, setIsVoiding] = useState(false);
 
@@ -64,21 +66,24 @@ export function TransactionDetailSheet({
 
   const handleEdit = () => {
     if (sourceType === 'sale') {
-      openSheet({ type: 'sale', editSale: record as NonNullable<typeof data>['sales'][number] });
+      openSheet({ type: 'sale', editSale: record as NonNullable<typeof data>['sales'][number], returnTo: self });
     } else if (sourceType === 'purchase') {
       openSheet({
         type: 'purchase',
         editPurchase: record as NonNullable<typeof data>['purchases'][number],
+        returnTo: self,
       });
     } else if (sourceType === 'due_transaction') {
       openSheet({
         type: 'due',
         editDue: record as NonNullable<typeof data>['dueTransactions'][number],
+        returnTo: self,
       });
     } else {
       openSheet({
         type: 'expense',
         editExpense: record as NonNullable<typeof data>['expenses'][number],
+        returnTo: self,
       });
     }
   };
@@ -92,6 +97,9 @@ export function TransactionDetailSheet({
       else await actions.voidExpense(sourceId, reason);
       setConfirmVoidOpen(false);
       onClose();
+    } catch (err) {
+      // 6.4: never fail silently; the dialog stays open so the owner can retry.
+      showToast(err instanceof Error ? `বাতিল করা যায়নি: ${err.message}` : 'বাতিল করা যায়নি। আবার চেষ্টা করুন।', 'error');
     } finally {
       setIsVoiding(false);
     }
@@ -109,7 +117,7 @@ export function TransactionDetailSheet({
       <ModalSheet
         open={open}
         onClose={onClose}
-        title="লেনদেনের বিস্তারিত ও অডিট"
+        title="লেনদেনের বিস্তারিত"
         subtitle={formatBanglaDateTime(record.date)}
         footer={
           canEditOrVoid ? (
@@ -128,7 +136,7 @@ export function TransactionDetailSheet({
                 className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-danger-soft text-sm font-semibold text-danger transition-colors hover:bg-danger-soft"
               >
                 <Ban className="h-4 w-4" />
-                <span>বাতিল (Void)</span>
+                <span>বাতিল করুন</span>
               </button>
             </div>
           ) : undefined
@@ -311,10 +319,10 @@ export function TransactionDetailSheet({
           <div className="space-y-2">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-muted">
               <Clock className="h-3.5 w-3.5" />
-              <span>অডিট ইতিহাস (সংরক্ষিত রেকর্ড)</span>
+              <span>পরিবর্তনের ইতিহাস</span>
             </div>
             {audits.length === 0 ? (
-              <p className="text-xs text-ink-subtle">কোনো অডিট নোট পাওয়া যায়নি।</p>
+              <p className="text-xs text-ink-subtle">কোনো পরিবর্তনের রেকর্ড নেই।</p>
             ) : (
               <div className="space-y-2">
                 {audits.map((log) => (
@@ -322,7 +330,22 @@ export function TransactionDetailSheet({
                     key={log.id}
                     className="rounded-xl border border-border bg-canvas px-3.5 py-2.5 text-xs"
                   >
-                    <p className="font-medium text-ink">{log.summary}</p>
+                    <p className="font-medium text-ink">
+                      <span className="mr-1.5 rounded-md bg-white px-1.5 py-0.5 font-bold text-primary-ink">
+                        {AUDIT_ACTION_LABEL[log.action] ?? log.action}
+                      </span>
+                      {log.summary}
+                    </p>
+                    {log.action === 'edit' && diffAudit(log).length > 0 && (
+                      <ul className="mt-1.5 space-y-0.5">
+                        {diffAudit(log).map((c) => (
+                          <li key={c.label} className="text-ink">
+                            <span className="font-semibold">{c.label}:</span>{' '}
+                            <span className="text-ink-muted line-through">{c.before}</span> → <span className="font-semibold">{c.after}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     {log.reason && <p className="mt-0.5 text-warning-ink">কারণ: {log.reason}</p>}
                     <p className="mt-1 text-xs text-ink-subtle">{formatBanglaDateTime(log.timestamp)}</p>
                   </div>
@@ -335,8 +358,8 @@ export function TransactionDetailSheet({
 
       <ConfirmDialog
         open={confirmVoidOpen}
-        title="লেনদেনটি বাতিল (Void) করবেন?"
-        description="এই লেনদেনটি বাতিল করলে সংশ্লিষ্ট ক্যাশ ব্যালেন্স, বাকি হিসাব এবং স্টক স্বয়ংক্রিয়ভাবে আগের অবস্থায় ফেরত যাবে। রেকর্ডটি অডিট ইতিহাসে সংরক্ষিত থাকবে।"
+        title="লেনদেনটি বাতিল করবেন?"
+        description="বাতিল করলে এর ক্যাশ, বাকি আর স্টক আগের অবস্থায় ফিরে যাবে। লেনদেনটি মুছবে না — “বাতিল” চিহ্ন নিয়ে ইতিহাসে থেকে যাবে।"
         confirmLabel="হ্যাঁ, বাতিল করুন"
         tone="danger"
         showReasonInput

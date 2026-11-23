@@ -49,6 +49,7 @@ export function DueEntrySheet({ open, initialPartyId, defaultEntryType, editDue,
   const [paymentMethod, setPaymentMethod] = useState<PaymentChannel>(() => editDue?.paymentMethod ?? 'cash');
   const [note, setNote] = useState(() => editDue?.note ?? '');
   const [dateValue, setDateValue] = useState(() => toDateInputValue(editDue?.date ?? new Date().toISOString()));
+  const [editReason, setEditReason] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -97,7 +98,7 @@ export function DueEntrySheet({ open, initialPartyId, defaultEntryType, editDue,
           paymentMethod: withMoney ? paymentMethod : undefined,
           note: note.trim() || undefined,
           date,
-        });
+        }, editReason);
       } else {
         await actions.recordDueEntry({
           partyId,
@@ -222,6 +223,22 @@ export function DueEntrySheet({ open, initialPartyId, defaultEntryType, editDue,
             value={paymentMethod}
             onChange={setPaymentMethod}
           />
+        )}
+
+        {editDue && (
+          <div>
+            <label htmlFor="edit-reason" className="mb-1 block text-sm font-semibold text-ink-muted">
+              সংশোধনের কারণ (ঐচ্ছিক)
+            </label>
+            <input
+              id="edit-reason"
+              type="text"
+              value={editReason}
+              onChange={(e) => setEditReason(e.target.value)}
+              placeholder="যেমন: দাম ভুল লেখা হয়েছিল"
+              className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-base text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
+            />
+          </div>
         )}
 
         <div>

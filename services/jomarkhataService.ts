@@ -974,7 +974,8 @@ export const jomarkhataService = {
     return createdSale;
   },
 
-  async editSale(saleId: string, input: CreateSaleInput): Promise<SaleRecord> {
+  /** `reason` (optional, AP-6) is stored on the audit log entry. */
+  async editSale(saleId: string, input: CreateSaleInput, reason?: string): Promise<SaleRecord> {
     const db = getJomarkhataDb();
     const subtotal = Math.round(input.items.reduce((sum, i) => sum + i.lineTotal, 0));
     const discount = Math.max(0, Math.round(input.discount || 0));
@@ -1179,6 +1180,7 @@ export const jomarkhataService = {
           summary: `বিক্রি ${existing.invoiceNo} সংশোধন হয়েছে: ${formatTaka(existing.total)} → ${formatTaka(total)} (জমা ${formatTaka(paidAmount)})`,
           beforeSnapshot: existing,
           afterSnapshot: updatedSale,
+          reason: reason?.trim() || null,
         });
         await enqueueSyncMutation(db, 'sale', saleId, 'upsert', updatedSale);
       }
@@ -1438,7 +1440,7 @@ export const jomarkhataService = {
     return createdPurchase;
   },
 
-  async editPurchase(purchaseId: string, input: CreatePurchaseInput): Promise<PurchaseRecord> {
+  async editPurchase(purchaseId: string, input: CreatePurchaseInput, reason?: string): Promise<PurchaseRecord> {
     const db = getJomarkhataDb();
     const total = Math.round(input.items.reduce((sum, i) => sum + i.lineTotal, 0));
     if (total <= 0) throw new Error('ক্রয়ের মোট টাকা শূন্যের বেশি হতে হবে।');
@@ -1633,6 +1635,7 @@ export const jomarkhataService = {
           summary: `ক্রয় ${existing.billNo} সংশোধন হয়েছে: ${formatTaka(existing.total)} → ${formatTaka(total)}`,
           beforeSnapshot: existing,
           afterSnapshot: updatedPurchase,
+          reason: reason?.trim() || null,
         });
         await enqueueSyncMutation(db, 'purchase', purchaseId, 'upsert', updatedPurchase);
       }
@@ -1854,7 +1857,8 @@ export const jomarkhataService = {
 
   async editDueEntry(
     dueId: string,
-    updates: { amount: number; paymentMethod?: PaymentChannel; note?: string; date?: string }
+    updates: { amount: number; paymentMethod?: PaymentChannel; note?: string; date?: string },
+    reason?: string
   ): Promise<void> {
     const db = getJomarkhataDb();
     const amount = Math.round(updates.amount);
@@ -1904,6 +1908,7 @@ export const jomarkhataService = {
           summary: `বাকি লেনদেন সংশোধন হয়েছে: ${formatTaka(existing.amount)} → ${formatTaka(amount)}`,
           beforeSnapshot: existing,
           afterSnapshot: next,
+          reason: reason?.trim() || null,
         });
         await enqueueSyncMutation(db, 'due_transaction', dueId, 'upsert', next);
       }
@@ -2021,7 +2026,7 @@ export const jomarkhataService = {
     return created;
   },
 
-  async editExpense(expenseId: string, input: CreateExpenseInput): Promise<void> {
+  async editExpense(expenseId: string, input: CreateExpenseInput, reason?: string): Promise<void> {
     const db = getJomarkhataDb();
     const amount = Math.round(input.amount);
     if (amount <= 0) throw new Error('খরচের পরিমাণ শূন্যের বেশি হতে হবে।');
@@ -2064,6 +2069,7 @@ export const jomarkhataService = {
         summary: `খরচ "${title}" সংশোধন হয়েছে: ${formatTaka(existing.amount)} → ${formatTaka(amount)}`,
         beforeSnapshot: existing,
         afterSnapshot: next,
+        reason: reason?.trim() || null,
       });
       await enqueueSyncMutation(db, 'expense', expenseId, 'upsert', next);
     });

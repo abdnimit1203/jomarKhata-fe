@@ -26,6 +26,7 @@ export function ExpenseFormSheet({ open, editExpense, onClose }: ExpenseFormShee
   );
   const [note, setNote] = useState(() => editExpense?.note ?? '');
   const [dateValue, setDateValue] = useState(() => toDateInputValue(editExpense?.date ?? new Date().toISOString()));
+  const [editReason, setEditReason] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -50,7 +51,7 @@ export function ExpenseFormSheet({ open, editExpense, onClose }: ExpenseFormShee
         date: dateInputToIso(dateValue, editExpense?.date),
       };
       if (editExpense) {
-        await actions.editExpense(editExpense.id, payload);
+        await actions.editExpense(editExpense.id, payload, editReason);
       } else {
         await actions.createExpense(payload);
       }
@@ -126,6 +127,22 @@ export function ExpenseFormSheet({ open, editExpense, onClose }: ExpenseFormShee
           value={paymentMethod}
           onChange={setPaymentMethod}
         />
+
+        {editExpense && (
+          <div>
+            <label htmlFor="edit-reason" className="mb-1 block text-sm font-semibold text-ink-muted">
+              সংশোধনের কারণ (ঐচ্ছিক)
+            </label>
+            <input
+              id="edit-reason"
+              type="text"
+              value={editReason}
+              onChange={(e) => setEditReason(e.target.value)}
+              placeholder="যেমন: দাম ভুল লেখা হয়েছিল"
+              className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-base text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
+            />
+          </div>
+        )}
 
         <div>
           <span className="mb-1.5 block text-sm font-semibold text-ink-muted">তারিখ</span>

@@ -47,6 +47,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
   const [partyId, setPartyId] = useState(() => editPurchase?.partyId ?? '');
   const [note, setNote] = useState(() => editPurchase?.note ?? '');
   const [dateValue, setDateValue] = useState(() => toDateInputValue(editPurchase?.date ?? new Date().toISOString()));
+  const [editReason, setEditReason] = useState('');
   // Raw text per cart field, so decimals can be typed before they parse.
   const [rawEdits, setRawEdits] = useState<Record<string, string>>({});
 
@@ -160,7 +161,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
         date: dateInputToIso(dateValue, editPurchase?.date),
       };
       if (editPurchase) {
-        await actions.editPurchase(editPurchase.id, payload);
+        await actions.editPurchase(editPurchase.id, payload, editReason);
       } else {
         await actions.createPurchase(payload);
       }
@@ -395,6 +396,22 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
             invalid={dueAmount > 0 && !partyId}
           />
         </div>
+
+        {editPurchase && (
+          <div>
+            <label htmlFor="edit-reason" className="mb-1 block text-sm font-semibold text-ink-muted">
+              সংশোধনের কারণ (ঐচ্ছিক)
+            </label>
+            <input
+              id="edit-reason"
+              type="text"
+              value={editReason}
+              onChange={(e) => setEditReason(e.target.value)}
+              placeholder="যেমন: দাম ভুল লেখা হয়েছিল"
+              className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-base text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
+            />
+          </div>
+        )}
 
         <div>
           <span className="mb-1.5 block text-sm font-semibold text-ink-muted">তারিখ</span>

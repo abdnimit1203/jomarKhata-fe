@@ -36,15 +36,16 @@ export interface ToastMessage {
 
 export type ActiveSheet =
   | { type: 'none' }
-  | { type: 'sale'; editSale?: SaleRecord | null }
-  | { type: 'purchase'; editPurchase?: PurchaseRecord | null }
+  | { type: 'sale'; editSale?: SaleRecord | null; returnTo?: ActiveSheet }
+  | { type: 'purchase'; editPurchase?: PurchaseRecord | null; returnTo?: ActiveSheet }
   | {
       type: 'due';
       partyId?: string | null;
       defaultEntryType?: RecordDueEntryInput['entryType'];
       editDue?: DueTransaction | null;
+      returnTo?: ActiveSheet;
     }
-  | { type: 'expense'; editExpense?: ExpenseRecord | null }
+  | { type: 'expense'; editExpense?: ExpenseRecord | null; returnTo?: ActiveSheet }
   | { type: 'product'; editProduct?: Product | null }
   | { type: 'stock_adjust'; product: Product }
   | { type: 'party'; defaultRole?: PartyRole; editParty?: Party | null }
@@ -127,19 +128,20 @@ interface JomarkhataContextValue {
     ) => Promise<void>;
     adjustProductStock: (productId: string, deltaQty: number, note?: string) => Promise<void>;
     createSale: (input: CreateSaleInput) => Promise<SaleRecord>;
-    editSale: (saleId: string, input: CreateSaleInput) => Promise<SaleRecord>;
+    editSale: (saleId: string, input: CreateSaleInput, reason?: string) => Promise<SaleRecord>;
     voidSale: (saleId: string, reason?: string) => Promise<void>;
     createPurchase: (input: CreatePurchaseInput) => Promise<PurchaseRecord>;
-    editPurchase: (purchaseId: string, input: CreatePurchaseInput) => Promise<PurchaseRecord>;
+    editPurchase: (purchaseId: string, input: CreatePurchaseInput, reason?: string) => Promise<PurchaseRecord>;
     voidPurchase: (purchaseId: string, reason?: string) => Promise<void>;
     recordDueEntry: (input: RecordDueEntryInput) => Promise<DueTransaction>;
     editDueEntry: (
       dueId: string,
-      updates: { amount: number; paymentMethod?: RecordDueEntryInput['paymentMethod']; note?: string; date?: string }
+      updates: { amount: number; paymentMethod?: RecordDueEntryInput['paymentMethod']; note?: string; date?: string },
+      reason?: string
     ) => Promise<void>;
     voidDueEntry: (dueId: string, reason?: string) => Promise<void>;
     createExpense: (input: CreateExpenseInput) => Promise<ExpenseRecord>;
-    editExpense: (expenseId: string, input: CreateExpenseInput) => Promise<void>;
+    editExpense: (expenseId: string, input: CreateExpenseInput, reason?: string) => Promise<void>;
     voidExpense: (expenseId: string, reason?: string) => Promise<void>;
     resetDemoData: () => Promise<void>;
     exportBackupJson: () => Promise<string>;
@@ -349,8 +351,15 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   const closeSheet = useCallback(() => {
-    if (sheetDirtyRef.current) setDiscardPrompt(true);
-    else forceCloseSheet();
+    if (sheetDirtyRef.current) return setDiscardPrompt(true);
+    // An edit opened from a detail sheet goes back to that detail (S7), keeping the same history entry.
+    const back = (activeSheetRef.current as { returnTo?: ActiveSheet }).returnTo;
+    if (back) {
+      activeSheetRef.current = back;
+      setActiveSheet(back);
+      return;
+    }
+    forceCloseSheet();
   }, [forceCloseSheet]);
 
   const cancelDiscard = useCallback(() => setDiscardPrompt(false), []);
@@ -423,8 +432,8 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
         showToast(`বিক্রি ${created.invoiceNo} সংরক্ষণ হয়েছে।`);
         return created;
       },
-      editSale: async (saleId: string, input: CreateSaleInput) => {
-        const updated = await jomarkhataService.editSale(saleId, input);
+      editSale: async (saleId: string, input: CreateSaleInput, reason?: string) => {
+        const updated = await jomarkhataService.editSale(saleId, input, reason);
         await refresh();
         showToast(`বিক্রি ${updated.invoiceNo} সংশোধন হয়েছে।`);
         return updated;
@@ -440,8 +449,8 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
         showToast(`ক্রয় ${created.billNo} সংরক্ষণ হয়েছে।`);
         return created;
       },
-      editPurchase: async (purchaseId: string, input: CreatePurchaseInput) => {
-        const updated = await jomarkhataService.editPurchase(purchaseId, input);
+      editPurchase: async (purchaseId: string, input: CreatePurchaseInput, reason?: string) => {
+        const updated = await jomarkhataService.editPurchase(purchaseId, input, reason);
         await refresh();
         showToast(`ক্রয় ${updated.billNo} সংশোধন হয়েছে।`);
         return updated;
@@ -459,9 +468,10 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
       },
       editDueEntry: async (
         dueId: string,
-        updates: { amount: number; paymentMethod?: RecordDueEntryInput['paymentMethod']; note?: string; date?: string }
+        updates: { amount: number; paymentMethod?: RecordDueEntryInput['paymentMethod']; note?: string; date?: string },
+        reason?: string
       ) => {
-        await jomarkhataService.editDueEntry(dueId, updates);
+        await jomarkhataService.editDueEntry(dueId, updates, reason);
         await refresh();
         showToast('বাকি লেনদেন সংশোধন হয়েছে।');
       },
@@ -476,8 +486,8 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
         showToast('খরচ সংরক্ষণ হয়েছে।');
         return created;
       },
-      editExpense: async (expenseId: string, input: CreateExpenseInput) => {
-        await jomarkhataService.editExpense(expenseId, input);
+      editExpense: async (expenseId: string, input: CreateExpenseInput, reason?: string) => {
+        await jomarkhataService.editExpense(expenseId, input, reason);
         await refresh();
         showToast('খরচ সংশোধন হয়েছে।');
       },

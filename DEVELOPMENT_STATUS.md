@@ -13,7 +13,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 | S4 | Dashboard & cash summary | ✅ Done: compact hero with পাবো/দিবো, বেচা/কেনা above the fold at 360×640 (measured), duplicate grid removed |
 | S5 | Customers, suppliers & Due Book | ✅ Done: due list/search/filter, party detail with call + তাগাদা (WhatsApp/SMS/copy), role-aware form with preview + date, shared PartyPicker |
 | S6 | Sales, purchases, expenses | ✅ Done: date on all forms, discount on paid sales, typed qty/price, over-stock warning |
-| S7 | Corrections & history | ⏸ |
+| S7 | Corrections & history | ✅ Done: before → after history, optional edit reason (AP-6), plain wording, void error toast, return to detail after edit |
 | S8 | Backup, restore & data safety | ⏸ |
 | S9 | Sync queue & connection status | ⏸ |
 | S10 | Account interfaces & access policy | ⏸ |
@@ -30,7 +30,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 ## Quality gates
 | Check | Command | S0 | S1 |
 |---|---|---|---|
-| Tests | `npm test` | 49 / 49 | **154 / 154** (12 files) |
+| Tests | `npm test` | 49 / 49 | **162 / 162** (13 files) |
 | TypeScript | `npm run typecheck` | 0 errors | **0 errors** |
 | Production build | `npm run build` | — | **✓ compiled, 3/3 static pages** |
 | Mobile render check (360px, Edge via puppeteer) | manual | — | Welcome and Dashboard render with **0px horizontal overflow** |
