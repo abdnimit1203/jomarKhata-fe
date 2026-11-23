@@ -2,6 +2,8 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { SheetGuardContext } from '@/lib/sheet-guard';
+import { toFriendlyError } from '@/lib/errors';
+import type { BackupPreview } from '@/lib/backup';
 import {
   jomarkhataService,
   type AppDataSnapshot,
@@ -64,6 +66,8 @@ interface JomarkhataContextValue {
   phase: StartupPhase;
   /** Which database is active: the owner's real khata, or the separate demo khata. */
   mode: DbMode;
+  /** navigator.storage.persist() result: true = the browser won't evict data under storage pressure. */
+  storagePersisted: boolean | null;
   error: string | null;
   currentBalances: CurrentBalancesSummary;
   activeRoute: AppRoute;
@@ -144,7 +148,12 @@ interface JomarkhataContextValue {
     editExpense: (expenseId: string, input: CreateExpenseInput, reason?: string) => Promise<void>;
     voidExpense: (expenseId: string, reason?: string) => Promise<void>;
     resetDemoData: () => Promise<void>;
-    exportBackupJson: () => Promise<string>;
+    exportBackupJson: (password?: string) => Promise<string>;
+    inspectBackup: (text: string, password?: string) => Promise<BackupPreview>;
+    restoreBackup: (text: string, password?: string) => Promise<void>;
+    clearKhata: () => Promise<void>;
+    getLastBackupAt: () => Promise<string | null>;
+    getSafetyCopy: () => Promise<{ reason: string; createdAt: string; json: string } | null>;
     createShop: (input: NewShopInput) => Promise<void>;
     keepLegacyAsMine: () => Promise<void>;
     moveLegacyToDemo: () => Promise<void>;
@@ -198,6 +207,16 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
   const [isLoading, setIsLoading] = useState(true);
   const [phase, setPhase] = useState<StartupPhase>('welcome');
   const [mode, setMode] = useState<DbMode>('real');
+  const [storagePersisted, setStoragePersisted] = useState<boolean | null>(null);
+  useEffect(() => {
+    // Ask the browser to keep IndexedDB even when the phone is low on space (plan 7.1).
+    const st = typeof navigator !== 'undefined' ? navigator.storage : undefined;
+    if (!st?.persist) return;
+    st.persisted()
+      .then((already) => (already ? true : st.persist()))
+      .then(setStoragePersisted)
+      .catch(() => setStoragePersisted(false));
+  }, []);
   const applyStartup = useCallback((st: StartupState) => {
     setPhase(st.phase);
     setMode(st.mode);
@@ -290,9 +309,7 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
         const st = await jomarkhataService.bootstrap(); // read-only: never seeds or deletes
         if (active) applyStartup(st);
       } catch (err) {
-        if (active) {
-          setError(err instanceof Error ? err.message : 'লোকাল ডেটাবেস চালু করা যায়নি।');
-        }
+        if (active) setError(toFriendlyError(err).message);
       } finally {
         if (active) setIsLoading(false);
       }
@@ -530,12 +547,37 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
         setActiveRoute('dashboard');
         showToast('ডেমো ডেটা পুনরায় রিসেট করা হয়েছে।', 'info');
       },
-      exportBackupJson: async () => {
-        return jomarkhataService.exportBackupJson();
+      exportBackupJson: async (password?: string) => jomarkhataService.exportBackupJson(password),
+      inspectBackup: async (text: string, password?: string) => jomarkhataService.inspectBackup(text, password),
+      restoreBackup: async (text: string, password?: string) => {
+        const snap = await jomarkhataService.restoreBackup(text, password);
+        applyStartup({ phase: 'ready', mode: 'real', snapshot: snap });
+        setActiveRoute('dashboard');
+        showToast(`ব্যাকআপ থেকে “${snap.businessProfile.shopName}”-এর খাতা ফিরিয়ে আনা হয়েছে।`);
       },
+      clearKhata: async () => {
+        const snap = await jomarkhataService.clearKhata();
+        setData(snap);
+        showToast('খাতা খালি করা হয়েছে। আগের হিসাবের একটি কপি এই ফোনে রাখা আছে।', 'info');
+      },
+      getLastBackupAt: () => jomarkhataService.getLastBackupAt(),
+      getSafetyCopy: () => jomarkhataService.getSafetyCopy(),
     }),
     [refresh, showToast, applyStartup]
   );
+  const safeActions = useMemo(() => {
+    const out: Record<string, unknown> = {};
+    for (const [k, fn] of Object.entries(actions)) {
+      out[k] = async (...args: unknown[]) => {
+        try {
+          return await (fn as (...a: unknown[]) => Promise<unknown>)(...args);
+        } catch (err) {
+          throw toFriendlyError(err);
+        }
+      };
+    }
+    return out as typeof actions;
+  }, [actions]);
 
   const value = useMemo<JomarkhataContextValue>(
     () => ({
@@ -560,9 +602,12 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
       showToast,
       dismissToast,
       refresh,
-      actions,
+      actions: safeActions,
+      storagePersisted,
     }),
     [
+      storagePersisted,
+      safeActions,
       phase,
       mode,
       forceCloseSheet,

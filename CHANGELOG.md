@@ -4,6 +4,47 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### S8: backup, restore & data safety, 2026-11-23
+Approved under D32: AP-10 and AP-11.
+
+**Added**
+- **Backup file v2** (`lib/backup.ts`):
+  - format, version, app/db version, shop name and time
+  - per-table counts
+  - **SHA-256 checksum**
+  - **every table, including the sync outbox and history**, which closes the old S0 gap
+  - an **optional password**: AES-GCM 256 with a PBKDF2-SHA256 key (210k iterations) via WebCrypto; the file then holds no readable shop data
+- **Restore** (`restoreBackup`):
+  1. parse, decrypt and check the version
+  2. validate every record's shape
+  3. verify the checksum
+  4. check referential integrity (sale/purchase → party, due → party, money movement → source, stock movement → product)
+  5. preview with counts
+  6. **save an automatic safety copy of the current khata on the phone**
+  7. **apply in ONE Dexie transaction**: all or nothing
+  - It replaces the khata and never merges. A different shop name needs an extra tick.
+  - **Old v1 backups still restore** (with a note; the outbox starts empty).
+  - Demo mode refuses restore.
+- **Restore from the welcome screen:** a new phone or reinstalled app can bring the khata back from a file. Until cloud sync exists, this is the only recovery path (D27).
+- **খাতা খালি করুন:** keeps the shop profile and removes everything else.
+  - It offers a backup download first and needs **typed confirmation ("খালি")**.
+  - It saves a safety copy and adds a history entry.
+- **The safety copy** can be downloaded from settings.
+- **Backup reminder** on the dashboard when there are records and no backup for 7 days (`lib/backup-reminder.ts`). The last backup time shows in settings.
+- **`navigator.storage.persist()`** at startup; the status shows in settings.
+- **Plain Bangla storage errors** (`lib/errors.ts`): quota full or database won't open. **Every context action is wrapped**, so forms stay open with the input kept.
+- `components/settings/BackupSection.tsx` and `RestoreFlow.tsx` (shared by settings and welcome).
+- Tests:
+  - `tests/backup.test.ts` (13): round trip to a new device (every table identical, books balance), password right/wrong, tampered file rejected with nothing changed, broken links rejected, junk rejected, v1 restore, **mid-restore failure rolls back completely**, safety copy, demo refused, clear khata
+  - `tests/backup-ui.test.ts` (8)
+  - updated export tests in migration-preservation
+
+**Verified e2e** (360px):
+- real shop → sale ৳৪,৩২১ → reminder shown → backup downloaded (v2, checksum, contains the sale)
+- clear stays disabled until "খালি" is typed → 0 sales, safety copy offered
+- restore the file → preview "যাচাই হয়েছে" → the sale is back
+- **a brand-new browser restores from the welcome screen**
+
 ### S7: corrections & history, 2026-11-23
 AP-6 approved under D32.
 

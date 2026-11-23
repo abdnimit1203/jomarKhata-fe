@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Database, Download, FlaskConical, RotateCcw, Save, Store } from 'lucide-react';
+import { Database, FlaskConical, RotateCcw, Save, Store } from 'lucide-react';
+import { BackupSection } from '@/components/settings/BackupSection';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { NumericInput } from '@/components/ui/NumericInput';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { downloadTextFile, formatBanglaNumber, parseNumericInput } from '@/lib/format';
+import { formatBanglaNumber, parseNumericInput } from '@/lib/format';
 import type { BusinessProfile } from '@/types/domain';
 
 function SettingsProfileForm({ profile }: { profile: BusinessProfile }) {
@@ -164,16 +165,6 @@ export function SettingsView() {
 
   if (!data) return null;
 
-  const handleExportJson = async () => {
-    const json = await actions.exportBackupJson();
-    downloadTextFile(
-      `jomarkhata-backup-${new Date().toISOString().slice(0, 10)}.json`,
-      json,
-      'application/json'
-    );
-    showToast('সম্পূর্ণ ব্যাকআপ JSON ডাউনলোড হয়েছে।');
-  };
-
   const handleResetDemo = async () => {
     setIsResetting(true);
     try {
@@ -206,6 +197,8 @@ export function SettingsView() {
         profile={data.businessProfile}
       />
 
+      <BackupSection />
+
       <section className="space-y-3.5 rounded-3xl bg-white p-5 shadow-card">
         <div className="flex items-start gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-primary-ink">
@@ -213,11 +206,10 @@ export function SettingsView() {
           </span>
           <div>
             <h2 className="text-sm font-semibold text-ink">
-              লোকাল অফলাইন ডেটাবেস (IndexedDB · Dexie)
+              ফোনের ডেটাবেস
             </h2>
             <p className="mt-1 text-xs leading-relaxed text-ink-muted">
-              বর্তমান ফ্রন্টএন্ড পর্যায়ে আপনার সব হিসাব নিরাপদভাবে এই ডিভাইসের ব্রাউজারে (IndexedDB) সংরক্ষিত হচ্ছে।
-              ক্লাউড ব্যাকআপ ও লগইন পরবর্তী ব্যাকএন্ড পর্যায়ে যুক্ত হবে।
+              আপনার সব হিসাব এই ফোনের ব্রাউজারে (IndexedDB) সংরক্ষিত। ক্লাউড ব্যাকআপ ও লগইন এখনও চালু হয়নি।
             </p>
             <p className="mt-1.5 text-xs font-medium text-ink-muted tabular-nums">
               লোকাল সিঙ্ক কিউ: {formatBanglaNumber(data.pendingSyncCount)}টি রেকর্ড · পরিবর্তনের রেকর্ড:{' '}
@@ -226,16 +218,7 @@ export function SettingsView() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-2.5 pt-1 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={handleExportJson}
-            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-secondary text-xs font-semibold text-primary-ink hover:bg-secondary-hover"
-          >
-            <Download className="h-4 w-4" />
-            <span>ব্যাকআপ ডাউনলোড (JSON)</span>
-          </button>
-
+        <div className="grid grid-cols-1 gap-2.5 pt-1">
           {mode === 'demo' ? (
             <button
               type="button"

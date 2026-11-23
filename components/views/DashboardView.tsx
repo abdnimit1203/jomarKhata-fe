@@ -1,6 +1,9 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { BACKUP_REMINDER_DAYS, needsBackupReminder } from '@/lib/backup-reminder';
+import { backupFileName } from '@/components/settings/BackupSection';
+import { downloadTextFile } from '@/lib/format';
 import { ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { FeatureIcon, type FeatureTone } from '@/components/ui/FeatureIcon';
@@ -19,7 +22,11 @@ import {
 import { SegmentedControl } from '@/components/ui/segmented';
 
 export function DashboardView() {
-  const { data, currentBalances, navigate, openSheet } = useJomarkhata();
+  const { data, currentBalances, navigate, openSheet, mode, actions, showToast } = useJomarkhata();
+  const [lastBackupAt, setLastBackupAt] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    void actions.getLastBackupAt().then(setLastBackupAt);
+  }, [actions]);
   const [hideBalance, setHideBalance] = useState(false);
   const [period, setPeriod] = useState<'today' | 'month'>('today');
 
@@ -63,6 +70,29 @@ export function DashboardView() {
     <div className="mx-auto max-w-6xl pb-6 lg:grid lg:grid-cols-12 lg:gap-5">
       {/* LEFT (mobile: top-to-bottom order of S4 / plan 3.1) */}
       <div className="space-y-4 lg:col-span-7">
+        {mode === 'real' &&
+          lastBackupAt !== undefined &&
+          needsBackupReminder(lastBackupAt, data.sales.length + data.purchases.length + data.expenses.length + data.dueTransactions.length) && (
+            <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-warning-soft px-4 py-3 text-sm font-semibold text-warning-ink">
+              <span>
+                {lastBackupAt
+                  ? `${formatBanglaNumber(BACKUP_REMINDER_DAYS)} দিনের বেশি ব্যাকআপ নেওয়া হয়নি।`
+                  : 'এখনও কোনো ব্যাকআপ নেই। ফোন হারালে হিসাব হারাবে।'}
+              </span>
+              <button
+                type="button"
+                onClick={async () => {
+                  const json = await actions.exportBackupJson();
+                  downloadTextFile(backupFileName(data.businessProfile.shopName), json, 'application/json');
+                  setLastBackupAt(new Date().toISOString());
+                  showToast('ব্যাকআপ ডাউনলোড হয়েছে। ফাইলটি নিরাপদ জায়গায় (Google Drive / WhatsApp-এ নিজের কাছে) রাখুন।');
+                }}
+                className="rounded-full bg-white px-3.5 py-1.5 text-sm font-bold text-warning-ink shadow-sm"
+              >
+                এখনই ব্যাকআপ নিন
+              </button>
+            </div>
+          )}
         {/* 1. Compact hero: cash in hand + পাবো / দিবো (all-time balances) */}
         <section className="relative overflow-hidden rounded-3xl bg-primary-gradient p-4 text-on-primary shadow-hero lg:p-6">
           <div

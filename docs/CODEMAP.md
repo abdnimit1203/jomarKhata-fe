@@ -49,6 +49,8 @@ A compact map of the project for anyone (human or tool) starting work. Kept up t
 | `components/onboarding/*` | Welcome screen + illustration |
 | `lib/dues.ts` | Due Book helpers: দিচ্ছি/নিচ্ছি × টাকা/বাকি → entryType, search normalisation, WhatsApp number, reminder text |
 | `components/ui/PartyPicker.tsx` | Shared searchable party picker with inline add (due, sale and purchase forms) |
+| `lib/backup.ts` | Backup file v2 (build/encrypt/parse/validate/integrity). The service does the DB side: `exportBackupJson`, `inspectBackup`, `restoreBackup`, `clearKhata` |
+| `lib/errors.ts` | Plain-Bangla storage errors; every context action is wrapped with `toFriendlyError` |
 | `lib/format.ts` | Bengali digits, `formatTaka`, dates (`dd/MM/yyyy`), payment-channel labels |
 | `types/domain.ts` | All domain types |
 | `db/seedData.ts` | Demo data |

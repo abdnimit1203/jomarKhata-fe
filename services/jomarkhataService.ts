@@ -7,6 +7,8 @@ import {
   type JomarkhataDB,
 } from '@/db/jomarkhataDb';
 import { buildSeedDataset } from '@/db/seedData';
+import { BACKUP_TABLES, buildBackupFile, parseBackup, type BackupData, type BackupPreview } from '@/lib/backup';
+import { JOMARKHATA_DB_VERSION } from '@/db/jomarkhataDb';
 import { computePartyRunningTimeline } from '@/services/financeCalculator';
 import { formatTaka, generateId } from '@/lib/format';
 import type {
@@ -466,18 +468,89 @@ export const jomarkhataService = {
     };
   },
 
-  async exportBackupJson(): Promise<string> {
-    const snapshot = await this.loadAllData();
-    return JSON.stringify(
-      {
-        app: 'Jomarkhata (জমারখাতা)',
-        schemaVersion: 1,
-        exportedAt: new Date().toISOString(),
-        data: snapshot,
-      },
-      null,
-      2
-    );
+  // =========================================================================
+  // Backup, restore & data safety (S8: AP-10, AP-11)
+  // =========================================================================
+
+  /** Every table of the active khata as backup data (appMeta excluded). */
+  async readBackupData(db: JomarkhataDB = getJomarkhataDb()): Promise<BackupData> {
+    const profile = await db.businessProfile.get('default');
+    if (!profile) throw new Error('ব্যাকআপ নেওয়ার মতো কোনো খাতা নেই।');
+    const data: BackupData = { businessProfile: profile as unknown as Record<string, unknown> };
+    for (const t of BACKUP_TABLES) data[t] = await db.table(t).toArray();
+    return data;
+  },
+
+  /** Backup file v2 (checksum, counts, optional password). Records when the last backup was taken. */
+  async exportBackupJson(password?: string): Promise<string> {
+    const file = await buildBackupFile(await this.readBackupData(), JOMARKHATA_DB_VERSION, password || undefined);
+    if (getActiveDbMode() === 'real') await setMeta(getRealDb(), 'lastBackupAt', new Date().toISOString());
+    return file;
+  },
+
+  async getLastBackupAt(): Promise<string | null> {
+    return (await getMeta<string>(getRealDb(), 'lastBackupAt')) ?? null;
+  },
+
+  /** Validate a backup file and describe it, without changing anything. */
+  async inspectBackup(text: string, password?: string): Promise<BackupPreview> {
+    return (await parseBackup(text, password)).preview;
+  },
+
+  /** Keep one automatic copy of the current khata on this device before a destructive action. */
+  async saveSafetyCopy(reason: 'restore' | 'clear'): Promise<boolean> {
+    const real = getRealDb();
+    if (!(await real.businessProfile.get('default'))) return false;
+    const json = await buildBackupFile(await this.readBackupData(real), JOMARKHATA_DB_VERSION);
+    await setMeta(real, 'safetyCopy', { reason, createdAt: new Date().toISOString(), json });
+    return true;
+  },
+
+  async getSafetyCopy(): Promise<{ reason: string; createdAt: string; json: string } | null> {
+    return (await getMeta(getRealDb(), 'safetyCopy')) ?? null;
+  },
+
+  /**
+   * Restore (replace) the real khata from a backup file (AP-10):
+   * validate everything → automatic safety copy of the current data → apply in ONE transaction,
+   * so it either fully succeeds or changes nothing. Never merges two shops.
+   */
+  async restoreBackup(text: string, password?: string): Promise<AppDataSnapshot> {
+    if (getActiveDbMode() !== 'real') throw new Error('ডেমো খাতায় ব্যাকআপ ফিরিয়ে আনা যায় না। আগে আসল খাতায় যান।');
+    const { data } = await parseBackup(text, password);
+    await this.saveSafetyCopy('restore');
+    const db = getRealDb();
+    await db.transaction('rw', [...shopTables(db), db.appMeta], async () => {
+      for (const t of shopTables(db)) await t.clear();
+      await db.businessProfile.put(data.businessProfile as unknown as BusinessProfile);
+      for (const t of BACKUP_TABLES) await db.table(t).bulkPut(data[t] as unknown[]);
+      if (!(await getMeta(db, 'workspace'))) {
+        const workspace: WorkspaceMeta = { workspaceId: generateId(), createdAt: new Date().toISOString(), origin: 'setup' };
+        await setMeta(db, 'workspace', workspace);
+      }
+      await setMeta(db, 'prefs', { activeMode: 'real' });
+    });
+    return this.loadAllData();
+  },
+
+  /**
+   * "খাতা খালি করুন": removes every record but keeps the shop profile (AP-10).
+   * A safety copy is saved first; the UI also offers a download and asks for typed confirmation.
+   */
+  async clearKhata(): Promise<AppDataSnapshot> {
+    if (getActiveDbMode() !== 'real') throw new Error('এটি শুধু আসল খাতার জন্য।');
+    await this.saveSafetyCopy('clear');
+    const db = getRealDb();
+    await db.transaction('rw', shopTables(db), async () => {
+      for (const t of shopTables(db)) if (t.name !== 'businessProfile') await t.clear();
+      await appendAuditLog(db, {
+        entityType: 'business_profile',
+        entityId: 'default',
+        action: 'edit',
+        summary: 'খাতা খালি করা হয়েছে (আগের হিসাবের একটি নিরাপত্তা-কপি এই ফোনে রাখা আছে)',
+      });
+    });
+    return this.loadAllData();
   },
 
   // =========================================================================

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { ArrowRight, Info } from 'lucide-react';
 import { WelcomeIllustration } from './WelcomeIllustration';
+import { RestoreFlow } from '@/components/settings/RestoreFlow';
 
 interface WelcomeScreenProps {
   /** Start the owner's own khata (opens the shop setup form). */
@@ -22,6 +23,7 @@ interface WelcomeScreenProps {
  */
 export function WelcomeScreen({ onStart, onDemo }: WelcomeScreenProps) {
   const [showLoginNote, setShowLoginNote] = useState(false);
+  const [showRestore, setShowRestore] = useState(false);
 
   return (
     <div className="min-h-dvh bg-gradient-to-b from-secondary via-canvas to-canvas">
@@ -84,6 +86,24 @@ export function WelcomeScreen({ onStart, onDemo }: WelcomeScreenProps) {
             <span>
               অ্যাকাউন্ট ও লগইন এখনও চালু হয়নি। আপাতত আপনার হিসাব এই ফোনেই সংরক্ষিত থাকবে; অ্যাকাউন্ট চালু হলে এই হিসাব আপনার অ্যাকাউন্টে যুক্ত করা যাবে।
             </span>
+          </div>
+        )}
+
+        {/* New phone / reinstalled app: bring the khata back from a backup file (S8). */}
+        <p className="mt-3 text-center text-sm font-medium text-ink-muted">
+          আগের হিসাবের ব্যাকআপ ফাইল আছে?{' '}
+          <button
+            type="button"
+            onClick={() => setShowRestore((v) => !v)}
+            aria-expanded={showRestore}
+            className="font-bold text-primary-ink underline-offset-4 hover:underline"
+          >
+            ফিরিয়ে আনুন
+          </button>
+        </p>
+        {showRestore && (
+          <div className="mt-3 rounded-2xl bg-white p-4 shadow-card">
+            <RestoreFlow />
           </div>
         )}
       </div>

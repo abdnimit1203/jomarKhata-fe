@@ -7,6 +7,7 @@
  * additive migration; the schema-lock test below fails loudly if that happens.
  */
 import Dexie from 'dexie';
+import { buildRealisticShop } from './helpers/shop';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
 import { bootApp, bootEmptyShop, closeApp, dumpAllTables, type App } from './helpers/app';
@@ -41,35 +42,6 @@ const BUSINESS_TABLES = [
 ] as const;
 
 /** Creates one of every record type through the real service (customer, supplier, stock, sale, purchase, due, expense, edits, voids). */
-async function buildRealisticShop(app: App) {
-  const cust = await app.service.createParty({ name: 'করিম স্টোর', phone: '01711000000', role: 'customer', openingDue: 500 });
-  const sup = await app.service.createParty({ name: 'ঢাকা ট্রেডার্স', phone: '01811000000', role: 'supplier' });
-  const prod = await app.service.createProduct({
-    name: 'সয়াবিন তেল ১ লি.', category: 'মুদি', unit: 'বোতল', purchasePrice: 170, sellingPrice: 190, stockQty: 0, lowStockThreshold: 4,
-  });
-  await app.service.createPurchase({
-    mode: 'product', partyId: sup.id, paymentMethod: 'cash', paidAmount: 1000,
-    items: [{ productId: prod.id, name: prod.name, unit: 'বোতল', qty: 12, unitPrice: 170, lineTotal: 2040 }],
-  });
-  const sale = await app.service.createSale({
-    mode: 'product', partyId: cust.id, paymentMethod: 'bkash', paidAmount: 200,
-    items: [{ productId: prod.id, name: prod.name, unit: 'বোতল', qty: 3, unitPrice: 190, unitCostSnapshot: 170, lineTotal: 570 }],
-  });
-  const walkIn = await app.service.createSale({
-    mode: 'quick', paymentMethod: 'cash', paidAmount: 120,
-    items: [{ productId: null, name: 'বিস্কুট', qty: 1, unitPrice: 120, unitCostSnapshot: null, lineTotal: 120 }],
-  });
-  await app.service.recordDueEntry({ partyId: cust.id, entryType: 'customer_collection', amount: 300, paymentMethod: 'cash' });
-  await app.service.recordDueEntry({ partyId: sup.id, entryType: 'supplier_payment', amount: 500 });
-  const exp = await app.service.createExpense({ category: 'ভাড়া', title: 'দোকান ভাড়া', amount: 3000, paymentMethod: 'cash' });
-  await app.service.adjustProductStock(prod.id, -1, 'ভাঙা বোতল');
-  await app.service.editSale(walkIn.id, {
-    mode: 'quick', paymentMethod: 'cash', paidAmount: 150,
-    items: [{ productId: null, name: 'বিস্কুট', qty: 1, unitPrice: 150, unitCostSnapshot: null, lineTotal: 150 }],
-  });
-  await app.service.voidExpense(exp.id, 'ভুল এন্ট্রি');
-  return { cust, sup, prod, sale };
-}
 
 /** v2 (S3, AP-3): v1 plus the `appMeta` table. Every v1 table and index is unchanged. */
 const V2_SCHEMA: Record<string, string> = { ...V1_SCHEMA, appMeta: 'key' };
@@ -233,26 +205,18 @@ describe('future additive migration pattern (harness for AP-4 as v3; the app sch
   });
 });
 
-describe('backup export (input for S8 restore)', () => {
-  it('the JSON backup contains every business record', async () => {
+describe('backup export (v2 since S8)', () => {
+  it('the backup contains every business record, including the sync outbox (old gap closed)', async () => {
     const app = await bootEmptyShop();
     await buildRealisticShop(app);
     const backup = JSON.parse(await app.service.exportBackupJson());
-    expect(backup.schemaVersion).toBe(1);
+    expect(backup).toMatchObject({ format: 'jomarkhata-backup', formatVersion: 2 });
     expect(backup.data.businessProfile.id).toBe('default');
-    for (const t of BUSINESS_TABLES.filter((x) => x !== 'businessProfile')) {
+    for (const t of [...BUSINESS_TABLES.filter((x) => x !== 'businessProfile'), 'syncQueue']) {
       const ids = (backup.data[t] as Array<{ id: string }>).map((r) => r.id).sort();
       const dbIds = (await app.db.table(t).toArray()).map((r: { id: string }) => r.id).sort();
       expect(ids, t).toEqual(dbIds);
     }
-  });
-
-  it('KNOWN GAP (S8): the backup has only a pending count, not the sync outbox items', async () => {
-    const app = await bootEmptyShop();
-    await buildRealisticShop(app);
-    const backup = JSON.parse(await app.service.exportBackupJson());
-    expect(backup.data.syncQueue).toBeUndefined();
-    expect(backup.data.pendingSyncCount).toBe(await app.db.syncQueue.count());
   });
 });
 
