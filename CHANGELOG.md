@@ -4,6 +4,19 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### Referral: two kinds of referrer; lint clean, 2026-11-23
+- **Two kinds of referrer** (owner decision; BACKEND_CONTRACT §8):
+  - a **promoter** gets a cash commission (by default 20% for the first 6 months, then 10%)
+  - a **regular user** gets free months
+  - a rate change applies only to later payments; each commission row stores its rate
+  - optional extra trial days for referred users; every number is super-admin configuration
+- **Profile text follows the type:** promoters see the commission %, regular users see "ফ্রি মাস" and the free days earned.
+- **`eslint .` is clean:**
+  - `setError` is declared before use, and `accessRef` is updated in an effect
+  - the remaining React Compiler false positive is annotated
+  - an unused memo dependency is removed
+- 253/253 tests pass; checked on the production build with a browser sale-save smoke test.
+
 ### Profile: user ID + referral code (UI-NOW / BE-LATER), 2026-11-23
 - **Profile (settings) → "অ্যাকাউন্ট ও রেফারেল"** (`components/settings/AccountSection.tsx`):
   - the user ID and the user's own referral code, **each with a copy button**

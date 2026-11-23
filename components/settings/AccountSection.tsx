@@ -45,6 +45,7 @@ function CopyRow({ label, value, icon }: { label: string; value: string; icon: R
 export function AccountSection({ auth }: { auth: AuthState }) {
   const rate = (auth.status === 'authenticated' && auth.user.referralStats?.commissionRate) || REFERRAL_COMMISSION_RATE;
   const percent = formatBanglaNumber(Math.round(rate * 100));
+  const promoter = auth.status === 'authenticated' && auth.user.referralStats?.referrerType === 'promoter';
 
   if (auth.status !== 'authenticated') {
     return (
@@ -52,7 +53,7 @@ export function AccountSection({ auth }: { auth: AuthState }) {
         <h2 className="text-sm font-semibold text-ink">অ্যাকাউন্ট ও রেফারেল</h2>
         <p className="text-sm text-ink-muted">
           অ্যাকাউন্ট চালু হলে এখানে আপনার ইউজার আইডি আর নিজের রেফারেল কোড দেখাবে, কপি করার বাটনসহ। আপনার কোড দিয়ে কেউ
-          অ্যাকাউন্ট খুললে, তার প্রতিটি সাবস্ক্রিপশন পেমেন্টের {percent}% আপনি পাবেন।
+          অ্যাকাউন্ট খুলে সাবস্ক্রিপশন নিলে আপনি ফ্রি মাস পাবেন।
         </p>
         <p className="rounded-2xl bg-warning-soft p-3 text-xs font-semibold text-warning-ink">
           অ্যাকাউন্ট এখনও চালু হয়নি, তাই কোনো আইডি বা কোড এখনও নেই।
@@ -70,7 +71,9 @@ export function AccountSection({ auth }: { auth: AuthState }) {
       <CopyRow label="ইউজার আইডি" value={user.accountId} icon={<IdCard className="h-5 w-5" />} />
       <CopyRow label="আমার রেফারেল কোড" value={user.referralCode} icon={<Gift className="h-5 w-5" />} />
       <p className="text-xs text-ink-muted">
-        এই কোড দিয়ে কেউ অ্যাকাউন্ট খুললে, তার প্রতিটি সাবস্ক্রিপশন পেমেন্টের {percent}% আপনি পাবেন।
+        {promoter
+          ? `এই কোড দিয়ে কেউ অ্যাকাউন্ট খুললে, তার সাবস্ক্রিপশন পেমেন্টের ${percent}% কমিশন আপনি পাবেন।`
+          : 'এই কোড দিয়ে কেউ অ্যাকাউন্ট খুলে সাবস্ক্রিপশন নিলে আপনি ফ্রি মাস পাবেন।'}
       </p>
       {user.referralStats && (
         <div className="grid grid-cols-2 gap-2.5">
@@ -79,8 +82,17 @@ export function AccountSection({ auth }: { auth: AuthState }) {
             <p className="text-lg font-extrabold text-ink">{formatBanglaNumber(user.referralStats.referredUsers)} জন</p>
           </div>
           <div className="rounded-2xl bg-surface-muted p-3">
-            <p className="text-xs text-ink-muted">মোট কমিশন</p>
-            <p className="text-lg font-extrabold text-ink">{formatTaka(user.referralStats.commissionEarned)}</p>
+            {promoter ? (
+              <>
+                <p className="text-xs text-ink-muted">মোট কমিশন</p>
+                <p className="text-lg font-extrabold text-ink">{formatTaka(user.referralStats.commissionEarned)}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-ink-muted">ফ্রি পেয়েছেন</p>
+                <p className="text-lg font-extrabold text-ink">{formatBanglaNumber(user.referralStats.freeDaysEarned ?? 0)} দিন</p>
+              </>
+            )}
           </div>
         </div>
       )}

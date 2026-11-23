@@ -96,5 +96,8 @@ The UI is ready: `components/settings/AccountSection.tsx` (ID and code with copy
 | Link | `/app?ref=CODE` (the shared link) pre-fills the field (`referralFromSearch`). |
 | Tracking | Store `referredBy` (the referrer's user ID) on the new account. It's set once and never changed by the client. |
 | Commission | **20% of every subscription payment** the referred user makes is credited to the referrer. Calculate it on the server when the payment is confirmed, in a `referralCommissions` ledger (`referrerId`, `referredUserId`, `paymentId`, `amount`, `rate`, `status: pending \| paid \| reversed`). Refunds reverse it. The rate is **super-admin configuration**; 20% is the default. |
-| Report | `GET /me` → `referralStats: { referredUsers, commissionEarned, commissionRate }`. The app only displays these numbers. |
+| Two kinds of referrer (owner, 2026-11-23) | **Promoter** (e.g. the owner's field promoter): a **cash** commission, by default 20% for the referred user's first 6 months, then 10%. **Regular user:** no cash; earns **free subscription time** (default: 1 free month for each referred user who pays). Each account has a `referrerType: 'regular' \| 'promoter'`, set by the super admin. All numbers are super-admin configuration. |
+| Changing the rate | A rate change applies **only to payments after the change**. Every commission row stores the `rate` it was calculated with, so past rows are never recalculated. |
+| Launch offer (optional) | A referred new user may get extra trial days (e.g. 45 instead of 30), as super-admin configuration. |
+| Report | `GET /me` → `referralStats: { referredUsers, commissionEarned, commissionRate, freeDaysEarned? }`. The app only displays these numbers. |
 | Admin | The super-admin panel lists referrers, referred users and commissions, and marks payouts as paid. |

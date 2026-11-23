@@ -226,7 +226,9 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
   const [storagePersisted, setStoragePersisted] = useState<boolean | null>(null);
   const [access, setAccess] = useState<AccessDecision>(() => decideAccess(null));
   const accessRef = useRef(access);
-  accessRef.current = access;
+  useEffect(() => {
+    accessRef.current = access; // read by write guards outside render
+  }, [access]);
   useEffect(() => {
     let alive = true;
     void (async () => {
@@ -259,13 +261,13 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
       .then(setStoragePersisted)
       .catch(() => setStoragePersisted(false));
   }, []);
+  const [error, setError] = useState<string | null>(null);
   const applyStartup = useCallback((st: StartupState) => {
     setPhase(st.phase);
     setMode(st.mode);
     setData(st.snapshot);
     setError(null);
   }, []);
-  const [error, setError] = useState<string | null>(null);
   const [activeRoute, setActiveRoute] = useState<AppRoute>('dashboard');
   const [selectedPartyId, setSelectedPartyIdState] = useState<string | null>(null);
   const [activeSheet, setActiveSheet] = useState<ActiveSheet>({ type: 'none' });
@@ -612,6 +614,9 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
   );
   const safeActions = useMemo(() => {
     const out: Record<string, unknown> = {};
+    // The ref is read inside each returned action (when the owner taps), not during render;
+    // the compiler rule can't see that through Object.entries.
+    // eslint-disable-next-line react-hooks/refs
     for (const [k, fn] of Object.entries(actions)) {
       out[k] = async (...args: unknown[]) => {
         if (!accessRef.current.canWrite && WRITE_ACTION.test(k)) throw new Error(READ_ONLY_MESSAGE);
@@ -678,7 +683,6 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
       showToast,
       dismissToast,
       refresh,
-      actions,
     ]
   );
 

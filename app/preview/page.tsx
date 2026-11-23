@@ -21,7 +21,7 @@ export default function PreviewPage() {
           status: 'authenticated',
           user: {
             accountId: 'JK-0000-0000', email: 'sample@example.com', displayName: 'নমুনা', referralCode: 'SAMPLE24',
-            referralStats: { referredUsers: 3, commissionEarned: 360 },
+            referralStats: { referredUsers: 3, commissionEarned: 0, freeDaysEarned: 30 },
           },
         }}
       />

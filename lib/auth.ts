@@ -13,7 +13,14 @@ export interface AuthUser {
   /** Unique, server-generated code this user shares with others (see lib/referral.ts). */
   referralCode: string;
   /** Server-reported referral results; the app never calculates commission itself. */
-  referralStats?: { referredUsers: number; commissionEarned: number; commissionRate?: number };
+  referralStats?: {
+    referredUsers: number;
+    /** promoter: cash commission; regular: free subscription time (BACKEND_CONTRACT §8). */
+    referrerType?: 'regular' | 'promoter';
+    commissionEarned: number;
+    commissionRate?: number;
+    freeDaysEarned?: number;
+  };
 }
 
 /** Sign-up extras. The referral code is optional and only used when a NEW account is created. */

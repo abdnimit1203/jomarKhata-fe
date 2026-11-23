@@ -36,7 +36,7 @@ describe('profile: account & referral section', () => {
   it('before login exists: explains, shows no ID or code (no fake values)', () => {
     const html = renderToStaticMarkup(React.createElement(AccountSection, { auth: LOCAL_AUTH }));
     expect(html).toContain('অ্যাকাউন্ট ও রেফারেল');
-    expect(html).toContain('২০%');
+    expect(html).toContain('ফ্রি মাস');
     expect(html).toContain('কোনো আইডি বা কোড এখনও নেই');
     expect(html).not.toContain('<button'); // nothing to copy yet
   });
@@ -46,7 +46,7 @@ describe('profile: account & referral section', () => {
       status: 'authenticated',
       user: {
         accountId: 'JK-4827-1935', email: 'a@b.c', displayName: 'X', referralCode: 'JK7Q4M2X',
-        referralStats: { referredUsers: 3, commissionEarned: 360, commissionRate: 0.25 },
+        referralStats: { referredUsers: 3, referrerType: 'promoter', commissionEarned: 360, commissionRate: 0.25 },
       },
     };
     const html = renderToStaticMarkup(React.createElement(AccountSection, { auth }));
@@ -57,6 +57,16 @@ describe('profile: account & referral section', () => {
     expect(html).toContain('২৫%'); // the server's rate wins
     expect(html).toContain('৩ জন');
     expect(html).toMatch(/href="https:\/\/wa\.me\/\?text=/);
+  });
+
+  it('a regular user earns free time, not cash', () => {
+    const auth: AuthState = {
+      status: 'authenticated',
+      user: { accountId: 'JK-1', email: 'a@b.c', displayName: 'X', referralCode: 'JK7Q4M2X', referralStats: { referredUsers: 2, commissionEarned: 0, freeDaysEarned: 60 } },
+    };
+    const html = renderToStaticMarkup(React.createElement(AccountSection, { auth }));
+    expect(html).toContain('৬০ দিন');
+    expect(html).not.toContain('মোট কমিশন');
   });
 
   it('is on the profile (settings) screen', () => {
