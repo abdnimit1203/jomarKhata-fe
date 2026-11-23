@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Minus, Plus, Search, UserPlus, AlertCircle, Package } from 'lucide-react';
+import { Minus, Plus, Search, AlertCircle, Package } from 'lucide-react';
 import { ModalSheet } from '@/components/ui/ModalSheet';
 import { NumericInput } from '@/components/ui/NumericInput';
 import { PaymentChannelPicker } from '@/components/ui/PaymentChannelPicker';
 import { useJomarkhata } from '@/context/JomarkhataContext';
-import { formatBanglaNumber, formatTaka, parseNumericInput } from '@/lib/format';
+import { dateInputToIso, formatBanglaNumber, formatTaka, parseNumericInput, toDateInputValue } from '@/lib/format';
+import { DateInput } from '@/components/ui/DateInput';
 import type { EntryMode, PaymentChannel, PurchaseLineItem, PurchaseRecord } from '@/types/domain';
-import { SimpleSelect } from '@/components/ui/select';
+import { PartyPicker } from '@/components/ui/PartyPicker';
 import { SegmentedControl } from '@/components/ui/segmented';
 
 interface PurchaseFormSheetProps {
@@ -45,19 +46,15 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
   );
   const [partyId, setPartyId] = useState(() => editPurchase?.partyId ?? '');
   const [note, setNote] = useState(() => editPurchase?.note ?? '');
+  const [dateValue, setDateValue] = useState(() => toDateInputValue(editPurchase?.date ?? new Date().toISOString()));
+  const [editReason, setEditReason] = useState('');
+  // Raw text per cart field, so decimals can be typed before they parse.
+  const [rawEdits, setRawEdits] = useState<Record<string, string>>({});
 
-  const [showInlineSupplier, setShowInlineSupplier] = useState(false);
-  const [newSupplierName, setNewSupplierName] = useState('');
-  const [newSupplierPhone, setNewSupplierPhone] = useState('');
-  const [creatingSupplier, setCreatingSupplier] = useState(false);
 
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const suppliers = useMemo(
-    () => (data?.parties ?? []).filter((p) => p.role === 'supplier'),
-    [data?.parties]
-  );
 
   const filteredProducts = useMemo(() => {
     const q = productSearch.trim().toLowerCase();
@@ -76,7 +73,24 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
     : Math.min(total, Math.max(0, Math.round(parseNumericInput(paidRaw))));
   const dueAmount = Math.max(0, total - paidAmount);
 
+  /** Typed quantity / edited purchase price for a chosen product (S6). */
+  const updateItem = (productId: string | null | undefined, patch: { qty?: number; unitPrice?: number }) => {
+    setSelectedItems((prev) =>
+      prev.map((i) => {
+        if (i.productId !== productId) return i;
+        const qty = patch.qty ?? i.qty;
+        const unitPrice = patch.unitPrice ?? i.unitPrice;
+        return { ...i, qty, unitPrice, lineTotal: Math.round(qty * unitPrice) };
+      })
+    );
+  };
+
   const handleToggleProduct = (productId: string, delta: number) => {
+    setRawEdits((r) => {
+      const next = { ...r };
+      delete next[`q:${productId}`];
+      return next;
+    });
     const prod = data?.products.find((p) => p.id === productId);
     if (!prod) return;
     setSelectedItems((prev) => {
@@ -102,30 +116,6 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
       next[idx] = { ...existing, qty: nextQty, lineTotal: Math.round(nextQty * existing.unitPrice) };
       return next;
     });
-  };
-
-  const handleQuickCreateSupplier = async () => {
-    if (!newSupplierName.trim()) {
-      setFormError('সাপ্লায়ারের নাম লিখুন।');
-      return;
-    }
-    setCreatingSupplier(true);
-    setFormError(null);
-    try {
-      const created = await actions.createParty({
-        name: newSupplierName.trim(),
-        phone: newSupplierPhone.trim(),
-        role: 'supplier',
-      });
-      setPartyId(created.id);
-      setShowInlineSupplier(false);
-      setNewSupplierName('');
-      setNewSupplierPhone('');
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'সাপ্লায়ার যোগ করা যায়নি।');
-    } finally {
-      setCreatingSupplier(false);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -168,9 +158,10 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
         paidAmount,
         paymentMethod,
         note: note.trim() || undefined,
+        date: dateInputToIso(dateValue, editPurchase?.date),
       };
       if (editPurchase) {
-        await actions.editPurchase(editPurchase.id, payload);
+        await actions.editPurchase(editPurchase.id, payload, editReason);
       } else {
         await actions.createPurchase(payload);
       }
@@ -196,7 +187,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
               <span className="text-lg font-bold text-ink">{formatTaka(total)}</span>
               {dueAmount > 0 && (
                 <span className="text-xs font-semibold text-primary-ink">
-                  দিবো {formatTaka(dueAmount)}
+                  দেনা {formatTaka(dueAmount)}
                 </span>
               )}
             </div>
@@ -322,6 +313,39 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
           </div>
         )}
 
+        {mode === 'product' && selectedItems.length > 0 && (
+          <div className="space-y-2 rounded-2xl border border-border bg-white p-3">
+            <p className="text-sm font-semibold text-ink-muted">বাছাই করা পণ্য — পরিমাণ ও কেনা দাম বদলানো যায়</p>
+            {selectedItems.map((item) => (
+              <div key={item.productId ?? item.name} className="grid grid-cols-12 items-end gap-2">
+                <p className="col-span-12 truncate text-sm font-semibold text-ink">{item.name}</p>
+                <label className="col-span-4 text-xs text-ink-muted">
+                  পরিমাণ
+                  <NumericInput
+                    value={rawEdits[`q:${item.productId}`] ?? String(item.qty)}
+                    onChange={(raw, n) => {
+                      setRawEdits((r) => ({ ...r, [`q:${item.productId}`]: raw }));
+                      updateItem(item.productId, { qty: n });
+                    }}
+                    suffix={item.unit ?? ''}
+                  />
+                </label>
+                <label className="col-span-4 text-xs text-ink-muted">
+                  কেনা দাম (প্রতি)
+                  <NumericInput
+                    value={rawEdits[`p:${item.productId}`] ?? String(item.unitPrice)}
+                    onChange={(raw, n) => {
+                      setRawEdits((r) => ({ ...r, [`p:${item.productId}`]: raw }));
+                      updateItem(item.productId, { unitPrice: n });
+                    }}
+                  />
+                </label>
+                <p className="col-span-4 pb-3 text-right text-sm font-bold tabular-nums text-ink">{formatTaka(item.lineTotal)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="space-y-3 rounded-2xl border border-border bg-white p-4">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold text-ink-muted">পরিশোধ</span>
@@ -363,65 +387,35 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
             dueAmount > 0 && !partyId ? 'border-danger-border bg-danger-soft/60' : 'border-border bg-white'
           }`}
         >
-          <div className="flex items-center justify-between gap-2">
-            <label className="text-xs font-semibold text-ink-muted">
-              সাপ্লায়ার {dueAmount > 0 ? <span className="text-danger">(বাকির জন্য বাধ্যতামূলক *)</span> : '(ঐচ্ছিক)'}
-            </label>
-            <button
-              type="button"
-              onClick={() => setShowInlineSupplier((v) => !v)}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary-ink hover:underline"
-            >
-              <UserPlus className="h-3.5 w-3.5" />
-              <span>নতুন সাপ্লায়ার</span>
-            </button>
-          </div>
+          <PartyPicker
+            label={dueAmount > 0 ? 'সাপ্লায়ার (বাকির জন্য বাধ্যতামূলক) *' : 'সাপ্লায়ার (ঐচ্ছিক)'}
+            value={partyId}
+            onChange={setPartyId}
+            role="supplier"
+            emptyLabel={dueAmount > 0 ? undefined : 'নগদ সরবরাহকারী'}
+            invalid={dueAmount > 0 && !partyId}
+          />
+        </div>
 
-          {!showInlineSupplier ? (
-            <SimpleSelect
-              value={partyId}
-              onValueChange={setPartyId}
-              aria-label="সাপ্লায়ার"
-              options={[
-                { value: '', label: dueAmount > 0 ? '— সাপ্লায়ার নির্বাচন করুন —' : 'নগদ সরবরাহকারী' },
-                ...suppliers.map((s) => ({ value: s.id, label: `${s.name}${s.phone ? ` (${s.phone})` : ''}` })),
-              ]}
+        {editPurchase && (
+          <div>
+            <label htmlFor="edit-reason" className="mb-1 block text-sm font-semibold text-ink-muted">
+              সংশোধনের কারণ (ঐচ্ছিক)
+            </label>
+            <input
+              id="edit-reason"
+              type="text"
+              value={editReason}
+              onChange={(e) => setEditReason(e.target.value)}
+              placeholder="যেমন: দাম ভুল লেখা হয়েছিল"
+              className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-base text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
             />
-          ) : (
-            <div className="space-y-2.5 rounded-xl bg-white p-3 shadow-xs">
-              <input
-                type="text"
-                value={newSupplierName}
-                onChange={(e) => setNewSupplierName(e.target.value)}
-                placeholder="সাপ্লায়ারের নাম *"
-                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary-ink focus:outline-none"
-              />
-              <input
-                type="tel"
-                value={newSupplierPhone}
-                onChange={(e) => setNewSupplierPhone(e.target.value)}
-                placeholder="মোবাইল নম্বর (ঐচ্ছিক)"
-                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary-ink focus:outline-none"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowInlineSupplier(false)}
-                  className="h-10 flex-1 rounded-xl bg-surface-muted text-xs font-semibold text-ink-muted"
-                >
-                  বাতিল
-                </button>
-                <button
-                  type="button"
-                  disabled={creatingSupplier}
-                  onClick={handleQuickCreateSupplier}
-                  className="h-10 flex-1 rounded-xl bg-primary-gradient text-xs font-semibold text-on-primary"
-                >
-                  {creatingSupplier ? 'যোগ হচ্ছে...' : 'সাপ্লায়ার যোগ করুন'}
-                </button>
-              </div>
-            </div>
-          )}
+          </div>
+        )}
+
+        <div>
+          <span className="mb-1.5 block text-sm font-semibold text-ink-muted">তারিখ</span>
+          <DateInput value={dateValue} onChange={setDateValue} aria-label="কেনার তারিখ" />
         </div>
 
         <div>

@@ -4,6 +4,480 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### Referral: two kinds of referrer; lint clean, 2026-11-23
+- **Two kinds of referrer** (owner decision; BACKEND_CONTRACT §8):
+  - a **promoter** gets a cash commission (by default 20% for the first 6 months, then 10%)
+  - a **regular user** gets free months
+  - a rate change applies only to later payments; each commission row stores its rate
+  - optional extra trial days for referred users; every number is super-admin configuration
+- **Profile text follows the type:** promoters see the commission %, regular users see "ফ্রি মাস" and the free days earned.
+- **`eslint .` is clean:**
+  - `setError` is declared before use, and `accessRef` is updated in an effect
+  - the remaining React Compiler false positive is annotated
+  - an unused memo dependency is removed
+- 253/253 tests pass; checked on the production build with a browser sale-save smoke test.
+
+### Profile: user ID + referral code (UI-NOW / BE-LATER), 2026-11-23
+- **Profile (settings) → "অ্যাকাউন্ট ও রেফারেল"** (`components/settings/AccountSection.tsx`):
+  - the user ID and the user's own referral code, **each with a copy button**
+  - the number of users who joined with the code and the total commission (from the server)
+  - a **WhatsApp share** button with a ready message and link
+  - **Before login exists, it explains and shows no ID or code.** Nothing is made up.
+- **Sign-up: optional "রেফারেল কোড" field** (`AuthScreen`):
+  - it's sent with Google and with OTP sign-up
+  - an empty field never blocks sign-up; a mistyped one asks to fix or clear it
+  - a shared link `/app?ref=CODE` pre-fills it
+- **`lib/referral.ts`:**
+  - code normalisation (case, spaces, Bengali digits)
+  - link and share text
+  - `REFERRAL_COMMISSION_RATE = 0.2`; the server's `commissionRate` wins when sent
+- **`lib/auth.ts`:** `AuthUser.referralCode`, `referralStats`, and `SignUpOptions { referralCode }` on `signInWithGoogle` / `verifyOtp`.
+- **`docs/BACKEND_CONTRACT.md` §8, Referral** (all server-side):
+  - unique codes; accepted only when a new account is created; no self-referral
+  - `referredBy` set once
+  - a 20% commission ledger on every subscription payment, reversed on refund
+  - the rate is super-admin configuration; `GET /me` returns the stats
+- **Dev `/preview`** shows the section with sample values. Production returns 404 there.
+- `tests/referral.test.ts` (8).
+
+### Month + year on every date-filtered list, 2026-11-23
+- **New `components/ui/PeriodFilter.tsx`:** one shared filter (`usePeriodFilter` + `<PeriodFilter>`) with আজ · সপ্তাহ · মাস · **অন্য মাস** · সব. Choosing "অন্য মাস" opens the month + year picker (`MonthYearPicker`), so you can pick any month back to the oldest record.
+- **Used on** বিক্রি, কেনা, খরচ, Reports, and now **সব লেনদেন** (the ledger had no date filter before; it defaults to "সব", so nothing changes until you choose).
+- The dashboard and party timeline keep their own month picker.
+- **Checked at 360px:** no horizontal scroll. With five choices the month label is the short "মাস".
+- `tests/period-filter.test.ts` (4).
+
+### AP-8: incremental loading after a save, 2026-11-23
+- **A save no longer reloads the whole khata.**
+  - `db/changeTracker.ts`: a Dexie DBCore middleware on every khata database records the keys each write touches. It only records keys and never reads anything, so restore and clear stay fast (table hooks would read every row before a `clear()`).
+  - `jomarkhataService.loadChanges()` re-reads just those rows with `bulkGet` and merges them with `lib/snapshot-merge.ts`. The merge produces exactly the order of a full read: date (or timestamp) descending, then id descending; plain tables in id order; rows without a date left out.
+  - Tables that a save didn't touch keep the same array.
+  - **Falls back to a full read** after:
+    - a range delete or clear, or keys it can't see
+    - switching between the demo and real khata
+    - the first load, or a failed refresh
+  - The app context calls `loadChanges` after each action. Startup, restore, clear, demo and seed still return a full `loadAllData`.
+- **Measured** (production build, headless Edge, 360px, 4× CPU throttle):
+
+  | | Refresh after a save | Save → visible |
+  |---|---|---|
+  | 20,000-sale khata | ≈1 s → **29–41 ms** | 1.42 s → **382 ms** |
+  | Typical shop | 9 ms | 302 → **162 ms** |
+
+  The 382 ms that remains is React recompute, not database reads.
+- **Tests:** `tests/incremental-load.test.ts` (8) checks that, after each of 21 kinds of write (back-dated sale, edits, voids, stock, profile, reminder…), the merged data equals a full read. It also covers chained refreshes, kept array identity, clear/demo fallbacks and the merge order. `performance.test.ts` adds an AP-8 timing guard.
+- `npm test` passes arguments through (`npm test -- tests/x.test.ts`).
+
+### Dev dependencies: npm audit cleared, 2026-11-23
+- **Removed `firebase-tools`:** an unused leftover dev dependency (no `firebase.json`; the app deploys to Vercel). Removing it cleared `tar`, `basic-ftp`, `path-to-regexp`, `csv-parse`, `glob`/`minimatch` and the rest of its tree.
+- **Upgraded `vitest` 3.2 → 5.1.1** (with `@types/node` ^20 → ^22, which vitest 5 needs as a peer). This cleared `tinypool` (critical) and `@vitest/mocker`.
+- **`npm audit`: 0 vulnerabilities** (was 23). Production was already at 0.
+- **`npm test` now runs through `scripts/test.mjs`.** On Windows, a lower-case drive letter in the working directory (`d:\…`) makes Vitest 5 load its runner twice, and every file fails with `reading 'config'`. The wrapper starts Vitest from `D:\…` instead. Use `npm test`, not bare `npx vitest`, on Windows.
+- 231 / 231 tests pass, and `tsc` is clean.
+
+### On-page SEO + developer credit, 2026-11-23
+- **Install requirements were already in place:** manifest plus 192, 512, maskable, apple-touch and favicon icons. Now covered by a test.
+- **Metadata** (`lib/seo.ts`, `app/layout.tsx`):
+  - `metadataBase`, a title template, a Bangla + English description and keywords, and a canonical link
+  - **author / creator / publisher = Abdullah Ibne Ali**
+  - Open Graph (`bn_BD`) and Twitter card with a new **1200×630 share image** (`public/og-image.jpg`, 65 KB) made from the owner's logo
+- **`/robots.txt`:** allows the landing page and blocks `/app` and `/preview`. **`/sitemap.xml`** lists the landing page. **The `/app` pages are `noindex`**, because a shop's khata is private.
+- **Landing page:**
+  - schema.org **SoftwareApplication** JSON-LD with the developer as author (`<` is escaped)
+  - footer credit: **"Developed by Abdullah Ibne Ali"**, linked to the portfolio when `NEXT_PUBLIC_DEVELOPER_URL` is set
+- **New public env vars** (`.env.example`):
+  - `NEXT_PUBLIC_SITE_URL` is optional; on Vercel it defaults to the production domain
+  - `NEXT_PUBLIC_DEVELOPER_URL` is the portfolio link
+- `tests/seo.test.ts` (6).
+- **Verified on the production build:** robots.txt, sitemap.xml, the meta and OG tags, the JSON-LD Person, and `/app` returning `noindex, nofollow`.
+
+### Own identity, month/year selector, WhatsApp help, compact connection dot, 2026-11-23
+Owner request: the app must not look or read like another khata app.
+
+**Changed: our own wording and layout**
+- All wording now lives in one file, `lib/terms.ts`:
+  - **পাওনা / দেনা** instead of পাবো/দিবো
+  - **পাওনা-দেনা** instead of বাকির খাতা
+  - বিক্রির / কেনার / খরচের **হিসাব** instead of "…র খাতা"
+  - **টাকা আদায় / দেনা শোধ**
+  - **মনে করান / আদায়ের দিন** instead of তাগাদা / পরিশোধের তারিখ
+  - **লেনদেন লিখুন** instead of নতুন বাকি
+  - **বিক্রি** instead of বেচা
+- **Colours:** পাওনা is **green** (money will come to you) and দেনা is **red** (you have to pay).
+- **Due Book list:**
+  - tabs **সবাই / পাওনা / দেনা** (role moved into the filter panel)
+  - each row has a colour bar and shows the last transaction date
+  - the summary cards use plain sentences ("আপনি পাবেন" / "আপনাকে দিতে হবে") and act as filters
+- **Party screen:**
+  - a colour status card with a plain sentence ("রহিম আপনাকে ৳২,৪০০ দেবেন")
+  - 4 round actions: **কল · মনে করান · আদায়ের দিন · এডিট**
+  - a **timeline grouped by month** with each month's change, instead of a 3-column table
+  - **one "লেনদেন লিখুন" button** instead of the red/green দিচ্ছি/নিচ্ছি pair
+- **Entry form:** **four plain choices** in colour tiles: টাকা পেলাম (green), টাকা দিলাম (red), বাকিতে দিলাম (orange), বাকিতে নিলাম (purple).
+  - They map to the same 4 service entry types; the real service confirms the balance and cash direction for each.
+  - Auto-written notes are hidden in the timeline (`ownNote`); typed notes still show.
+- **Display-only text** from the calculator and service default notes uses the new words. No logic changed.
+
+**Added**
+- **Month + year selector** (`MonthYearPicker`, `lib/months.ts`): ‹ মাস ▾ বছর ▾ ›, never in the future. Available on the dashboard summary, reports ("মাস বাছুন") and the party timeline.
+- **WhatsApp help** (`lib/support.ts`): "সাহায্য দরকার? WhatsApp-এ লিখুন" with a ready message (shop name and app version, no money data), in the আরও menu and settings.
+  - **It stays hidden until `NEXT_PUBLIC_SUPPORT_WHATSAPP` is set in Vercel.**
+- **Header connection status:** only a **softly pulsing green dot** online (pure CSS keyframes, no library, respects reduced-motion) and a **Wi-Fi-off icon** offline. Hover or tap shows a tiny label.
+- **সিঙ্ক অবস্থা** moved into the আরও menu.
+- `tests/identity.test.ts` (12):
+  - **bans the other app's labels anywhere in the UI and in service/calculator strings**
+  - the four choices against the real service
+  - months, including leap years and year steps
+  - the support link is hidden until configured
+  - the connection dot
+
+**Verified on the production build:** new header dot and offline icon, the dashboard month picker, the পাওনা-দেনা list, party sentence + single action, the four-choice form; offline reload, tabs and an offline sale all still work.
+
+### S13: performance, large-data fixtures, MVP acceptance, 2026-11-23
+**Measured** on the production build with **4× CPU throttling**:
+- **Typical shop** (2,000 sales, 500 parties): open 0.76 s, save → visible 302 ms, search 38 ms, 2k-row ledger 181 ms, restore 0.8 s.
+- **Very large khata** (20,000 sales, 5,000 parties, a 2,003-row party ledger): open 1.9 s, search 44 ms, ledger 190 ms, restore 8.5 s, **save → visible 1.42 s (over budget; needs AP-8)**.
+- **JS shipped:** landing 175 KB gzip, app 349 KB gzip.
+
+**Fixes, made only where measurement showed a problem (plan 8.4)**
+- **Long lists render 100 rows at a time** with "আরও দেখুন" (`components/ui/ShowMore.tsx`): party list, party ledger, all transactions, sales, purchases, expenses, stock.
+  - Search with 5,000 parties: **337 → 44 ms**.
+  - Opening a 2,003-row ledger: **2.4 s → 0.19 s**.
+- **Dexie query cache disabled** (`cache: 'disabled'`). The app doesn't use liveQuery, and the cache cloned every written row.
+  - Restoring a 20k-sale khata: **88 s → 8.5 s**.
+  - A raw IndexedDB baseline (20k rows with 8 indexes in 2 s) confirmed the slowdown was in the library layer.
+- **Opt-in timing log** (`lib/perf.ts`, `localStorage.jk_perf = '1'`) for actions, `loadAllData` and restore phases.
+
+**Added**
+- `tests/helpers/fixtures.ts`: a **test-only**, deterministic generator for a large khata with consistent books (balances, running balances, stock = Σ movements). It's never used by the app.
+- `tests/performance.test.ts` (4):
+  - **the 5k-party / 20k-sale khata restores through the validated path and passes every ledger invariant**
+  - calculation timing guard (Node: balances 3 ms, period 5–18 ms, ledger 44 ms, search 10 ms)
+  - guards that keep paging and the disabled cache in place
+- `docs/REAL_DEVICE_TEST.md`: the owner's real-phone checklist (install, airplane mode, killed mid-form, back button, তাগাদা, oversell, backup → reinstall → restore, update prompt, speed).
+- `docs/MVP_ACCEPTANCE.md`: feature status, approved changes, the performance table, honest limits, open decisions, sign-off.
+- `ARCHITECTURE.md`: storage and testing sections updated (two databases, schema v3, read-only startup, outbox and sync, backup).
+
+**Verified:** the full e2e set passed again on the production build after these changes (offline, navigation, first run, dues, forms, history, backup, sync).
+
+**Needs owner approval:** AP-8 (incremental loading), only for very large khatas.
+
+### S12 (rest): update prompt + install card, 2026-11-23
+**Added / changed**
+- **"নতুন আপডেট আছে" prompt:**
+  - The service worker (`jk-shell-v4`) **no longer activates itself on install**. A new version waits until the owner taps **"আপডেট করুন"**, then activates and the page reloads, so the version never switches in the middle of a form.
+  - A first install still activates immediately.
+  - Code: `lib/pwa.ts`, `ServiceWorkerRegister` (watches `waiting`/`updatefound`, reloads only after the owner asked), `UpdateBanner`.
+- **Install card** (`InstallCard`) on the dashboard (dismissible) and in settings:
+  - Android/desktop Chrome: our own **"ইনস্টল করুন"** button using the captured `beforeinstallprompt`
+  - iPhone Safari: Share → "Add to Home Screen" steps in Bangla
+  - hidden once the app is installed
+- Tests: `tests/pwa.test.ts` +3 (no auto-skipWaiting, update detection and reload-only-on-request, install prompt and iOS steps).
+
+**Verified on the production build** (headless Edge at 360px):
+- **the full e2e set passed:** offline (cache v4, 47 entries, offline reload and tabs, offline sale survives reload), navigation/back (no reloads), first run, Due Book, forms + AP-9, history, backup/restore, sync UI, and the fold at 360×640 (বেচা/কেনা end at 488 < 575)
+- **real update flow:** with v4 active, `sw.js` was changed on the server → the new worker **waited** (not auto-activated) → the banner showed → tapping "আপডেট করুন" reloaded the page under the new worker → data intact
+
+**Still needs a real phone:** the Android install, a cold start offline, and the iOS Add to Home Screen path. These are in the S13 checklist.
+
+### S10: account screens, access policy, backend contract, 2026-11-23
+UI now, backend later. AP-7 is designed only.
+
+**Added**
+- **Sign-in screen** (`AuthScreen`), opened from the welcome screen's "লগইন করুন":
+  - Google first, plus a Bangladeshi mobile number with validation (Bengali digits, +88, spaces OK)
+  - **with no backend, every attempt shows the honest "এখনও চালু হয়নি" message; no session and no OTP screen**
+- **`AuthProvider` interface** (`lib/auth.ts`):
+  - `noBackendAuthProvider` refuses every sign-in
+  - the context exposes `auth: { status: 'local' }`, and no code path sets `authenticated`
+  - also `normalizeBdMobile` and `formatAccountId` (JK-1234-5678, D29)
+- **Access policy** (`lib/access-policy.ts`, D4):
+  - after expiry: 7-day grace (full access with a banner), then **read-only**
+  - **read-only blocks every write action in the context**, while view, search and backup export keep working
+  - it never shows "active" past a known expiry, and **turning the phone clock back can't undo a server-seen expiry**
+  - local mode has no subscription and is never restricted (D16)
+  - a development-only override (`localStorage.jk_dev_access`) exists to test it
+- **The `/preview` page is development only** (404 in production): OTP entry, logout guard (blocked while changes are pending; sync now / backup / cancel), and the claim flow (never auto-merges). Everything sits under a "প্রিভিউ — আসল যাচাই নয়" banner.
+- **`docs/BACKEND_CONTRACT.md`:** the hand-off to `jomarKhata-be`. It covers:
+  - Firebase-token auth and the server-generated account ID
+  - tenant derived from the token, plus per-account local DB naming (AP-7 design)
+  - `POST /sync/push`, idempotent by `opId`, plus the conflict rules and `GET /sync/pull` by cursor
+  - claim and logout rules
+  - `GET /subscription` with configurable trial and prices
+- `tests/accounts.test.ts` (12).
+
+**Verified e2e:**
+- welcome → login screen; Google refuses honestly; an invalid mobile is rejected; a valid mobile still says not available, with no OTP screen
+- read-only override: banner shown, saving blocked with the message, form stays open
+- `/preview` renders in dev
+
+### S9: outbox v2, sync engine (fake transport only), সিঙ্ক অবস্থা, 2026-11-23
+AP-4 approved under D32.
+
+**Added / changed**
+- **Dexie v3 (additive):** two new `syncQueue` indexes (`status`, `opId`).
+  - **Every existing outbox item is upgraded in place, never dropped.** Each item gets `opId` (idempotency key), `tenantId`, `baseRevision` (from the payload), `status`, `retryCount`, `lastAttemptAt` and `lastError`; all original fields are kept.
+  - Restoring an older backup normalises its outbox the same way.
+- **AP-4 gap fixed:** a void now also queues its linked changes (money movement void, due void, party, stock reversal, product), so a future server can replay it exactly.
+- **Sync engine** (`lib/sync/engine.ts`), behind a `SyncTransport` interface:
+  - **synced only when the server acknowledges it**
+  - unacknowledged or failed items get `lastError` and are retried with exponential backoff and jitter
+  - a conflict marks the item `needs_review`
+  - items stuck in "syncing" after an app kill are recovered
+  - **nothing is ever deleted**
+- **Runner** (`lib/sync/runner.ts`): triggers on start, `online`, the tab becoming visible, and an interval; single-tab via the Web Locks API.
+  - **`getSyncTransport()` returns null: there's no backend, so the app never starts it and nothing is sent.**
+- **সিঙ্ক অবস্থা sheet**, opened from the online/offline pill:
+  - "সব হিসাব এই ফোনে সংরক্ষিত" and "ক্লাউড ব্যাকআপ এখনও চালু হয়নি"
+  - counts (pending / failed / needs review) and recent changes
+- **Per-record badge** on every transaction detail: honestly **"ফোনে সংরক্ষিত"** until a server acknowledges it.
+- The pending count now counts every non-synced status.
+- Tests:
+  - `tests/sync.test.ts` (11), using a fake server that is idempotent by opId: happy path, timeout + backoff retry, **lost acks → resent but applied exactly once**, conflict → needs_review, crash recovery, batch size, offline queueing, backoff curve, no transport in the app, honest wording
+  - migration tests: real v2→v3 upgrade (fields kept, defaults added, baseRevision taken from the payload), schema lock v3, the AP-4 void test now asserts the fix
+
+**Verified e2e:** IndexedDB is v3 in the browser; the pill opens the sync sheet; the record badge shows ফোনে সংরক্ষিত; a legacy v1 database still upgrades and shows the choice screen.
+
+### S8: backup, restore & data safety, 2026-11-23
+Approved under D32: AP-10 and AP-11.
+
+**Added**
+- **Backup file v2** (`lib/backup.ts`):
+  - format, version, app/db version, shop name and time
+  - per-table counts
+  - **SHA-256 checksum**
+  - **every table, including the sync outbox and history**, which closes the old S0 gap
+  - an **optional password**: AES-GCM 256 with a PBKDF2-SHA256 key (210k iterations) via WebCrypto; the file then holds no readable shop data
+- **Restore** (`restoreBackup`):
+  1. parse, decrypt and check the version
+  2. validate every record's shape
+  3. verify the checksum
+  4. check referential integrity (sale/purchase → party, due → party, money movement → source, stock movement → product)
+  5. preview with counts
+  6. **save an automatic safety copy of the current khata on the phone**
+  7. **apply in ONE Dexie transaction**: all or nothing
+  - It replaces the khata and never merges. A different shop name needs an extra tick.
+  - **Old v1 backups still restore** (with a note; the outbox starts empty).
+  - Demo mode refuses restore.
+- **Restore from the welcome screen:** a new phone or reinstalled app can bring the khata back from a file. Until cloud sync exists, this is the only recovery path (D27).
+- **খাতা খালি করুন:** keeps the shop profile and removes everything else.
+  - It offers a backup download first and needs **typed confirmation ("খালি")**.
+  - It saves a safety copy and adds a history entry.
+- **The safety copy** can be downloaded from settings.
+- **Backup reminder** on the dashboard when there are records and no backup for 7 days (`lib/backup-reminder.ts`). The last backup time shows in settings.
+- **`navigator.storage.persist()`** at startup; the status shows in settings.
+- **Plain Bangla storage errors** (`lib/errors.ts`): quota full or database won't open. **Every context action is wrapped**, so forms stay open with the input kept.
+- `components/settings/BackupSection.tsx` and `RestoreFlow.tsx` (shared by settings and welcome).
+- Tests:
+  - `tests/backup.test.ts` (13): round trip to a new device (every table identical, books balance), password right/wrong, tampered file rejected with nothing changed, broken links rejected, junk rejected, v1 restore, **mid-restore failure rolls back completely**, safety copy, demo refused, clear khata
+  - `tests/backup-ui.test.ts` (8)
+  - updated export tests in migration-preservation
+
+**Verified e2e** (360px):
+- real shop → sale ৳৪,৩২১ → reminder shown → backup downloaded (v2, checksum, contains the sale)
+- clear stays disabled until "খালি" is typed → 0 sales, safety copy offered
+- restore the file → preview "যাচাই হয়েছে" → the sale is back
+- **a brand-new browser restores from the welcome screen**
+
+### S7: corrections & history, 2026-11-23
+AP-6 approved under D32.
+
+**Added / changed**
+- **পরিবর্তনের ইতিহাস** (previously "অডিট ইতিহাস"):
+  - every entry carries an action badge (তৈরি / সংশোধন / বাতিল)
+  - **edits show before → after for each changed field**: মোট, টাকা, ছাড়, জমা, বাকি, পণ্য, মাধ্যম, তারিখ, পার্টি, খাত, বিবরণ, নোট
+  - the diff comes from the stored snapshots via `lib/audit-diff.ts`, a pure function; broken snapshots show nothing rather than crash
+- **AP-6: optional edit reason.**
+  - `editSale`, `editPurchase`, `editDueEntry` and `editExpense` take an optional `reason`, stored trimmed on the audit entry. Without one it stays `null`, as before.
+  - All 4 edit forms have "সংশোধনের কারণ (ঐচ্ছিক)".
+- **Plain wording:** "বাতিল (Void)" → "বাতিল করুন". The void dialog now says the entry isn't deleted and stays in the history marked বাতিল. The ledger hint and settings copy are updated too.
+- **A failed void shows an error toast** and keeps the dialog open; it never fails silently.
+- **After an edit you return to the detail sheet:** edit sheets carry `returnTo`, and `closeSheet` goes back to it within the same history entry.
+- `tests/history.test.ts` (9).
+
+**Verified e2e:** sale ৳500 → detail → edit to ৳650 with a reason → saved → back on the detail, and the history shows সংশোধন, the reason and ৫০০ → ৬৫০.
+
+### AP-9 fixed: no stock clamp, oversell allowed with a warning (D33), 2026-11-23
+**Release blocker D20 cleared.**
+
+**What was wrong**
+- Four service paths clamped `stockQty` at 0 while the stock movement recorded the full quantity, so product stock and its history disagreed:
+  - create sale
+  - edit sale
+  - edit purchase
+  - void purchase
+- Reproduced in the browser: selling 999 against stock 18 left stock at **0** instead of **−981**.
+
+**Fix (owner policy D33)**
+- Those 4 clamps are removed. Stock may go negative, and **`stockQty` always equals the sum of its stock movements.**
+- The sale form already warns before saving (S6). The stock screen shows negative stock in red: **"স্টক মাইনাস — কেনা লিখুন"**.
+- Unchanged:
+  - **opening stock** at product creation is still ≥ 0 (input validation)
+  - **manual stock adjustment** still floors at 0 but records the actual applied delta, so it stays consistent
+
+**Tests**
+- The characterisation test was replaced with 3 tests:
+  - oversell gives −3 with the movements matching
+  - a later purchase restores stock correctly
+  - a mixed sequence of sale edit, purchase, purchase void and sale void passes through negative stock and stays consistent
+- **The stock invariant in `assertLedgerInvariants` is now always on**, so every accounting test checks `stockQty == Σ movements`.
+- 154/154 tests pass.
+
+**Existing data:** products already clamped by the old code keep their stored value; nothing is rewritten. New activity is exact from now on.
+
+### S6: sale, purchase and expense forms, 2026-11-23
+**Added / changed**
+- **A date field on every entry form** (sale, purchase, expense, due), shown as `dd/MM/yyyy` with the left calendar icon.
+  - Defaults to today. Backdated entries keep their day.
+  - Editing without changing the day keeps the original timestamp (`dateInputToIso` in `lib/format.ts`).
+- **Sale:**
+  - **discount is available on fully paid sales too**, with a "মোট − ছাড় = …" line
+  - partial payment shows "বাকি থাকবে ৳X"
+  - **product mode lets you type the quantity (decimals like 2.5 kg) and edit the unit price** per chosen item
+  - **a non-blocking over-stock warning** (D33)
+- **Purchase:** typed quantity and editable purchase price in product mode, plus the date. There's no discount, because the purchase service has none; a service change wasn't wanted for it.
+- `tests/forms.test.ts` (9): date helper, form wiring, discount on a paid sale (real service: no due, cash = total), backdated sale/purchase/expense counted on their day, decimal quantity.
+
+**Verified e2e:** a product sale of 999 against stock 18 shows the warning and still saves; discount works on a paid sale; the date field is present.
+- **This also reproduced AP-9 in the browser:** stock went 18 → **0** instead of −981. Fixed in the next commit.
+
+### S5: simpler Due Book, role-aware due form, searchable party picker, 2026-11-23
+**Added / changed**
+- **Due list:**
+  - compact পাবো/দিবো summary, with **search right below it** (name or mobile, Bengali digits OK)
+  - one row with the role tabs, a filter icon (শুধু বাকি আছে + sort) and a new-party button
+  - a sticky **"নতুন বাকি"** button above the bottom bar
+- **Party detail:**
+  - name, role, mobile, and a big balance that always says **পাবো / দিবো**
+  - **কল করুন**, plus **তাগাদা পাঠান** with WhatsApp (`wa.me`, Bangladeshi number normalised), SMS (`sms:` with prefilled body) and copy as a fallback. The result message is honest: "WhatsApp খোলা হয়েছে — বার্তা পাঠানো হলো কিনা সেখানে দেখে নিন".
+  - payment-date row
+  - readable ledger rows: দিয়েছি/নিয়েছি amount, and a running balance that carries the word
+  - sticky **দিচ্ছি / নিচ্ছি** buttons
+- **Role-aware due form:**
+  - From a party screen there's no picker; দিচ্ছি or নিচ্ছি is preset.
+  - **"টাকা দিয়ে / শুধু বাকিতে"** toggle, with a role-based default.
+  - A plain-Bangla explanation line, a **"এরপর: পাবো ৳X" preview**, and a **date field** for backdated entries.
+  - **These map to the same 4 service entry types (`lib/dues.ts`). No service change.**
+- **`PartyPicker`** (shared) replaces the dropdowns in the due, sale and purchase forms.
+  - Search by name or mobile; shows at most 30 rows (fast with thousands of parties).
+  - Add a new party inline; "নগদ ক্রেতা / নগদ সরবরাহকারী" is the empty choice where allowed.
+  - The old inline-create code in the sale/purchase forms was removed.
+- `lib/dues.ts`: pure helpers (mapping, search normalisation, WhatsApp number, reminder text).
+- `tests/dues.test.ts` (8):
+  - all 4 mappings, both ways
+  - **the real service confirms the direction of the balance and cash change for each combination**
+  - backdated date
+  - search, including **5,000 parties in under 100 ms**
+  - labels, WhatsApp number, reminder text
+
+**Verified e2e** (360px):
+- search narrows the list
+- party detail → তাগাদা panel with a valid `wa.me` link
+- নিচ্ছি: no picker, explanation, preview; saved, পাবো ২,৪০০ → ২,৩০০
+- back → list
+- নতুন বাকি → search the picker → choose → choices shown
+- no page reload
+
+### S4: Dashboard above the fold, 2026-11-23
+**Changed**
+- **New mobile order (plan 3.1):**
+  1. Compact hero: হাতে ক্যাশ with a বিকাশ · নগদ · ব্যাংক line, then a **পাবো / দিবো** row (taps open the বাকির খাতা).
+  2. **বেচা / কেনা** big buttons.
+  3. 4 quick actions (বাকি আদায়, খরচ, পরিশোধ, স্টক).
+  4. আজ/মাস 2×2 summary.
+  5. খাতা (the 4 book tiles).
+  6. Recent transactions.
+- **Desktop:** two columns (actions + summary on the left, recent transactions on the right).
+- **Removed the duplicate "আপনার ব্যবসার জন্য" grid (plan 3.2).** পার্টি, রিপোর্ট and সেটিংস are in the আরও menu. The 4 খাতা book tiles stay on home, because the owner made those icons for it.
+- `tests/dashboard.test.ts` (3): section order, no duplicate grid, compact hero.
+
+**Verified:** at **360×640**, বেচা/কেনা end at **470px**, above the bottom bar at 575px, even with the demo banner showing. No page errors.
+
+**Not changed:** calculations and services. Same data, new layout.
+
+### S3: first run, separate demo khata, shop setup, 2026-11-23
+Approved under D32: AP-1, AP-2 and AP-3.
+
+**Added**
+- **Dexie v2, additive (AP-3):** a new `appMeta` table (`workspace`, `prefs`). Every v1 table and index is unchanged. Existing v1 databases upgrade in place with every row kept (tested).
+- **Separate demo database `jomarkhata_demo` (AP-2).**
+  - `getJomarkhataDb()` returns the real or the demo DB depending on the active mode, which is remembered in the real DB's `appMeta.prefs`.
+  - Demo work never touches the real khata or its outbox.
+- **No auto-seed (AP-1):** a fresh device shows the Welcome screen.
+  - **"আমার খাতা শুরু করুন"** opens the shop setup form, which starts an **empty** khata. Only the shop name is required; mobile is validated in Bangladeshi format (Bengali digits OK); opening balances are optional.
+  - **"আগে ডেমো দেখুন"** opens the demo khata, with a banner and an "আসল খাতায় যান" button.
+- **Existing installs (D15):** data from an older build triggers a choice screen.
+  - **"আমার ব্যবসার হিসাব"** keeps every row exactly as it is.
+  - **"ডেমো হিসাব"** **moves** the data into the demo DB: copy → verify counts → only then clear the real DB.
+  - Startup itself is **read-only** (`bootstrap()`) and never writes, seeds or deletes.
+- **Settings:** "ডেমো রিসেট" exists **only inside demo mode** and resets only the demo DB. The real khata offers "ডেমো খাতা দেখুন" instead.
+- New service functions: `bootstrap`, `createShop`, `keepLegacyAsMine`, `moveLegacyToDemo`, `enterDemo`, `exitDemo`, `isValidBdMobile`.
+- New screens: `ShopSetupScreen`, `LegacyChoiceScreen`; the Welcome screen gets start + demo actions. The dev-only `?preview=welcome` is removed.
+- `tests/first-run.test.ts` (20).
+
+**Fixed (known risks closed)**
+- `resetDemoData` used to wipe user-entered records. It now refuses in the real khata.
+- A fresh device used to be auto-seeded with demo data mixed into the real khata.
+
+**Verified e2e** (headless Edge at 360px):
+- fresh device → welcome → validation → setup → empty dashboard with ৳৫,০০০ cash → survives reload
+- demo in/out with a separate `jomarkhata_demo` DB
+- a raw v1 database written like the old build → choice screen → keep → old shop dashboard
+
+**Note for testers:** phones that used the earlier preview will see the choice screen once.
+
+### S2: app shell & navigation, 2026-11-23
+**Added**
+- **Bottom bar (D2):** হোম · বাকি · **[+]** · লেনদেন · আরও.
+  - **"+"** is a raised blue button that opens a quick-add sheet: বেচা, কেনা, বাকি আদায়, পরিশোধ, খরচ.
+  - **"আরও"** opens a menu with every other screen. With the tabs, every screen is reachable in at most 2 taps.
+- **Top bar:** home shows the greeting. Other screens show a back button and the screen title (the party name inside a party ledger). An **online/offline pill** (`hooks/use-online.ts`) shows on every screen; tapping it says plainly that everything is saved on this phone and the cloud isn't on yet.
+- **Android back button:** screens, party detail and sheets push history entries.
+  - Back closes a sheet first, then leaves the party, then returns to the previous screen.
+  - From home, back exits the app as usual.
+  - Opening a screen from the আরও menu replaces the sheet's entry, so there are no dead back presses.
+- **Unsaved-form guard:** typing in any sheet marks it unsaved (a native `input` listener in `ModalSheet`).
+  - Back, ✕ or tapping outside then asks: "লেখা তথ্য বাদ দেবেন?"
+  - After a successful save the guard clears, so there's no prompt.
+- `components/layout/navigation.ts` (titles + আরও items), `NavSheets.tsx` (quick-add + আরও), `lib/sheet-guard.ts`.
+- `tests/navigation.test.ts` (8).
+
+**Fixed while building**
+- **Next.js App Router reloads the page on popstate when a history entry lacks its `__NA` marker.** Every entry now keeps Next's keys (`pushEntry` / `replaceEntry`), and the first entry is tagged after Next writes it. A test checks that no other history writes exist.
+
+**Verified** (headless Edge at 360px, with a reload detector):
+- tab → back → home
+- আরও → স্টক → back → home
+- typed sale → back → prompt → cancel keeps the form → confirm closes it
+- an untouched form closes without asking
+- saving closes the form without a prompt
+- **no page reload in the whole run**
+
+**Not changed:** service, accounting, Dexie.
+
+### L1: landing page, app moves to /app, 2026-11-23
+Owner decision D34: landing at `/`, app at `/app`.
+
+**Added**
+- The `/` landing page (`components/landing/LandingPage.tsx`) is static and Bengali-only. Sections: header, hero (2 CTAs), trust strip, 8 feature tiles with the owner's icons, 3 steps, install instructions (Android/iPhone), FAQ, final CTA, footer.
+- **Only true claims.** No cloud, sync, encryption, prices, counts or testimonials. The FAQ says plainly that data lives only on the phone for now. There's no "login-free" promise either (D26).
+- `StandaloneRedirect`: phones that installed earlier (start_url `/`) jump straight to `/app`.
+- `docs/CODEMAP.md`: a one-page map for anyone starting on the code.
+- `tests/landing.test.ts` (7): routing split, the database opens only under `/app`, CTAs, honest-claims guard.
+
+**Changed**
+- The app moved to `/app`. `JomarkhataProvider` moved from the root layout to `app/app/layout.tsx`, so the landing page never opens IndexedDB or seeds demo data.
+- Manifest `start_url` is now `/app`; `id` stays `/`, so existing installs update in place.
+- Service worker `jk-shell-v3`:
+  - precaches `/app`
+  - offline navigation under `/app` falls back to the cached app, everything else to `/`
+- Service-worker registration also caches the app's scripts when the first visit is the landing page.
+
+**Verified** (production build, headless Edge at 360px):
+- Landing renders with no errors at 360px and 1280px.
+- Offline `/app` e2e passed: all tabs, plus an offline sale that survives an offline reload.
+- **Landing-first visit, then offline `/app`, renders the dashboard.**
+
 ### Brand: owner's logo and 19 feature icons, 2026-11-23
 **Added**
 - `public/icons/features/*.svg`: the owner's 19 colourful icons. The source files were each a **whole traced icon sheet** cropped by `viewBox` (~105–165 KB each, 2.4 MB in total). Paths outside each icon's viewBox were removed: **266 KB total, pixel-identical render** (verified by canvas diff, max difference 0).

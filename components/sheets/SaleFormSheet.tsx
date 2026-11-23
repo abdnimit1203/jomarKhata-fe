@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Minus, Plus, Search, UserPlus, AlertCircle, Package } from 'lucide-react';
+import { Minus, Plus, Search, AlertCircle, Package } from 'lucide-react';
 import { ModalSheet } from '@/components/ui/ModalSheet';
 import { NumericInput } from '@/components/ui/NumericInput';
 import { PaymentChannelPicker } from '@/components/ui/PaymentChannelPicker';
 import { useJomarkhata } from '@/context/JomarkhataContext';
-import { formatBanglaNumber, formatTaka, parseNumericInput } from '@/lib/format';
+import { dateInputToIso, formatBanglaNumber, formatTaka, parseNumericInput, toDateInputValue } from '@/lib/format';
+import { DateInput } from '@/components/ui/DateInput';
 import type { EntryMode, PaymentChannel, SaleLineItem, SaleRecord } from '@/types/domain';
-import { SimpleSelect } from '@/components/ui/select';
+import { PartyPicker } from '@/components/ui/PartyPicker';
 import { SegmentedControl } from '@/components/ui/segmented';
 
 interface SaleFormSheetProps {
@@ -60,19 +61,13 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
   );
   const [partyId, setPartyId] = useState<string>(() => editSale?.partyId ?? '');
   const [note, setNote] = useState(() => editSale?.note ?? '');
+  const [dateValue, setDateValue] = useState(() => toDateInputValue(editSale?.date ?? new Date().toISOString()));
+  const [editReason, setEditReason] = useState('');
 
-  const [showInlineCustomer, setShowInlineCustomer] = useState(false);
-  const [newCustomerName, setNewCustomerName] = useState('');
-  const [newCustomerPhone, setNewCustomerPhone] = useState('');
-  const [creatingCustomer, setCreatingCustomer] = useState(false);
 
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const customers = useMemo(
-    () => (data?.parties ?? []).filter((p) => p.role === 'customer'),
-    [data?.parties]
-  );
 
   const filteredProducts = useMemo(() => {
     const q = productSearch.trim().toLowerCase();
@@ -101,6 +96,11 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
   const dueAmount = Math.max(0, total - paidAmount);
 
   const handleToggleProduct = (productId: string, delta: number) => {
+    setRawEdits((r) => {
+      const next = { ...r };
+      delete next[`q:${productId}`];
+      return next;
+    });
     const product = data?.products.find((p) => p.id === productId);
     if (!product) return;
 
@@ -136,29 +136,30 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
     });
   };
 
-  const handleQuickCreateCustomer = async () => {
-    if (!newCustomerName.trim()) {
-      setFormError('নতুন কাস্টমারের নাম লিখুন।');
-      return;
-    }
-    setCreatingCustomer(true);
-    setFormError(null);
-    try {
-      const created = await actions.createParty({
-        name: newCustomerName.trim(),
-        phone: newCustomerPhone.trim(),
-        role: 'customer',
-      });
-      setPartyId(created.id);
-      setShowInlineCustomer(false);
-      setNewCustomerName('');
-      setNewCustomerPhone('');
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'কাস্টমার যোগ করা যায়নি।');
-    } finally {
-      setCreatingCustomer(false);
-    }
+  // Raw text per cart field, so decimals like "1." / "0.5" can be typed before they parse.
+  const [rawEdits, setRawEdits] = useState<Record<string, string>>({});
+  /** Typed quantity / edited unit price for a chosen product (S6). */
+  const updateItem = (productId: string | null | undefined, patch: { qty?: number; unitPrice?: number }) => {
+    setSelectedItems((prev) =>
+      prev.map((i) => {
+        if (i.productId !== productId) return i;
+        const qty = patch.qty ?? i.qty;
+        const unitPrice = patch.unitPrice ?? i.unitPrice;
+        return { ...i, qty, unitPrice, lineTotal: Math.round(qty * unitPrice) };
+      })
+    );
   };
+
+  // Non-blocking over-stock warning (AP-9 / D33: selling is allowed, stock may go negative).
+  const overStock = selectedItems
+    .map((i) => {
+      const prod = data?.products.find((p) => p.id === i.productId);
+      if (!prod) return null;
+      const alreadyInThisSale = editSale?.items.find((x) => x.productId === i.productId)?.qty ?? 0;
+      const available = prod.stockQty + alreadyInThisSale;
+      return i.qty > available ? { name: i.name, available, unit: prod.unit } : null;
+    })
+    .filter((x): x is { name: string; available: number; unit: string } => x !== null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,6 +167,10 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
 
     if (total <= 0) {
       setFormError('বিক্রির মোট টাকা শূন্যের বেশি হতে হবে।');
+      return;
+    }
+    if (mode === 'product' && selectedItems.some((i) => !(i.qty > 0))) {
+      setFormError('প্রতিটি পণ্যের পরিমাণ শূন্যের বেশি দিন।');
       return;
     }
 
@@ -208,9 +213,10 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
         paidAmount,
         paymentMethod,
         note: note.trim() || undefined,
+        date: dateInputToIso(dateValue, editSale?.date),
       };
       if (editSale) {
-        await actions.editSale(editSale.id, payload);
+        await actions.editSale(editSale.id, payload, editReason);
       } else {
         await actions.createSale(payload);
       }
@@ -417,6 +423,59 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
           </div>
         )}
 
+        {mode === 'product' && selectedItems.length > 0 && (
+          <div className="space-y-2 rounded-2xl border border-border bg-white p-3">
+            <p className="text-sm font-semibold text-ink-muted">বাছাই করা পণ্য — পরিমাণ ও দাম বদলানো যায়</p>
+            {selectedItems.map((item) => (
+              <div key={item.productId ?? item.name} className="grid grid-cols-12 items-end gap-2">
+                <p className="col-span-12 truncate text-sm font-semibold text-ink">{item.name}</p>
+                <label className="col-span-4 text-xs text-ink-muted">
+                  পরিমাণ
+                  <NumericInput
+                    value={rawEdits[`q:${item.productId}`] ?? String(item.qty)}
+                    onChange={(raw, n) => {
+                      setRawEdits((r) => ({ ...r, [`q:${item.productId}`]: raw }));
+                      updateItem(item.productId, { qty: n });
+                    }}
+                    suffix={item.unit ?? ''}
+                  />
+                </label>
+                <label className="col-span-4 text-xs text-ink-muted">
+                  দাম (প্রতি)
+                  <NumericInput
+                    value={rawEdits[`p:${item.productId}`] ?? String(item.unitPrice)}
+                    onChange={(raw, n) => {
+                      setRawEdits((r) => ({ ...r, [`p:${item.productId}`]: raw }));
+                      updateItem(item.productId, { unitPrice: n });
+                    }}
+                  />
+                </label>
+                <p className="col-span-4 pb-3 text-right text-sm font-bold tabular-nums text-ink">{formatTaka(item.lineTotal)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {overStock.length > 0 && (
+          <div role="status" className="rounded-2xl bg-warning-soft p-3 text-sm font-semibold text-warning-ink">
+            {overStock.map((o) => (
+              <p key={o.name}>
+                ⚠ {o.name}: স্টকে আছে {formatBanglaNumber(o.available)} {o.unit}। তবুও বিক্রি করা যাবে — স্টক মাইনাসে দেখাবে, পরে কেনা লিখলে ঠিক হয়ে যাবে।
+              </p>
+            ))}
+          </div>
+        )}
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-ink-muted">ছাড় (ঐচ্ছিক)</label>
+          <NumericInput value={discountRaw} onChange={(raw) => setDiscountRaw(raw)} placeholder="০" />
+          {discount > 0 && (
+            <p className="mt-1 text-sm font-semibold text-ink-muted tabular-nums">
+              মোট {formatTaka(subtotal)} − ছাড় {formatTaka(discount)} = {formatTaka(total)}
+            </p>
+          )}
+        </div>
+
         <div className="space-y-3 rounded-2xl border border-border bg-white p-4">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold text-ink-muted">টাকা আদায়</span>
@@ -438,23 +497,10 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
           </div>
 
           {!isFullyPaid && (
-            <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <label className="mb-1 block text-xs text-ink-muted">এখন জমা নিলেন</label>
-                <NumericInput
-                  value={paidRaw}
-                  onChange={(raw) => setPaidRaw(raw)}
-                  placeholder="০"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-ink-muted">ছাড় (ঐচ্ছিক)</label>
-                <NumericInput
-                  value={discountRaw}
-                  onChange={(raw) => setDiscountRaw(raw)}
-                  placeholder="০"
-                />
-              </div>
+            <div>
+              <label className="mb-1 block text-xs text-ink-muted">এখন জমা নিলেন</label>
+              <NumericInput value={paidRaw} onChange={(raw) => setPaidRaw(raw)} placeholder="০" />
+              <p className="mt-1 text-sm font-semibold text-danger tabular-nums">বাকি থাকবে {formatTaka(dueAmount)}</p>
             </div>
           )}
 
@@ -474,71 +520,41 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
               : 'border-border bg-white'
           }`}
         >
-          <div className="flex items-center justify-between gap-2">
-            <label className="text-xs font-semibold text-ink-muted">
-              কাস্টমার {dueAmount > 0 ? <span className="text-danger">(বাকির জন্য বাধ্যতামূলক *)</span> : '(ঐচ্ছিক)'}
-            </label>
-            <button
-              type="button"
-              onClick={() => setShowInlineCustomer((v) => !v)}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary-ink hover:underline"
-            >
-              <UserPlus className="h-3.5 w-3.5" />
-              <span>নতুন কাস্টমার</span>
-            </button>
-          </div>
-
-          {!showInlineCustomer ? (
-            <SimpleSelect
-              value={partyId}
-              onValueChange={setPartyId}
-              aria-label="কাস্টমার"
-              options={[
-                { value: '', label: dueAmount > 0 ? '— কাস্টমার নির্বাচন করুন —' : 'নগদ ক্রেতা (নাম ছাড়া)' },
-                ...customers.map((c) => ({ value: c.id, label: `${c.name}${c.phone ? ` (${c.phone})` : ''}` })),
-              ]}
-            />
-          ) : (
-            <div className="space-y-2.5 rounded-xl bg-white p-3 shadow-xs">
-              <input
-                type="text"
-                value={newCustomerName}
-                onChange={(e) => setNewCustomerName(e.target.value)}
-                placeholder="কাস্টমারের নাম *"
-                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary-ink focus:outline-none"
-              />
-              <input
-                type="tel"
-                value={newCustomerPhone}
-                onChange={(e) => setNewCustomerPhone(e.target.value)}
-                placeholder="মোবাইল নম্বর (ঐচ্ছিক)"
-                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary-ink focus:outline-none"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowInlineCustomer(false)}
-                  className="h-10 flex-1 rounded-xl bg-surface-muted text-xs font-semibold text-ink-muted"
-                >
-                  বাতিল
-                </button>
-                <button
-                  type="button"
-                  disabled={creatingCustomer}
-                  onClick={handleQuickCreateCustomer}
-                  className="h-10 flex-1 rounded-xl bg-primary-gradient text-xs font-semibold text-on-primary"
-                >
-                  {creatingCustomer ? 'যোগ হচ্ছে...' : 'কাস্টমার যোগ করুন'}
-                </button>
-              </div>
-            </div>
-          )}
+          <PartyPicker
+            label={dueAmount > 0 ? 'কাস্টমার (বাকির জন্য বাধ্যতামূলক) *' : 'কাস্টমার (ঐচ্ছিক)'}
+            value={partyId}
+            onChange={setPartyId}
+            role="customer"
+            emptyLabel={dueAmount > 0 ? undefined : 'নগদ ক্রেতা (নাম ছাড়া)'}
+            invalid={dueAmount > 0 && !partyId}
+          />
 
           {dueAmount > 0 && !partyId && (
             <p className="text-xs text-danger">
               বাকি টাকা ({formatTaka(dueAmount)}) অজানা ক্রেতার নামে রাখা যাবে না। অনুগ্রহ করে কাস্টমার নির্বাচন করুন।
             </p>
           )}
+        </div>
+
+        {editSale && (
+          <div>
+            <label htmlFor="edit-reason" className="mb-1 block text-sm font-semibold text-ink-muted">
+              সংশোধনের কারণ (ঐচ্ছিক)
+            </label>
+            <input
+              id="edit-reason"
+              type="text"
+              value={editReason}
+              onChange={(e) => setEditReason(e.target.value)}
+              placeholder="যেমন: দাম ভুল লেখা হয়েছিল"
+              className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-base text-ink focus:border-primary-ink focus:bg-white focus:outline-none"
+            />
+          </div>
+        )}
+
+        <div>
+          <span className="mb-1.5 block text-sm font-semibold text-ink-muted">তারিখ</span>
+          <DateInput value={dateValue} onChange={setDateValue} aria-label="বিক্রির তারিখ" />
         </div>
 
         <div>

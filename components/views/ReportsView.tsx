@@ -7,19 +7,18 @@ import {
   computeDailyBarSeries,
   computeHonestProfit,
   computePeriodFlows,
-  getPeriodBounds,
   isWithinRange,
 } from '@/services/financeCalculator';
 import { downloadTextFile, formatBanglaNumber, formatTaka } from '@/lib/format';
-import type { PeriodPreset } from '@/types/domain';
-import { SegmentedControl } from '@/components/ui/segmented';
+import { PeriodFilter, usePeriodFilter } from '@/components/ui/PeriodFilter';
 
 export function ReportsView() {
   const { data, currentBalances, showToast } = useJomarkhata();
-  const [period, setPeriod] = useState<PeriodPreset>('month');
+  const saleDates = useMemo(() => (data?.sales ?? []).map((s) => s.date), [data?.sales]);
+  const pf = usePeriodFilter(saleDates);
+  const { period, picked, range } = pf;
   const [activeBarIdx, setActiveBarIdx] = useState<number>(6);
 
-  const range = useMemo(() => getPeriodBounds(period), [period]);
 
   const flows = useMemo(() => {
     if (!data) return null;
@@ -73,8 +72,8 @@ export function ReportsView() {
       ['বিকাশ (বর্তমান)', String(currentBalances.channelBalances.bkash)],
       ['নগদ (বর্তমান)', String(currentBalances.channelBalances.nagad)],
       ['ব্যাংক (বর্তমান)', String(currentBalances.channelBalances.bank)],
-      ['বর্তমান মোট পাবো', String(currentBalances.totalReceivables)],
-      ['বর্তমান মোট দিবো', String(currentBalances.totalPayables)],
+      ['বর্তমান মোট পাওনা', String(currentBalances.totalReceivables)],
+      ['বর্তমান মোট দেনা', String(currentBalances.totalPayables)],
       ['নির্বাচিত সময়ে মোট বিক্রি', String(flows.salesRevenue)],
       ['নির্বাচিত সময়ে মোট আদায়', String(flows.totalCollected)],
       ['নির্বাচিত সময়ে মোট খরচ', String(flows.expensesTotal)],
@@ -94,7 +93,7 @@ export function ReportsView() {
       ],
     ];
     const csv = '\uFEFF' + rows.map((r) => r.join(',')).join('\n');
-    downloadTextFile(`jomarkhata-report-${period}.csv`, csv, 'text/csv;charset=utf-8;');
+    downloadTextFile(`jomarkhata-report-${period === 'pick' ? `${picked.year}-${String(picked.month + 1).padStart(2, '0')}` : period}.csv`, csv, 'text/csv;charset=utf-8;');
     showToast('রিপোর্ট CSV ডাউনলোড হয়েছে।');
   };
 
@@ -118,18 +117,7 @@ export function ReportsView() {
       </div>
 
       {/* Period Segmented Tabs (Reference Image 1 Style) */}
-      <SegmentedControl
-        aria-label="সময়কাল"
-        variant="track"
-        value={period}
-        onValueChange={(v) => setPeriod(v as PeriodPreset)}
-        options={[
-          { value: 'today', label: 'আজ' },
-          { value: 'week', label: 'সপ্তাহ' },
-          { value: 'month', label: 'মাস' },
-          { value: 'all', label: 'সব সময়' },
-        ]}
-      />
+      <PeriodFilter state={pf} presets={['today', 'month', 'pick', 'all']} />
 
       {/* 1. Strictly Separated Period Flows */}
       <section className="rounded-3xl bg-white p-5 shadow-card">
@@ -388,13 +376,13 @@ export function ReportsView() {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-ink-muted">মোট পাবো (কাস্টমার)</span>
+                <span className="text-ink-muted">মোট পাওনা (কাস্টমার)</span>
                 <span className="font-bold tabular-nums text-danger">
                   {formatTaka(currentBalances.totalReceivables)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-ink-muted">মোট দিবো (সাপ্লায়ার)</span>
+                <span className="text-ink-muted">মোট দেনা (সাপ্লায়ার)</span>
                 <span className="font-bold tabular-nums text-primary-ink">
                   {formatTaka(currentBalances.totalPayables)}
                 </span>

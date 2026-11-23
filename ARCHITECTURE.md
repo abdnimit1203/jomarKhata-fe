@@ -48,26 +48,39 @@ All financial math and state transitions live exclusively inside `services/finan
 
 ## 3. Local Offline-First Storage (Dexie + IndexedDB)
 
-- Database name: `jomarkhata_db` (`db/jomarkhataDb.ts`), schema `version(1)` with upgrade hook readiness for `version(2+)`.
-- All multi-table mutations execute inside real `db.transaction('rw', [...], async () => { ... })` blocks.
-- Every record uses a stable UUID `id` (`crypto.randomUUID()`), ISO timestamps (`createdAt`, `updatedAt`), and `revision` counter.
-- A local `syncQueue` outbox records pending `upsert` / `void` mutations so future synchronization with `Jomarkhata BE` (Express + Mongoose) can plug in cleanly without changing UI components. In Phase 1, all storage is strictly local to the browser (no mock cloud sync or fake authentication).
+There are two databases:
+- **`jomarkhata_db`:** the real khata, plus `appMeta` (workspace, mode, last backup, cached subscription).
+- **`jomarkhata_demo`:** the demo khata only (AP-2). It's never uploaded.
+
+`getJomarkhataDb()` returns the active one; see `db/jomarkhataDb.ts`.
+
+**Schema v3**, additive only:
+- **v1:** the original tables
+- **v2:** `appMeta` (AP-3)
+- **v3:** outbox v2 indexes `status` and `opId`, with an in-place upgrade of existing items (AP-4)
+
+Dexie's query cache is disabled (`cache: 'disabled'`). The app doesn't use liveQuery, and the cache made bulk writes about 10× slower (S13).
+
+**How data is written and protected:**
+- **Every multi-table mutation runs inside one `db.transaction('rw', …)`.** It writes the record, its linked rows, an audit log entry and an outbox item.
+- **Every record has a stable UUID `id`,** ISO timestamps and a `revision` counter.
+- **Startup is read-only** (`bootstrap()`). It never seeds, writes or deletes.
+- **The outbox (`syncQueue`) is append-only.** The sync engine (`lib/sync/engine.ts`) sits behind a `SyncTransport` interface and marks an item synced only when the server acknowledges it. **There's no transport until the backend exists, so nothing is sent.** See `docs/BACKEND_CONTRACT.md`.
+- **Backups (`lib/backup.ts`):** v2 with a checksum and optional AES-GCM password. Restore is validated and atomic, and saves a safety copy of the current data first.
 
 ---
 
 ## 4. Testing & Data-Preservation Guard
 
-- **Commands:** `npm test` (Vitest) and `npm run typecheck` (`tsc --noEmit`). Tests live in `tests/` and run in Node against `fake-indexeddb`, using the **real** Dexie DB, `jomarkhataService` and `financeCalculator`. Nothing is mocked.
-- **`tests/helpers/app.ts`:** `bootApp()` simulates a fresh device. `bootApp(sameFactory)` simulates the same device after a restart, reload or PWA relaunch: module singletons are reset and IndexedDB contents are kept.
-- **`tests/helpers/invariants.ts`:** after any scenario, asserts the accounting invariants in §2:
-  - party balance = sum of active due entries
-  - exactly one active money movement per paid sale, purchase, expense or collection
-  - no credit without a party
-  - voids reverse every linked record
-  - no orphan money movements
-  - optionally, stock = sum of stock movements
-- **Schema lock (`tests/migration-preservation.test.ts`):** the DB name (`jomarkhata_db`), version (1), tables and indexes are pinned. **Any schema change must add a new `version(n)` with an additive `.upgrade()`.** Existing tables and records are never dropped. The same file proves every record type survives restarts and that data written by an older build opens unchanged. It also contains a harness showing the planned additive v2 migration (new `appMeta` table, extended outbox fields) keeps all v1 records.
-- **UI and PWA work must not touch the DB name, schema or service behaviour.** If any of those tests fail, the change is not merged.
+- **Commands:** `npm test` (Vitest) and `npm run typecheck`. Tests run in Node against `fake-indexeddb` with the **real** Dexie DB, `jomarkhataService` and `financeCalculator`. Nothing is mocked.
+- **Helpers:**
+  - `tests/helpers/app.ts`: `bootApp()` is a fresh device; `bootApp(sameFactory)` is the same device after a restart.
+  - `tests/helpers/invariants.ts`: the accounting invariants in §2, **including stock = Σ stock movements (always on since AP-9)**.
+  - `tests/helpers/shop.ts`: a realistic small shop.
+  - `tests/helpers/fixtures.ts`: a **test-only** large khata for performance work.
+- **Schema lock (`tests/migration-preservation.test.ts`):** the DB name, version 3, tables and indexes are pinned. It also checks the real v1 → v3 and v2 → v3 upgrades and that records survive restarts.
+- **Behaviour tests:** each step has its own file (first-run, dues, forms, history, backup, sync, accounts, navigation, dashboard, landing, pwa, performance).
+- **Browser end-to-end checks:** run against the production build (headless Edge at 360px). The results are recorded in `CHANGELOG.md`.
 
 ---
 

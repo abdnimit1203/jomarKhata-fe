@@ -53,6 +53,22 @@ export type PeriodPreset = 'today' | 'week' | 'month' | 'year' | 'all';
 
 export type ChannelOpeningBalances = Record<PaymentChannel, number>;
 
+/** Key/value app metadata (Dexie v2, AP-3). Never business data. */
+export interface AppMetaRecord {
+  key: 'workspace' | 'prefs' | string;
+  value: unknown;
+  updatedAt: string;
+}
+
+/** `workspace` meta: written once, when the owner starts their real khata (or keeps legacy data). */
+export interface WorkspaceMeta {
+  workspaceId: string;
+  createdAt: string;
+  origin: 'setup' | 'legacy';
+}
+
+export type DbMode = 'real' | 'demo';
+
 export interface BusinessProfile {
   id: string; // singleton 'default'
   shopName: string;
@@ -272,6 +288,8 @@ export interface AuditLog {
  * Local-only offline mutation outbox ready for future Jomarkhata BE sync.
  * Phase 1 records pending mutations locally; no mock cloud sync is performed.
  */
+export type SyncItemStatus = 'pending' | 'syncing' | 'synced' | 'failed' | 'needs_review';
+
 export interface SyncQueueItem {
   id: string;
   entityType: AuditEntityType | 'money_movement' | 'stock_movement';
@@ -279,7 +297,19 @@ export interface SyncQueueItem {
   operation: 'upsert' | 'void';
   payload: string;
   queuedAt: string;
+  /** Legacy v1 field, kept for old readers. `status` is the real state since outbox v2 (AP-4). */
   syncStatus: 'pending';
+  // ---- outbox v2 (S9, AP-4; OFFLINE_SYNC.md) ----
+  /** Idempotency key: the server must treat a repeated opId as a no-op returning the first result. */
+  opId: string;
+  /** Owning tenant, set when an account claims this khata (backend phase). */
+  tenantId: string | null;
+  /** Record revision the change was based on (conflict detection for edits). */
+  baseRevision: number | null;
+  status: SyncItemStatus;
+  retryCount: number;
+  lastAttemptAt: string | null;
+  lastError: string | null;
 }
 
 // ============================================================================

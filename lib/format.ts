@@ -214,6 +214,21 @@ export function downloadTextFile(filename: string, content: string, mimeType: st
  * Converts an ISO timestamp (or Date) to a local `yyyy-MM-dd` value for date inputs.
  * The stored value stays ISO; this is for the picker only.
  */
+/**
+ * Date-input value (yyyy-MM-dd) → ISO string for saving (S6).
+ * - New entry dated today → undefined (the service stamps "now").
+ * - Editing with the day unchanged → the original ISO (keeps its time).
+ * - Any other day → that day at the current time of day (keeps same-day ordering natural).
+ */
+export function dateInputToIso(value: string, original?: string): string | undefined {
+  if (!value) return original;
+  if (original && toDateInputValue(original) === value) return original;
+  if (!original && value === toDateInputValue(new Date())) return undefined;
+  const [y, m, d] = value.split('-').map(Number);
+  const now = new Date();
+  return new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds()).toISOString();
+}
+
 export function toDateInputValue(input: string | Date): string {
   const d = typeof input === 'string' ? new Date(input) : input;
   if (Number.isNaN(d.getTime())) return '';

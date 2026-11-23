@@ -1,5 +1,19 @@
-import { getJomarkhataDb, type JomarkhataDB } from '@/db/jomarkhataDb';
+import {
+  getActiveDbMode,
+  getDemoDb,
+  getJomarkhataDb,
+  getRealDb,
+  normalizeOutboxItem,
+  setActiveDbMode,
+  type JomarkhataDB,
+} from '@/db/jomarkhataDb';
 import { buildSeedDataset } from '@/db/seedData';
+import { takeChanges } from '@/db/changeTracker';
+import { mergeRows } from '@/lib/snapshot-merge';
+import { BACKUP_TABLES, buildBackupFile, parseBackup, type BackupData, type BackupPreview } from '@/lib/backup';
+import { JOMARKHATA_DB_VERSION } from '@/db/jomarkhataDb';
+import { timed } from '@/lib/perf';
+import type { CachedSubscription } from '@/lib/access-policy';
 import { computePartyRunningTimeline } from '@/services/financeCalculator';
 import { formatTaka, generateId } from '@/lib/format';
 import type {
@@ -8,6 +22,8 @@ import type {
   AuditLog,
   BusinessProfile,
   ChannelOpeningBalances,
+  DbMode,
+  WorkspaceMeta,
   DueDirection,
   DueTransaction,
   EntryMode,
@@ -37,6 +53,72 @@ export interface AppDataSnapshot {
   stockMovements: StockMovement[];
   auditLogs: AuditLog[];
   pendingSyncCount: number;
+}
+
+/** AP-8: list tables in a snapshot and how a full read orders them (null = id order). */
+const SNAPSHOT_TABLES = {
+  parties: null,
+  products: null,
+  sales: 'date',
+  purchases: 'date',
+  moneyMovements: 'date',
+  dueTransactions: 'date',
+  expenses: 'date',
+  stockMovements: 'date',
+  auditLogs: 'timestamp',
+} as const;
+type SnapshotTable = keyof typeof SNAPSHOT_TABLES;
+
+/** The last snapshot handed to the app and the database it came from (AP-8). */
+let lastLoaded: { db: JomarkhataDB; snap: AppDataSnapshot } | null = null;
+
+/** What the app shows at startup (S3). Decided by reading only; startup never writes. */
+export type StartupPhase = 'welcome' | 'legacy_choice' | 'ready';
+
+export interface StartupState {
+  phase: StartupPhase;
+  mode: DbMode;
+  snapshot: AppDataSnapshot | null;
+}
+
+export interface NewShopInput {
+  shopName: string;
+  ownerName: string;
+  phone: string;
+  address?: string;
+  businessType: string;
+  openingBalances: ChannelOpeningBalances;
+}
+
+/** Bangladesh mobile: 01[3-9] + 8 digits (Bengali digits accepted). Empty is allowed. */
+export function isValidBdMobile(phone: string): boolean {
+  const ascii = phone.replace(/[০-৯]/g, (d) => String('০১২৩৪৫৬৭৮৯'.indexOf(d))).replace(/[\s-]/g, '');
+  return ascii === '' || /^(\+?88)?01[3-9]\d{8}$/.test(ascii);
+}
+
+/** Every table that holds shop records (everything except appMeta). */
+function shopTables(db: JomarkhataDB) {
+  return [
+    db.businessProfile,
+    db.parties,
+    db.products,
+    db.sales,
+    db.purchases,
+    db.moneyMovements,
+    db.dueTransactions,
+    db.expenses,
+    db.stockMovements,
+    db.auditLogs,
+    db.syncQueue,
+  ];
+}
+
+async function getMeta<T>(db: JomarkhataDB, key: string): Promise<T | undefined> {
+  return (await db.appMeta.get(key))?.value as T | undefined;
+}
+
+async function setMeta(db: JomarkhataDB, key: string, value: unknown) {
+  await db.appMeta.put({ key, value, updatedAt: new Date().toISOString() });
 }
 
 export interface CreateSaleInput {
@@ -119,15 +201,63 @@ async function enqueueSyncMutation(
   operation: 'upsert' | 'void',
   payload: unknown
 ): Promise<void> {
+  const id = generateId();
+  const rev = (payload as { revision?: unknown } | null)?.revision;
   await db.syncQueue.add({
-    id: generateId(),
+    id,
     entityType,
     entityId,
     operation,
     payload: JSON.stringify(payload),
     queuedAt: new Date().toISOString(),
     syncStatus: 'pending',
+    opId: id,
+    tenantId: null,
+    baseRevision: typeof rev === 'number' ? rev : null,
+    status: 'pending',
+    retryCount: 0,
+    lastAttemptAt: null,
+    lastError: null,
   });
+}
+
+/**
+ * AP-4: a void also changes linked rows (money movement, due, stock reversal, product, party).
+ * Each of those gets its own outbox op, so the server can replay the void exactly.
+ */
+async function queueLinkedVoidChanges(
+  db: JomarkhataDB,
+  link: {
+    moneyMovementId?: string | null;
+    dueTransactionId?: string | null;
+    partyId?: string | null;
+    sourceId: string;
+    at: string;
+    /** Only sales/purchases reverse stock (and their transactions include the stock tables). */
+    stock?: boolean;
+  }
+): Promise<void> {
+  if (link.moneyMovementId) {
+    const mm = await db.moneyMovements.get(link.moneyMovementId);
+    if (mm) await enqueueSyncMutation(db, 'money_movement', mm.id, 'void', mm);
+  }
+  if (link.dueTransactionId) {
+    const due = await db.dueTransactions.get(link.dueTransactionId);
+    if (due) await enqueueSyncMutation(db, 'due_transaction', due.id, 'void', due);
+  }
+  if (link.partyId) {
+    const party = await db.parties.get(link.partyId);
+    if (party) await enqueueSyncMutation(db, 'party', party.id, 'upsert', party);
+  }
+  if (!link.stock) return;
+  const reversals = (await db.stockMovements.where('sourceId').equals(link.sourceId).toArray()).filter(
+    (m) => m.reason === 'void_reversal' && m.createdAt === link.at
+  );
+  for (const sm of reversals) {
+    await enqueueSyncMutation(db, 'stock_movement', sm.id, 'upsert', sm);
+    const prod = await db.products.get(sm.productId);
+    if (prod) await enqueueSyncMutation(db, 'product', prod.id, 'upsert', prod);
+  }
 }
 
 /**
@@ -163,15 +293,131 @@ async function nextInvoiceNumber(db: JomarkhataDB, prefix: 'INV' | 'BILL'): Prom
  * live strictly here inside atomic Dexie transactions.
  */
 export const jomarkhataService = {
-  async initializeAndLoad(): Promise<AppDataSnapshot> {
-    const db = getJomarkhataDb();
-    const existingProfile = await db.businessProfile.get('default');
-
-    if (!existingProfile) {
-      await this.seedDatabase(db);
+  /**
+   * Startup (S3, AP-1). READ-ONLY: decides what to show and never writes, seeds or deletes.
+   * - welcome: no shop yet on this device.
+   * - legacy_choice: an older build left data here (no workspace record). The owner decides
+   *   whether it's demo or their real khata (D15). Nothing is changed until they choose.
+   * - ready: real khata, or demo mode.
+   */
+  async bootstrap(): Promise<StartupState> {
+    const real = getRealDb();
+    const prefs = await getMeta<{ activeMode?: DbMode }>(real, 'prefs');
+    if (prefs?.activeMode === 'demo') {
+      setActiveDbMode('demo');
+      const demo = getDemoDb();
+      if (!(await demo.businessProfile.get('default'))) await this.seedDatabase(demo); // demo DB only
+      return { phase: 'ready', mode: 'demo', snapshot: await this.loadAllData() };
     }
+    setActiveDbMode('real');
+    if (!(await real.businessProfile.get('default'))) return { phase: 'welcome', mode: 'real', snapshot: null };
+    const workspace = await getMeta<WorkspaceMeta>(real, 'workspace');
+    return { phase: workspace ? 'ready' : 'legacy_choice', mode: 'real', snapshot: await this.loadAllData() };
+  },
 
+  /** Loads the active database. Kept for existing callers; it no longer auto-seeds (AP-1). */
+  async initializeAndLoad(): Promise<AppDataSnapshot> {
     return this.loadAllData();
+  },
+
+  /** Start the owner's real khata from the setup form (empty khata, D3). */
+  async createShop(input: NewShopInput): Promise<AppDataSnapshot> {
+    const db = getRealDb();
+    const shopName = input.shopName.trim();
+    if (!shopName) throw new Error('দোকানের নাম লিখুন।');
+    if (!isValidBdMobile(input.phone)) throw new Error('সঠিক মোবাইল নম্বর লিখুন (যেমন 01712345678)।');
+    const now = new Date().toISOString();
+    const profile: BusinessProfile = {
+      id: 'default',
+      shopName,
+      ownerName: input.ownerName.trim(),
+      phone: input.phone.trim(),
+      address: (input.address ?? '').trim(),
+      businessType: input.businessType.trim() || 'সাধারণ খুচরা',
+      openingBalances: {
+        cash: Math.max(0, Math.round(input.openingBalances.cash || 0)),
+        bkash: Math.max(0, Math.round(input.openingBalances.bkash || 0)),
+        nagad: Math.max(0, Math.round(input.openingBalances.nagad || 0)),
+        bank: Math.max(0, Math.round(input.openingBalances.bank || 0)),
+      },
+      defaultLowStockThreshold: 5,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await db.transaction('rw', [db.businessProfile, db.appMeta, db.auditLogs, db.syncQueue], async () => {
+      if (await db.businessProfile.get('default')) throw new Error('এই ফোনে আগেই একটি দোকানের খাতা আছে।');
+      await db.businessProfile.put(profile);
+      const workspace: WorkspaceMeta = { workspaceId: generateId(), createdAt: now, origin: 'setup' };
+      await setMeta(db, 'workspace', workspace);
+      await setMeta(db, 'prefs', { activeMode: 'real' });
+      await appendAuditLog(db, {
+        entityType: 'business_profile',
+        entityId: 'default',
+        action: 'create',
+        summary: `নতুন খাতা শুরু: ${profile.shopName}`,
+        beforeSnapshot: null,
+        afterSnapshot: profile,
+      });
+      await enqueueSyncMutation(db, 'business_profile', 'default', 'upsert', profile);
+    });
+    setActiveDbMode('real');
+    return this.loadAllData();
+  },
+
+  /** D15 choice 1: the data an older build left here is the owner's real khata. Data unchanged. */
+  async keepLegacyAsMine(): Promise<AppDataSnapshot> {
+    const db = getRealDb();
+    await db.transaction('rw', [db.appMeta], async () => {
+      if (!(await getMeta(db, 'workspace'))) {
+        const workspace: WorkspaceMeta = { workspaceId: generateId(), createdAt: new Date().toISOString(), origin: 'legacy' };
+        await setMeta(db, 'workspace', workspace);
+      }
+      await setMeta(db, 'prefs', { activeMode: 'real' });
+    });
+    setActiveDbMode('real');
+    return this.loadAllData();
+  },
+
+  /**
+   * D15 choice 2: the data an older build left here was only demo. It is MOVED (never just deleted)
+   * into the demo database: copied, verified row-for-row, and only then cleared from the real one.
+   */
+  async moveLegacyToDemo(): Promise<void> {
+    const real = getRealDb();
+    const demo = getDemoDb();
+    if (await getMeta(real, 'workspace')) throw new Error('এই খাতাটি আপনার আসল খাতা হিসেবে চিহ্নিত, তাই সরানো যাবে না।');
+    const tables = shopTables(real).filter((t) => t.name !== 'syncQueue'); // demo never syncs
+    const copy: Record<string, unknown[]> = {};
+    for (const t of tables) copy[t.name] = await t.toArray();
+
+    await demo.transaction('rw', shopTables(demo), async () => {
+      for (const t of shopTables(demo)) await t.clear();
+      for (const t of tables) await demo.table(t.name).bulkPut(copy[t.name]);
+    });
+    for (const t of tables) {
+      const n = await demo.table(t.name).count();
+      if (n !== copy[t.name].length) throw new Error('ডেমোতে সরানো যাচাই করা যায়নি; কিছুই মোছা হয়নি।');
+    }
+    await real.transaction('rw', shopTables(real), async () => {
+      for (const t of shopTables(real)) await t.clear();
+    });
+  },
+
+  /** Open the demo khata (its own database). The real khata is untouched. */
+  async enterDemo(): Promise<AppDataSnapshot> {
+    const real = getRealDb();
+    await setMeta(real, 'prefs', { activeMode: 'demo' });
+    setActiveDbMode('demo');
+    const demo = getDemoDb();
+    if (!(await demo.businessProfile.get('default'))) await this.seedDatabase(demo);
+    return this.loadAllData();
+  },
+
+  /** Leave demo mode and go back to the real khata (or the welcome screen if there is none yet). */
+  async exitDemo(): Promise<StartupState> {
+    await setMeta(getRealDb(), 'prefs', { activeMode: 'real' });
+    setActiveDbMode('real');
+    return this.bootstrap();
   },
 
   async seedDatabase(db: JomarkhataDB): Promise<void> {
@@ -206,8 +452,10 @@ export const jomarkhataService = {
     );
   },
 
+  /** Reset the DEMO khata only. Refuses in the real khata (fixes the old wipe-everything risk). */
   async resetDemoData(): Promise<AppDataSnapshot> {
-    const db = getJomarkhataDb();
+    if (getActiveDbMode() !== 'demo') throw new Error('আসল খাতায় ডেমো রিসেট করা যায় না।');
+    const db = getDemoDb();
     await db.transaction(
       'rw',
       [
@@ -245,6 +493,8 @@ export const jomarkhataService = {
 
   async loadAllData(): Promise<AppDataSnapshot> {
     const db = getJomarkhataDb();
+    lastLoaded = null;
+    takeChanges(db); // start a fresh change list BEFORE reading (see db/changeTracker.ts)
     const [
       businessProfile,
       parties,
@@ -268,14 +518,14 @@ export const jomarkhataService = {
       db.expenses.orderBy('date').reverse().toArray(),
       db.stockMovements.orderBy('date').reverse().toArray(),
       db.auditLogs.orderBy('timestamp').reverse().toArray(),
-      db.syncQueue.where('syncStatus').equals('pending').count(),
+      db.syncQueue.where('status').noneOf(['synced']).count(),
     ]);
 
     if (!businessProfile) {
       throw new Error('বিজনেস প্রোফাইল লোড করা যায়নি।');
     }
 
-    return {
+    const snap: AppDataSnapshot = {
       businessProfile,
       parties,
       products,
@@ -288,20 +538,163 @@ export const jomarkhataService = {
       auditLogs,
       pendingSyncCount,
     };
+    lastLoaded = { db, snap };
+    return snap;
   },
 
-  async exportBackupJson(): Promise<string> {
-    const snapshot = await this.loadAllData();
-    return JSON.stringify(
-      {
-        app: 'Jomarkhata (জমারখাতা)',
-        schemaVersion: 1,
-        exportedAt: new Date().toISOString(),
-        data: snapshot,
-      },
-      null,
-      2
-    );
+  /**
+   * AP-8: the refresh after a save. Re-reads only the rows written since the last load and merges
+   * them into the previous snapshot. The result equals `loadAllData()` (tests compare the two after
+   * every kind of write). Unchanged tables keep their array, so screens that depend on them don't
+   * recompute. Falls back to a full read after a khata switch, a range delete/clear, or anything
+   * it can't merge.
+   */
+  async loadChanges(): Promise<AppDataSnapshot> {
+    const db = getJomarkhataDb();
+    const prev = lastLoaded;
+    if (!prev || prev.db !== db) return this.loadAllData();
+    lastLoaded = null; // until this refresh succeeds, the next one is a full read
+    const changes = takeChanges(db);
+    if (changes.whole.size > 0) return this.loadAllData();
+
+    const next: AppDataSnapshot = { ...prev.snap };
+    const tables = (Object.keys(SNAPSHOT_TABLES) as SnapshotTable[]).filter((t) => changes.keys.has(t));
+    const [businessProfile, pendingSyncCount, ...fresh] = await Promise.all([
+      changes.keys.has('businessProfile') ? db.businessProfile.get('default') : prev.snap.businessProfile,
+      changes.keys.has('syncQueue') ? db.syncQueue.where('status').noneOf(['synced']).count() : prev.snap.pendingSyncCount,
+      ...tables.map((t) => db.table(t).bulkGet([...changes.keys.get(t)!])),
+    ]);
+    if (!businessProfile) throw new Error('বিজনেস প্রোফাইল লোড করা যায়নি।');
+    next.businessProfile = businessProfile as BusinessProfile;
+    next.pendingSyncCount = pendingSyncCount as number;
+
+    for (let i = 0; i < tables.length; i++) {
+      const t = tables[i];
+      const merged = mergeRows(
+        prev.snap[t] as Array<{ id: string }>,
+        [...changes.keys.get(t)!],
+        fresh[i] as Array<{ id: string } | undefined>,
+        SNAPSHOT_TABLES[t],
+      );
+      if (!merged) return this.loadAllData();
+      (next as unknown as Record<string, unknown>)[t] = merged;
+    }
+    lastLoaded = { db, snap: next };
+    return next;
+  },
+
+  // =========================================================================
+  // Backup, restore & data safety (S8: AP-10, AP-11)
+  // =========================================================================
+
+  /** Every table of the active khata as backup data (appMeta excluded). */
+  async readBackupData(db: JomarkhataDB = getJomarkhataDb()): Promise<BackupData> {
+    const profile = await db.businessProfile.get('default');
+    if (!profile) throw new Error('ব্যাকআপ নেওয়ার মতো কোনো খাতা নেই।');
+    const data: BackupData = { businessProfile: profile as unknown as Record<string, unknown> };
+    for (const t of BACKUP_TABLES) data[t] = await db.table(t).toArray();
+    return data;
+  },
+
+  /** Backup file v2 (checksum, counts, optional password). Records when the last backup was taken. */
+  async exportBackupJson(password?: string): Promise<string> {
+    const file = await buildBackupFile(await this.readBackupData(), JOMARKHATA_DB_VERSION, password || undefined);
+    if (getActiveDbMode() === 'real') await setMeta(getRealDb(), 'lastBackupAt', new Date().toISOString());
+    return file;
+  },
+
+  /** Outbox overview for the সিঙ্ক অবস্থা screen (read-only). */
+  async getSyncStatus(): Promise<{ counts: Record<string, number>; items: SyncQueueItem[] }> {
+    const db = getJomarkhataDb();
+    const all = await db.syncQueue.toArray();
+    const counts: Record<string, number> = { pending: 0, syncing: 0, synced: 0, failed: 0, needs_review: 0 };
+    for (const i of all) counts[i.status ?? 'pending'] = (counts[i.status ?? 'pending'] ?? 0) + 1;
+    const items = all
+      .filter((i) => i.status !== 'synced')
+      .sort((a, b) => b.queuedAt.localeCompare(a.queuedAt))
+      .slice(0, 50);
+    return { counts, items };
+  },
+
+  /** Cloud state of one record: today always "local" (no backend), later synced / needs review. */
+  async getRecordSyncState(entityId: string): Promise<'local' | 'synced' | 'needs_review'> {
+    const ops = await getJomarkhataDb().syncQueue.where('entityId').equals(entityId).toArray();
+    if (ops.some((o) => o.status === 'needs_review')) return 'needs_review';
+    if (ops.length > 0 && ops.every((o) => o.status === 'synced')) return 'synced';
+    return 'local';
+  },
+
+  /** Last server-verified subscription (backend phase). Local mode has none → never restricted. */
+  async getCachedSubscription(): Promise<CachedSubscription | null> {
+    return (await getMeta<CachedSubscription>(getRealDb(), 'subscription')) ?? null;
+  },
+
+  async getLastBackupAt(): Promise<string | null> {
+    return (await getMeta<string>(getRealDb(), 'lastBackupAt')) ?? null;
+  },
+
+  /** Validate a backup file and describe it, without changing anything. */
+  async inspectBackup(text: string, password?: string): Promise<BackupPreview> {
+    return (await parseBackup(text, password)).preview;
+  },
+
+  /** Keep one automatic copy of the current khata on this device before a destructive action. */
+  async saveSafetyCopy(reason: 'restore' | 'clear'): Promise<boolean> {
+    const real = getRealDb();
+    if (!(await real.businessProfile.get('default'))) return false;
+    const json = await buildBackupFile(await this.readBackupData(real), JOMARKHATA_DB_VERSION);
+    await setMeta(real, 'safetyCopy', { reason, createdAt: new Date().toISOString(), json });
+    return true;
+  },
+
+  async getSafetyCopy(): Promise<{ reason: string; createdAt: string; json: string } | null> {
+    return (await getMeta(getRealDb(), 'safetyCopy')) ?? null;
+  },
+
+  /**
+   * Restore (replace) the real khata from a backup file (AP-10):
+   * validate everything → automatic safety copy of the current data → apply in ONE transaction,
+   * so it either fully succeeds or changes nothing. Never merges two shops.
+   */
+  async restoreBackup(text: string, password?: string): Promise<AppDataSnapshot> {
+    if (getActiveDbMode() !== 'real') throw new Error('ডেমো খাতায় ব্যাকআপ ফিরিয়ে আনা যায় না। আগে আসল খাতায় যান।');
+    const { data } = await timed('restore: parse+validate', () => parseBackup(text, password));
+    await timed('restore: safety copy', () => this.saveSafetyCopy('restore'));
+    const db = getRealDb();
+    await timed('restore: write', () => db.transaction('rw', [...shopTables(db), db.appMeta], async () => {
+      for (const t of shopTables(db)) await t.clear();
+      await db.businessProfile.put(data.businessProfile as unknown as BusinessProfile);
+      for (const t of BACKUP_TABLES) {
+        const rows = data[t] as Array<Record<string, unknown>>;
+        await db.table(t).bulkPut(t === 'syncQueue' ? rows.map((r) => ({ ...r, ...normalizeOutboxItem(r) })) : rows);
+      }
+      if (!(await getMeta(db, 'workspace'))) {
+        const workspace: WorkspaceMeta = { workspaceId: generateId(), createdAt: new Date().toISOString(), origin: 'setup' };
+        await setMeta(db, 'workspace', workspace);
+      }
+      await setMeta(db, 'prefs', { activeMode: 'real' });
+    }));
+    return timed('restore: reload', () => this.loadAllData());
+  },
+
+  /**
+   * "খাতা খালি করুন": removes every record but keeps the shop profile (AP-10).
+   * A safety copy is saved first; the UI also offers a download and asks for typed confirmation.
+   */
+  async clearKhata(): Promise<AppDataSnapshot> {
+    if (getActiveDbMode() !== 'real') throw new Error('এটি শুধু আসল খাতার জন্য।');
+    await this.saveSafetyCopy('clear');
+    const db = getRealDb();
+    await db.transaction('rw', shopTables(db), async () => {
+      for (const t of shopTables(db)) if (t.name !== 'businessProfile') await t.clear();
+      await appendAuditLog(db, {
+        entityType: 'business_profile',
+        entityId: 'default',
+        action: 'edit',
+        summary: 'খাতা খালি করা হয়েছে (আগের হিসাবের একটি নিরাপত্তা-কপি এই ফোনে রাখা আছে)',
+      });
+    });
+    return this.loadAllData();
   },
 
   // =========================================================================
@@ -733,7 +1126,8 @@ export const jomarkhataService = {
           if (item.productId) {
             const prod = await db.products.get(item.productId);
             if (prod) {
-              const nextQty = Math.max(0, prod.stockQty - item.qty);
+              // AP-9 (D33): no clamp. Stock may go negative so it always equals the sum of movements.
+              const nextQty = prod.stockQty - item.qty;
               await db.products.update(prod.id, { stockQty: nextQty, updatedAt: now });
               const sm: StockMovement = {
                 id: generateId(),
@@ -797,7 +1191,8 @@ export const jomarkhataService = {
     return createdSale;
   },
 
-  async editSale(saleId: string, input: CreateSaleInput): Promise<SaleRecord> {
+  /** `reason` (optional, AP-6) is stored on the audit log entry. */
+  async editSale(saleId: string, input: CreateSaleInput, reason?: string): Promise<SaleRecord> {
     const db = getJomarkhataDb();
     const subtotal = Math.round(input.items.reduce((sum, i) => sum + i.lineTotal, 0));
     const discount = Math.max(0, Math.round(input.discount || 0));
@@ -862,7 +1257,7 @@ export const jomarkhataService = {
             const prod = await db.products.get(pid);
             if (prod) {
               await db.products.update(pid, {
-                stockQty: Math.max(0, prod.stockQty + stockDelta),
+                stockQty: prod.stockQty + stockDelta, // AP-9: no clamp
                 updatedAt: now,
               });
               const sm: StockMovement = {
@@ -1002,6 +1397,7 @@ export const jomarkhataService = {
           summary: `বিক্রি ${existing.invoiceNo} সংশোধন হয়েছে: ${formatTaka(existing.total)} → ${formatTaka(total)} (জমা ${formatTaka(paidAmount)})`,
           beforeSnapshot: existing,
           afterSnapshot: updatedSale,
+          reason: reason?.trim() || null,
         });
         await enqueueSyncMutation(db, 'sale', saleId, 'upsert', updatedSale);
       }
@@ -1097,6 +1493,7 @@ export const jomarkhataService = {
           afterSnapshot: voided,
           reason: cleanReason,
         });
+        await queueLinkedVoidChanges(db, { moneyMovementId: existing.moneyMovementId, dueTransactionId: existing.dueTransactionId, partyId: existing.partyId, sourceId: saleId, at: now, stock: true });
         await enqueueSyncMutation(db, 'sale', saleId, 'void', voided);
       }
     );
@@ -1261,7 +1658,7 @@ export const jomarkhataService = {
     return createdPurchase;
   },
 
-  async editPurchase(purchaseId: string, input: CreatePurchaseInput): Promise<PurchaseRecord> {
+  async editPurchase(purchaseId: string, input: CreatePurchaseInput, reason?: string): Promise<PurchaseRecord> {
     const db = getJomarkhataDb();
     const total = Math.round(input.items.reduce((sum, i) => sum + i.lineTotal, 0));
     if (total <= 0) throw new Error('ক্রয়ের মোট টাকা শূন্যের বেশি হতে হবে।');
@@ -1322,7 +1719,7 @@ export const jomarkhataService = {
             const prod = await db.products.get(pid);
             if (prod) {
               await db.products.update(pid, {
-                stockQty: Math.max(0, prod.stockQty + delta),
+                stockQty: prod.stockQty + delta, // AP-9: no clamp
                 updatedAt: now,
               });
               await db.stockMovements.add({
@@ -1456,6 +1853,7 @@ export const jomarkhataService = {
           summary: `ক্রয় ${existing.billNo} সংশোধন হয়েছে: ${formatTaka(existing.total)} → ${formatTaka(total)}`,
           beforeSnapshot: existing,
           afterSnapshot: updatedPurchase,
+          reason: reason?.trim() || null,
         });
         await enqueueSyncMutation(db, 'purchase', purchaseId, 'upsert', updatedPurchase);
       }
@@ -1517,7 +1915,7 @@ export const jomarkhataService = {
             const prod = await db.products.get(item.productId);
             if (prod) {
               await db.products.update(prod.id, {
-                stockQty: Math.max(0, prod.stockQty - item.qty),
+                stockQty: prod.stockQty - item.qty, // AP-9: no clamp
                 updatedAt: now,
               });
               await db.stockMovements.add({
@@ -1545,6 +1943,7 @@ export const jomarkhataService = {
           afterSnapshot: voided,
           reason: cleanReason,
         });
+        await queueLinkedVoidChanges(db, { moneyMovementId: existing.moneyMovementId, dueTransactionId: existing.dueTransactionId, partyId: existing.partyId, sourceId: purchaseId, at: now, stock: true });
         await enqueueSyncMutation(db, 'purchase', purchaseId, 'void', voided);
       }
     );
@@ -1585,7 +1984,7 @@ export const jomarkhataService = {
           source = 'customer_collection';
           usedPaymentMethod = channel;
           moneyMovementId = generateId();
-          defaultNote = 'বাকি আদায় (নিচ্ছি)';
+          defaultNote = 'টাকা পেলাম';
           const mm: MoneyMovement = {
             id: moneyMovementId,
             direction: 'in',
@@ -1608,7 +2007,7 @@ export const jomarkhataService = {
           source = 'supplier_payment';
           usedPaymentMethod = channel;
           moneyMovementId = generateId();
-          defaultNote = 'সাপ্লায়ার পরিশোধ (দিচ্ছি)';
+          defaultNote = 'টাকা দিলাম';
           const mm: MoneyMovement = {
             id: moneyMovementId,
             direction: 'out',
@@ -1629,11 +2028,11 @@ export const jomarkhataService = {
         } else if (input.entryType === 'manual_due_given') {
           direction = 'given';
           source = 'manual_due';
-          defaultNote = 'বাকি দিচ্ছি';
+          defaultNote = 'বাকিতে দিলাম';
         } else {
           direction = 'received';
           source = 'manual_due';
-          defaultNote = 'বাকি নিচ্ছি';
+          defaultNote = 'বাকিতে নিলাম';
         }
 
         created = {
@@ -1677,7 +2076,8 @@ export const jomarkhataService = {
 
   async editDueEntry(
     dueId: string,
-    updates: { amount: number; paymentMethod?: PaymentChannel; note?: string; date?: string }
+    updates: { amount: number; paymentMethod?: PaymentChannel; note?: string; date?: string },
+    reason?: string
   ): Promise<void> {
     const db = getJomarkhataDb();
     const amount = Math.round(updates.amount);
@@ -1727,6 +2127,7 @@ export const jomarkhataService = {
           summary: `বাকি লেনদেন সংশোধন হয়েছে: ${formatTaka(existing.amount)} → ${formatTaka(amount)}`,
           beforeSnapshot: existing,
           afterSnapshot: next,
+          reason: reason?.trim() || null,
         });
         await enqueueSyncMutation(db, 'due_transaction', dueId, 'upsert', next);
       }
@@ -1775,6 +2176,7 @@ export const jomarkhataService = {
           afterSnapshot: voided,
           reason: cleanReason,
         });
+        await queueLinkedVoidChanges(db, { moneyMovementId: existing.moneyMovementId, partyId: existing.partyId, sourceId: dueId, at: now });
         await enqueueSyncMutation(db, 'due_transaction', dueId, 'void', voided);
       }
     );
@@ -1844,7 +2246,7 @@ export const jomarkhataService = {
     return created;
   },
 
-  async editExpense(expenseId: string, input: CreateExpenseInput): Promise<void> {
+  async editExpense(expenseId: string, input: CreateExpenseInput, reason?: string): Promise<void> {
     const db = getJomarkhataDb();
     const amount = Math.round(input.amount);
     if (amount <= 0) throw new Error('খরচের পরিমাণ শূন্যের বেশি হতে হবে।');
@@ -1887,6 +2289,7 @@ export const jomarkhataService = {
         summary: `খরচ "${title}" সংশোধন হয়েছে: ${formatTaka(existing.amount)} → ${formatTaka(amount)}`,
         beforeSnapshot: existing,
         afterSnapshot: next,
+        reason: reason?.trim() || null,
       });
       await enqueueSyncMutation(db, 'expense', expenseId, 'upsert', next);
     });
@@ -1924,6 +2327,7 @@ export const jomarkhataService = {
         afterSnapshot: voided,
         reason: cleanReason,
       });
+      await queueLinkedVoidChanges(db, { moneyMovementId: existing.moneyMovementId, sourceId: expenseId, at: now });
       await enqueueSyncMutation(db, 'expense', expenseId, 'void', voided);
     });
   },

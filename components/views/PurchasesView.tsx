@@ -2,27 +2,28 @@
 
 import React, { useMemo, useState } from 'react';
 import { Plus, Search, ShoppingCart } from 'lucide-react';
+import { ShowMore, usePaged } from '@/components/ui/ShowMore';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { EmptyState } from '@/components/ui/StateBlocks';
-import { getPeriodBounds, isWithinRange } from '@/services/financeCalculator';
+import { isWithinRange } from '@/services/financeCalculator';
 import {
   formatBanglaDateTime,
   formatBanglaNumber,
   formatTaka,
   getChannelShortLabel,
 } from '@/lib/format';
-import type { PeriodPreset } from '@/types/domain';
-import { SegmentedControl } from '@/components/ui/segmented';
+import { PeriodFilter, usePeriodFilter } from '@/components/ui/PeriodFilter';
 
 export function PurchasesView() {
   const { data, openSheet } = useJomarkhata();
-  const [period, setPeriod] = useState<PeriodPreset>('month');
+  const listDates = useMemo(() => (data?.purchases ?? []).map((r) => r.date), [data?.purchases]);
+  const pf = usePeriodFilter(listDates); // presets + any month/year
   const [showVoided, setShowVoided] = useState(false);
   const [search, setSearch] = useState('');
 
   const filteredPurchases = useMemo(() => {
     if (!data) return [];
-    const range = getPeriodBounds(period);
+    const range = pf.range;
     const q = search.trim().toLowerCase();
     return data.purchases.filter((p) => {
       if (!isWithinRange(p.date, range)) return false;
@@ -37,7 +38,8 @@ export function PurchasesView() {
       }
       return true;
     });
-  }, [data, period, showVoided, search]);
+  }, [data, pf.range, showVoided, search]);
+  const page = usePaged(filteredPurchases, JSON.stringify(filteredPurchases.length));
 
   const summary = useMemo(() => {
     let total = 0;
@@ -58,7 +60,7 @@ export function PurchasesView() {
     <div className="mx-auto max-w-5xl space-y-4 pb-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-ink">কেনার খাতা (ক্রয়)</h1>
+          <h1 className="text-xl font-bold text-ink">কেনার হিসাব (ক্রয়)</h1>
           <p className="text-xs text-ink-muted">পাইকারি ক্রয় ও সাপ্লায়ার বিলের হিসাব</p>
         </div>
         <button
@@ -93,18 +95,7 @@ export function PurchasesView() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <SegmentedControl
-          aria-label="সময়কাল"
-          variant="track"
-          value={period}
-          onValueChange={(v) => setPeriod(v as PeriodPreset)}
-          options={[
-            { value: 'today', label: 'আজ' },
-            { value: 'week', label: 'সপ্তাহ' },
-            { value: 'month', label: 'মাস' },
-            { value: 'all', label: 'সব' },
-          ]}
-        />
+        <PeriodFilter state={pf} />
 
         <button
           type="button"
@@ -140,7 +131,7 @@ export function PurchasesView() {
         />
       ) : (
         <div className="space-y-2.5">
-          {filteredPurchases.map((p) => {
+          {page.visible.map((p) => {
             const isVoided = p.status === 'voided';
             return (
               <button
@@ -177,7 +168,7 @@ export function PurchasesView() {
                       <span className="font-semibold text-danger">বাতিলকৃত</span>
                     ) : p.dueAmount > 0 ? (
                       <span className="font-semibold text-warning-ink">
-                        দিবো {formatTaka(p.dueAmount)}
+                        দেনা {formatTaka(p.dueAmount)}
                       </span>
                     ) : (
                       <span className="font-medium text-primary-ink">
@@ -189,6 +180,7 @@ export function PurchasesView() {
               </button>
             );
           })}
+          <ShowMore remaining={page.remaining} onMore={page.more} />
         </div>
       )}
     </div>

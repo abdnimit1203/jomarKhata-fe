@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { X } from 'lucide-react';
+import { useSheetGuard } from '@/lib/sheet-guard';
 
 interface ModalSheetProps {
   open: boolean;
@@ -23,6 +24,19 @@ export function ModalSheet({
   footer,
   maxWidthClass = 'lg:max-w-xl',
 }: ModalSheetProps) {
+  const { markDirty } = useSheetGuard();
+  // Native listener (capture) so every typed character in any field marks the form as unsaved.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!open || !el) return;
+    el.addEventListener('input', markDirty, true);
+    el.addEventListener('change', markDirty, true);
+    return () => {
+      el.removeEventListener('input', markDirty, true);
+      el.removeEventListener('change', markDirty, true);
+    };
+  });
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
@@ -84,7 +98,9 @@ export function ModalSheet({
             </div>
 
             {/* Body */}
-            <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+            <div ref={bodyRef} className="flex-1 overflow-y-auto px-5 py-4">
+              {children}
+            </div>
 
             {/* Footer */}
             {footer && (

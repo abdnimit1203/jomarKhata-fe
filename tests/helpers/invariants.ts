@@ -90,8 +90,8 @@ export async function assertLedgerInvariants(app: App, options: { checkStock?: b
     expect(exists, `money movement ${mm.id} (${mm.sourceType}) has an active source`).toBe(true);
   }
 
-  // Stock quantity == sum of its stock movements (only valid when nothing was clamped at 0).
-  if (options.checkStock) {
+  // Stock quantity == sum of its stock movements. Always on since AP-9 (no clamping at 0).
+  if (options.checkStock !== false) {
     for (const prod of s.products) {
       const sum = s.stockMovements
         .filter((m) => m.productId === prod.id)

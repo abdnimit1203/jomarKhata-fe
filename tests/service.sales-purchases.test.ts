@@ -187,18 +187,57 @@ describe('purchases', () => {
   });
 });
 
-describe('known issue AP-9 (documented, not fixed): stock clamp on oversell', () => {
-  it('overselling clamps stockQty at 0 while the movement records the full quantity, so they diverge', async () => {
-    const prod = await addProduct(2);
-    await app.service.createSale({
+describe('AP-9 fixed (D33): oversell is allowed and stock always equals the sum of movements', () => {
+  const movementSum = async (productId: string) =>
+    (await app.db.stockMovements.where('productId').equals(productId).toArray()).reduce((acc, m) => acc + m.deltaQty, 0);
+  const sale = (productId: string, name: string, qty: number) =>
+    app.service.createSale({
       mode: 'product',
-      items: [{ productId: prod.id, name: prod.name, qty: 5, unitPrice: 75, unitCostSnapshot: 60, lineTotal: 375 }],
-      paidAmount: 375,
+      items: [{ productId, name, qty, unitPrice: 75, unitCostSnapshot: 60, lineTotal: 75 * qty }],
+      paidAmount: 75 * qty,
       paymentMethod: 'cash',
     });
-    const s = await app.service.loadAllData();
-    const movementSum = s.stockMovements.reduce((acc, m) => acc + m.deltaQty, 0);
-    expect(s.products[0].stockQty).toBe(0);
-    expect(movementSum).toBe(-3); // 2 opening − 5 sold: CURRENT behaviour, pending owner decision AP-9
+
+  it('selling more than stock saves the sale and shows negative stock (no silent clamp)', async () => {
+    const prod = await addProduct(2);
+    await sale(prod.id, prod.name, 5);
+    const p = (await app.db.products.get(prod.id))!;
+    expect(p.stockQty).toBe(-3);
+    expect(await movementSum(prod.id)).toBe(-3);
+  });
+
+  it('a later purchase brings negative stock back up correctly', async () => {
+    const prod = await addProduct(2);
+    await sale(prod.id, prod.name, 5);
+    await app.service.createPurchase({
+      mode: 'product',
+      items: [{ productId: prod.id, name: prod.name, qty: 10, unitPrice: 60, lineTotal: 600 }],
+      paidAmount: 600,
+      paymentMethod: 'cash',
+    });
+    expect((await app.db.products.get(prod.id))!.stockQty).toBe(7);
+    expect(await movementSum(prod.id)).toBe(7);
+  });
+
+  it('edit, void and purchase edits/voids keep stockQty == sum(movements) through negative values', async () => {
+    const prod = await addProduct(1);
+    const s1 = await sale(prod.id, prod.name, 4); // -3
+    await app.service.editSale(s1.id, {
+      mode: 'product',
+      items: [{ productId: prod.id, name: prod.name, qty: 6, unitPrice: 75, unitCostSnapshot: 60, lineTotal: 450 }],
+      paidAmount: 450,
+      paymentMethod: 'cash',
+    }); // -5
+    const pur = await app.service.createPurchase({
+      mode: 'product',
+      items: [{ productId: prod.id, name: prod.name, qty: 2, unitPrice: 60, lineTotal: 120 }],
+      paidAmount: 120,
+      paymentMethod: 'cash',
+    }); // -3
+    await app.service.voidPurchase(pur.id, 'ভুল'); // -5
+    await app.service.voidSale(s1.id, 'ভুল'); // +1
+    const p = (await app.db.products.get(prod.id))!;
+    expect(p.stockQty).toBe(1);
+    expect(await movementSum(prod.id)).toBe(p.stockQty);
   });
 });

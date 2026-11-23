@@ -8,18 +8,18 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 |---|---|---|
 | S0 | Safety net (tests) | ✅ Accepted by owner |
 | S1 | Design system foundation (colours, type, font, shared components, welcome screen design, ক্যাশ/নগদ wording) + revisions D22/D23 (amber) → **D24 blue redesign** (reference style, multicolour tiles, Radix Select/ToggleGroup) | ✅ Done, awaiting owner review |
-| S2 | App shell & navigation | ⏸ Not started (needs approval) |
-| S3 | First run, local mode, business profile (+ wiring the welcome screen) | ⏸ |
-| S4 | Dashboard & cash summary | ⏸ |
-| S5 | Customers, suppliers & Due Book | ⏸ |
-| S6 | Sales, purchases, expenses | ⏸ |
-| S7 | Corrections & history | ⏸ |
-| S8 | Backup, restore & data safety | ⏸ |
-| S9 | Sync queue & connection status | ⏸ |
-| S10 | Account interfaces & access policy | ⏸ |
+| S2 | App shell & navigation | ✅ Done: bottom bar with + and আরও, top bar back/title/online pill, Android back integration, unsaved-form guard |
+| S3 | First run, local mode, business profile (+ wiring the welcome screen) | ✅ Done: welcome → shop setup (empty khata), separate demo DB, legacy choice (D15), Dexie v2 appMeta (AP-1/2/3) |
+| S4 | Dashboard & cash summary | ✅ Done: compact hero with পাবো/দিবো, বেচা/কেনা above the fold at 360×640 (measured), duplicate grid removed |
+| S5 | Customers, suppliers & Due Book | ✅ Done: due list/search/filter, party detail with call + তাগাদা (WhatsApp/SMS/copy), role-aware form with preview + date, shared PartyPicker |
+| S6 | Sales, purchases, expenses | ✅ Done: date on all forms, discount on paid sales, typed qty/price, over-stock warning |
+| S7 | Corrections & history | ✅ Done: before → after history, optional edit reason (AP-6), plain wording, void error toast, return to detail after edit |
+| S8 | Backup, restore & data safety | ✅ Done: backup v2 (checksum, optional password), validated atomic restore with safety copy, v1 compatible, guarded clear, reminder, storage.persist, friendly quota errors (AP-10/11) |
+| S9 | Sync queue & connection status | ✅ Done: outbox v2 (Dexie v3, in-place upgrade), linked void ops, sync engine + runner behind a transport (fake only), সিঙ্ক অবস্থা sheet, per-record badge (AP-4) |
+| S10 | Account interfaces & access policy | ✅ Done: sign-in screen (honest, no session), AuthProvider interface, access policy (grace → read-only, clock-safe), dev-only /preview designs, docs/BACKEND_CONTRACT.md |
 | S11 | ~~Optional PIN lock~~ | ❌ Removed by owner decision |
-| S12 | Android PWA | 🟡 **Core done early** (manifest, offline service worker, verified offline in a browser). Pending: install-prompt UI, update prompt, real-phone test on Vercel Preview |
-| S13 | Performance, real-device testing, MVP acceptance | ⏸ |
+| S12 | Android PWA | ✅ Done in code: manifest, offline shell (v4), update prompt (waits for owner), install card (Android prompt / iOS steps). Real-phone check is in the S13 checklist |
+| S13 | Performance, real-device testing, MVP acceptance | ✅ Done: large-data fixtures, measured budgets (typical shop within budget), paging + Dexie cache fix, real-device checklist, MVP acceptance report. Pending: owner's real-phone run, AP-8 decision |
 
 ## What works today
 - **Fully local bookkeeping in IndexedDB:** sales, purchases, customers and suppliers, due collection and payment, expenses, stock, reports, edit/void with audit history, and JSON backup export.
@@ -30,7 +30,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 ## Quality gates
 | Check | Command | S0 | S1 |
 |---|---|---|---|
-| Tests | `npm test` | 49 / 49 | **100 / 100** (6 files) |
+| Tests | `npm test` | 49 / 49 | **231 / 231** (24 files) |
 | TypeScript | `npm run typecheck` | 0 errors | **0 errors** |
 | Production build | `npm run build` | — | **✓ compiled, 3/3 static pages** |
 | Mobile render check (360px, Edge via puppeteer) | manual | — | Welcome and Dashboard render with **0px horizontal overflow** |
@@ -38,7 +38,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 ## ⚠ Business-critical: release blocker
 | Issue | Rule |
 |---|---|
-| **AP-9: overselling corrupts stock.** `stockQty` is clamped at 0 while the stock movement records the full −qty, so the two diverge and a later void over-restores stock. | **Must be fixed (with owner approval of the change) before the sales feature is released to real users.** It's documented by a characterisation test in `tests/service.sales-purchases.test.ts`. |
+| ~~**AP-9: overselling corrupts stock.**~~ | ✅ **Fixed 2026-11-23 (D33):** no clamp, oversell allowed with a warning, `stockQty` always equals Σ movements (always-on test invariant). Release blocker cleared. |
 
 ## Other known issues (documented by tests, not yet fixed)
 | Issue | Plan item |
@@ -48,7 +48,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 | Edits and voids queue only the parent record, not the changed money movement, due, stock or running-balance rows | S9 (AP-4) |
 | Invoice/bill numbers use `count + 1001` (will collide across devices) | AP-5 (backend phase) |
 
-## Dependency audit review (2026-11-22, read-only; nothing upgraded)
+## Dependency audit review (2026-11-22; resolved 2026-11-23: `firebase-tools` removed, vitest 5.1.1, `npm audit` = 0)
 `npm audit`: 23 advisories (3 critical, 8 high, 12 moderate). **`npm audit --omit=dev`: 0.** Nothing that ships to users is affected.
 
 | Severity | Package (path) | Advisory (summary) | Real exposure | Recommendation (needs owner approval) |

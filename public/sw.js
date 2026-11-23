@@ -11,7 +11,7 @@
  */
 // Bump VERSION whenever a file under /icons or /brand is replaced: those paths are served
 // cache-first, so phones keep the old copy until the cache name changes.
-const VERSION = 'jk-shell-v2';
+const VERSION = 'jk-shell-v4';
 const FEATURE_ICONS = [
   'add-plus', 'book-due', 'book-expense', 'book-purchase', 'book-sales', 'cashbox', 'due-collect',
   'expense', 'money-in', 'money-out', 'nav-home', 'nav-transactions', 'party-list', 'purchase',
@@ -19,6 +19,7 @@ const FEATURE_ICONS = [
 ].map((n) => `/icons/features/${n}.svg`);
 const SHELL_URLS = [
   '/',
+  '/app',
   '/manifest.webmanifest',
   '/favicon.ico',
   '/icons/icon-192.png',
@@ -28,13 +29,10 @@ const SHELL_URLS = [
   ...FEATURE_ICONS,
 ];
 
+// No automatic skipWaiting: an update waits until the owner taps "আপডেট করুন" (S12), so the
+// page never switches versions in the middle of a form. A first install activates immediately.
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches
-      .open(VERSION)
-      .then((cache) => cache.addAll(SHELL_URLS))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(SHELL_URLS)));
 });
 
 self.addEventListener('activate', (event) => {
@@ -68,6 +66,10 @@ async function putInCache(request, response) {
 // visit is enough to make the app work offline.
 self.addEventListener('message', (event) => {
   const data = event.data || {};
+  if (data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+    return;
+  }
   if (data.type !== 'CACHE_URLS' || !Array.isArray(data.urls)) return;
   event.waitUntil(
     (async () => {
@@ -103,7 +105,9 @@ self.addEventListener('fetch', (event) => {
           return fresh;
         } catch {
           const cache = await caches.open(VERSION);
-          return (await cache.match(request)) || (await cache.match('/')) || Response.error();
+          // App routes fall back to the cached app shell, everything else to the landing page.
+          const shell = url.pathname.startsWith('/app') ? '/app' : '/';
+          return (await cache.match(request)) || (await cache.match(shell)) || (await cache.match('/')) || Response.error();
         }
       })()
     );

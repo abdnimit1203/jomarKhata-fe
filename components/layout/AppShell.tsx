@@ -2,10 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import {
+  ArrowLeft,
+  WifiOff,
   BarChart3,
   BookOpen,
   BookText,
   Home,
+  MoreHorizontal,
   Package,
   Plus,
   Receipt,
@@ -14,6 +17,13 @@ import {
   ShoppingCart,
   Wallet,
 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useOnline } from '@/hooks/use-online';
+import { formatBanglaNumber } from '@/lib/format';
+import { MORE_ROUTES, ROUTE_TITLES } from './navigation';
+import { MoreSheet, QuickAddSheet } from './NavSheets';
+import { SyncStatusSheet } from './SyncStatusSheet';
+import { UpdateBanner } from '@/components/pwa/PwaPrompts';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { DashboardSkeleton, ToastContainer } from '@/components/ui/StateBlocks';
 import { SaleFormSheet } from '@/components/sheets/SaleFormSheet';
@@ -36,13 +46,15 @@ import { StockView } from '@/components/views/StockView';
 import { ReportsView } from '@/components/views/ReportsView';
 import { SettingsView } from '@/components/views/SettingsView';
 import { WelcomeScreen } from '@/components/onboarding/WelcomeScreen';
+import { ShopSetupScreen } from '@/components/onboarding/ShopSetupScreen';
+import { LegacyChoiceScreen } from '@/components/onboarding/LegacyChoiceScreen';
 import type { AppRoute } from '@/types/domain';
 
 const DESKTOP_NAV: Array<{ id: AppRoute; label: string; icon: React.ComponentType<{ className?: string }> }> = [
   { id: 'dashboard', label: 'হোম (ড্যাশবোর্ড)', icon: Home },
-  { id: 'sales', label: 'বেচার খাতা (বিক্রি)', icon: ShoppingBag },
-  { id: 'purchases', label: 'কেনার খাতা (ক্রয়)', icon: ShoppingCart },
-  { id: 'dues', label: 'বাকির খাতা', icon: BookOpen },
+  { id: 'sales', label: 'বিক্রির হিসাব', icon: ShoppingBag },
+  { id: 'purchases', label: 'কেনার হিসাব', icon: ShoppingCart },
+  { id: 'dues', label: 'পাওনা-দেনা', icon: BookOpen },
   { id: 'ledger', label: 'সব লেনদেন (লেজার)', icon: BookText },
   { id: 'cash', label: 'দৈনিক ক্যাশ ও খরচ', icon: Wallet },
   { id: 'stock', label: 'স্টকের হিসাব', icon: Package },
@@ -50,13 +62,46 @@ const DESKTOP_NAV: Array<{ id: AppRoute; label: string; icon: React.ComponentTyp
   { id: 'settings', label: 'বিজনেস সেটিংস', icon: Settings },
 ];
 
-const MOBILE_TABS: Array<{ id: AppRoute; label: string; icon: React.ComponentType<{ className?: string }> }> = [
-  { id: 'dashboard', label: 'হোম', icon: Home },
-  { id: 'dues', label: 'বাকি', icon: BookOpen },
-  { id: 'ledger', label: 'লেনদেন', icon: BookText },
-  { id: 'stock', label: 'স্টক', icon: Package },
-  { id: 'reports', label: 'রিপোর্ট', icon: BarChart3 },
-];
+/**
+ * Connection indicator: just a softly pulsing green dot when online, a Wi-Fi-off icon when offline.
+ * Hover (desktop) or tap (phone) shows a tiny label for a moment. Never claims cloud backup.
+ */
+function ConnectionDot() {
+  const online = useOnline();
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (!show) return;
+    const t = window.setTimeout(() => setShow(false), 2500);
+    return () => window.clearTimeout(t);
+  }, [show]);
+  const label = online ? 'অনলাইন' : 'অফলাইন — হিসাব ফোনে সংরক্ষিত হচ্ছে';
+  return (
+    <span className="relative inline-flex">
+      <button
+        type="button"
+        onClick={() => setShow((v) => !v)}
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+        aria-label={online ? 'অনলাইন' : 'অফলাইন'}
+        className="flex h-10 w-10 items-center justify-center rounded-full"
+      >
+        {online ? (
+          <span aria-hidden="true" className="jk-pulse relative h-2.5 w-2.5 rounded-full bg-success ring-2 ring-white/70" />
+        ) : (
+          <WifiOff aria-hidden="true" className="h-5 w-5 text-on-primary" />
+        )}
+      </button>
+      {show && (
+        <span
+          role="status"
+          className="absolute top-full right-0 z-50 mt-1 rounded-xl bg-ink px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap text-white shadow-hero"
+        >
+          {label}
+        </span>
+      )}
+    </span>
+  );
+}
 
 export function AppShell() {
   const {
@@ -71,26 +116,43 @@ export function AppShell() {
     closeSheet,
     dismissToast,
     refresh,
+    selectedPartyId,
+    goBack,
+    discardPrompt,
+    cancelDiscard,
+    forceCloseSheet,
+    showToast,
+    phase,
+    mode,
+    actions,
+    access,
   } = useJomarkhata();
+  const [setupOpen, setSetupOpen] = useState(false);
+  const pending = data?.pendingSyncCount ?? 0;
+  const isHome = activeRoute === 'dashboard';
 
-  // S1 design preview only: `?preview=welcome` shows the not-logged-in first page in development.
-  // Real first-run / account wiring arrives in S3 (AP-1..AP-3). Never active in production builds.
-  const [welcomePreview, setWelcomePreview] = useState(false);
-  useEffect(() => {
-    if (process.env.NODE_ENV !== 'development') return;
-    if (new URLSearchParams(window.location.search).get('preview') === 'welcome') {
-      setWelcomePreview(true);
-    }
-  }, []);
-
-  if (welcomePreview) {
+  // S3 first run: welcome → shop setup (empty khata), or the D15 choice for an older build's data.
+  if (!isLoading && !error && phase === 'welcome') {
     return (
-      <WelcomeScreen
-        onStartLocal={() => {
-          window.history.replaceState(null, '', window.location.pathname);
-          setWelcomePreview(false);
-        }}
-      />
+      <>
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+        {setupOpen ? (
+          <ShopSetupScreen onBack={() => setSetupOpen(false)} />
+        ) : (
+          <WelcomeScreen
+            onStart={() => setSetupOpen(true)}
+            onDemo={() => void actions.enterDemo()}
+          />
+        )}
+      </>
+    );
+  }
+  if (!isLoading && !error && phase === 'legacy_choice') {
+    return (
+      <>
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+        <LegacyChoiceScreen />
+      </>
     );
   }
 
@@ -176,30 +238,49 @@ export function AppShell() {
 
         {/* Main Content Area */}
         <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
-          {/* Colourful sticky top bar (S1 rev 3, reference style). Back button + online/offline pill arrive in S2. */}
+          {/* Colourful sticky top bar. Home: greeting. Other screens: back + title. Always: online/offline pill. */}
           <header className="sticky top-0 z-30 overflow-hidden bg-primary-gradient text-on-primary shadow-hero lg:rounded-none">
             {/* soft decorative shapes, like the reference card waves */}
             <span aria-hidden="true" className="pointer-events-none absolute -top-10 right-10 h-28 w-28 rounded-full bg-white/10" />
             <span aria-hidden="true" className="pointer-events-none absolute -bottom-12 right-[-1.5rem] h-28 w-28 rounded-full bg-white/10" />
             <div className="relative flex h-16 items-center justify-between gap-3 px-4 lg:px-8">
-              <div className="flex min-w-0 items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/brand/logo-mark.png"
-                  alt=""
-                  width={40}
-                  height={40}
-                  className="h-10 w-10 shrink-0 rounded-[0.7rem] ring-2 ring-white/80 lg:hidden"
-                />
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-medium text-on-primary">আসসালামু আলাইকুম,</p>
-                  <p className="truncate text-base font-bold text-on-primary">
-                    {data?.businessProfile.shopName || 'জমারখাতা'}
-                  </p>
+              {isHome ? (
+                <div className="flex min-w-0 items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/brand/logo-mark.png"
+                    alt=""
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 shrink-0 rounded-[0.7rem] ring-2 ring-white/80 lg:hidden"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium text-on-primary">আসসালামু আলাইকুম,</p>
+                    <p className="truncate text-base font-bold text-on-primary">
+                      {data?.businessProfile.shopName || 'জমারখাতা'}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex min-w-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={goBack}
+                    aria-label="পিছনে যান"
+                    className="-ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 text-on-primary transition-colors hover:bg-white/30"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </button>
+                  <h1 className="truncate text-lg font-bold text-on-primary">
+                    {activeRoute === 'dues' && selectedPartyId
+                      ? data?.parties.find((p) => p.id === selectedPartyId)?.name ?? ROUTE_TITLES.dues
+                      : ROUTE_TITLES[activeRoute]}
+                  </h1>
+                </div>
+              )}
 
               <div className="flex shrink-0 items-center gap-2">
+                <ConnectionDot />
                 <button
                   type="button"
                   onClick={() => openSheet({ type: 'expense' })}
@@ -208,20 +289,50 @@ export function AppShell() {
                   <Receipt className="h-4 w-4" />
                   <span>সহজ খরচ</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('settings')}
-                  aria-label="সেটিংস"
-                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-on-primary transition-colors hover:bg-white/30"
-                >
-                  <Settings className="h-5 w-5" />
-                </button>
+                {isHome && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('settings')}
+                    aria-label="সেটিংস"
+                    className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-on-primary transition-colors hover:bg-white/30"
+                  >
+                    <Settings className="h-5 w-5" />
+                  </button>
+                )}
               </div>
             </div>
           </header>
 
           {/* Main Scrollable Viewport */}
           <main className="flex-1 px-4 pt-4 pb-24 lg:px-8 lg:pt-6 lg:pb-10">
+            <UpdateBanner />
+            {access.level !== 'full' && !isLoading && (
+              <div
+                role="status"
+                className={`mx-auto mb-4 max-w-6xl rounded-2xl px-4 py-3 text-sm font-semibold ${
+                  access.level === 'grace' ? 'bg-warning-soft text-warning-ink' : 'bg-danger-soft text-danger'
+                }`}
+              >
+                {access.level === 'grace'
+                  ? `সাবস্ক্রিপশনের মেয়াদ শেষ। আরও ${formatBanglaNumber(access.graceDaysLeft ?? 0)} দিন সব কাজ চলবে — এর মধ্যে নবায়ন করুন।`
+                  : 'সাবস্ক্রিপশনের মেয়াদ শেষ। আপনার সব হিসাব দেখা ও ব্যাকআপ নেওয়া যাবে, কিন্তু নতুন কিছু লেখা যাবে না।'}
+              </div>
+            )}
+            {mode === 'demo' && !isLoading && (
+              <div
+                role="status"
+                className="mx-auto mb-4 flex max-w-6xl flex-wrap items-center justify-between gap-2 rounded-2xl bg-warning-soft px-4 py-3 text-sm font-semibold text-warning-ink"
+              >
+                <span>ডেমো খাতা দেখছেন — এখানের কিছুই আপনার আসল খাতায় যাবে না।</span>
+                <button
+                  type="button"
+                  onClick={() => void actions.exitDemo()}
+                  className="rounded-full bg-white px-3.5 py-1.5 text-sm font-bold text-warning-ink shadow-sm"
+                >
+                  আসল খাতায় যান
+                </button>
+              </div>
+            )}
             {isLoading ? (
               <DashboardSkeleton />
             ) : error ? (
@@ -243,32 +354,58 @@ export function AppShell() {
         </div>
       </div>
 
-      {/* Mobile Fixed 5-Tab Bottom Bar (< lg) — Reference Image 1 Clean Emerald Active Tabs */}
+      {/* Mobile bottom bar (S2, D2): হোম · বাকি · [+] · লেনদেন · আরও */}
       <nav
         aria-label="মোবাইল নেভিগেশন"
         className="fixed right-0 bottom-0 left-0 z-40 border-t border-border bg-white/95 backdrop-blur-md lg:hidden"
       >
         <div className="grid h-16 grid-cols-5 items-center pb-safe">
-          {MOBILE_TABS.map((tab) => {
+          {([
+            { id: 'dashboard', label: 'হোম', icon: Home, active: activeRoute === 'dashboard', onClick: () => navigate('dashboard') },
+            { id: 'dues', label: 'পাওনা-দেনা', icon: BookOpen, active: activeRoute === 'dues', onClick: () => navigate('dues') },
+            { id: 'add', label: 'নতুন', icon: Plus, active: false, onClick: () => openSheet({ type: 'quick_add' }) },
+            { id: 'ledger', label: 'লেনদেন', icon: BookText, active: activeRoute === 'ledger', onClick: () => navigate('ledger') },
+            {
+              id: 'more',
+              label: 'আরও',
+              icon: MoreHorizontal,
+              active: MORE_ROUTES.includes(activeRoute),
+              onClick: () => openSheet({ type: 'more' }),
+            },
+          ] as const).map((tab) => {
             const Icon = tab.icon;
-            const active = activeRoute === tab.id;
+            if (tab.id === 'add') {
+              return (
+                <div key={tab.id} className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={tab.onClick}
+                    aria-label="নতুন লেনদেন যোগ করুন"
+                    className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-primary-gradient text-on-primary shadow-hero ring-4 ring-white transition-transform active:scale-95"
+                  >
+                    <Plus className="h-7 w-7" strokeWidth={2.5} />
+                  </button>
+                </div>
+              );
+            }
             return (
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => navigate(tab.id)}
+                onClick={tab.onClick}
+                aria-current={tab.active ? 'page' : undefined}
                 className={`flex min-h-[48px] flex-col items-center justify-center gap-0.5 transition-colors ${
-                  active ? 'text-primary-ink' : 'text-ink-subtle'
+                  tab.active ? 'text-primary-ink' : 'text-ink-subtle'
                 }`}
               >
                 <span
                   className={`flex h-7 w-11 items-center justify-center rounded-full transition-colors ${
-                    active ? 'bg-secondary' : ''
+                    tab.active ? 'bg-secondary' : ''
                   }`}
                 >
                   <Icon className="h-5 w-5" />
                 </span>
-                <span className={`text-xs leading-tight ${active ? 'font-bold' : 'font-medium'}`}>
+                <span className={`text-xs leading-tight ${tab.active ? 'font-bold' : 'font-medium'}`}>
                   {tab.label}
                 </span>
               </button>
@@ -299,7 +436,7 @@ export function AppShell() {
           key={activeSheet.editDue?.id ?? `${activeSheet.partyId ?? 'any'}-${activeSheet.defaultEntryType ?? 'coll'}`}
           open
           initialPartyId={activeSheet.partyId ?? null}
-          defaultEntryType={activeSheet.defaultEntryType ?? 'customer_collection'}
+          defaultEntryType={activeSheet.defaultEntryType}
           editDue={activeSheet.editDue ?? null}
           onClose={closeSheet}
         />
@@ -337,6 +474,20 @@ export function AppShell() {
           onClose={closeSheet}
         />
       )}
+      {activeSheet.type === 'quick_add' && <QuickAddSheet onClose={closeSheet} />}
+      {activeSheet.type === 'more' && <MoreSheet onClose={closeSheet} />}
+      {activeSheet.type === 'sync_status' && <SyncStatusSheet onClose={closeSheet} />}
+
+      <ConfirmDialog
+        open={discardPrompt}
+        title="লেখা তথ্য বাদ দেবেন?"
+        description="এই ফর্মে যা লিখেছেন তা সংরক্ষণ হয়নি। বন্ধ করলে মুছে যাবে।"
+        confirmLabel="হ্যাঁ, বন্ধ করুন"
+        cancelLabel="ফর্মে ফিরে যান"
+        onCancel={cancelDiscard}
+        onConfirm={forceCloseSheet}
+      />
+
       {activeSheet.type === 'transaction_detail' && (
         <TransactionDetailSheet
           key={`${activeSheet.sourceType}-${activeSheet.sourceId}`}
