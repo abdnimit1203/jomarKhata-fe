@@ -4,6 +4,23 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### S4: Dashboard above the fold, 2026-11-23
+**Changed**
+- **New mobile order (plan 3.1):**
+  1. Compact hero: হাতে ক্যাশ with a বিকাশ · নগদ · ব্যাংক line, then a **পাবো / দিবো** row (taps open the বাকির খাতা).
+  2. **বেচা / কেনা** big buttons.
+  3. 4 quick actions (বাকি আদায়, খরচ, পরিশোধ, স্টক).
+  4. আজ/মাস 2×2 summary.
+  5. খাতা (the 4 book tiles).
+  6. Recent transactions.
+- **Desktop:** two columns (actions + summary on the left, recent transactions on the right).
+- **Removed the duplicate "আপনার ব্যবসার জন্য" grid (plan 3.2).** পার্টি, রিপোর্ট and সেটিংস are in the আরও menu. The 4 খাতা book tiles stay on home, because the owner made those icons for it.
+- `tests/dashboard.test.ts` (3): section order, no duplicate grid, compact hero.
+
+**Verified:** at **360×640**, বেচা/কেনা end at **470px**, above the bottom bar at 575px, even with the demo banner showing. No page errors.
+
+**Not changed:** calculations and services. Same data, new layout.
+
 ### S3: first run, separate demo khata, shop setup, 2026-11-23
 Approved under D32: AP-1, AP-2 and AP-3.
 
