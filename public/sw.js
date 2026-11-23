@@ -11,7 +11,7 @@
  */
 // Bump VERSION whenever a file under /icons or /brand is replaced: those paths are served
 // cache-first, so phones keep the old copy until the cache name changes.
-const VERSION = 'jk-shell-v2';
+const VERSION = 'jk-shell-v3';
 const FEATURE_ICONS = [
   'add-plus', 'book-due', 'book-expense', 'book-purchase', 'book-sales', 'cashbox', 'due-collect',
   'expense', 'money-in', 'money-out', 'nav-home', 'nav-transactions', 'party-list', 'purchase',
@@ -19,6 +19,7 @@ const FEATURE_ICONS = [
 ].map((n) => `/icons/features/${n}.svg`);
 const SHELL_URLS = [
   '/',
+  '/app',
   '/manifest.webmanifest',
   '/favicon.ico',
   '/icons/icon-192.png',
@@ -103,7 +104,9 @@ self.addEventListener('fetch', (event) => {
           return fresh;
         } catch {
           const cache = await caches.open(VERSION);
-          return (await cache.match(request)) || (await cache.match('/')) || Response.error();
+          // App routes fall back to the cached app shell, everything else to the landing page.
+          const shell = url.pathname.startsWith('/app') ? '/app' : '/';
+          return (await cache.match(request)) || (await cache.match(shell)) || (await cache.match('/')) || Response.error();
         }
       })()
     );

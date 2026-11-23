@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
 import { Noto_Sans_Bengali } from 'next/font/google';
-import { JomarkhataProvider } from '@/context/JomarkhataContext';
 import { ServiceWorkerRegister } from '@/components/pwa/ServiceWorkerRegister';
 import './globals.css';
 
@@ -48,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="bn" className={notoSansBengali.variable}>
       <body className="antialiased" suppressHydrationWarning>
-        <JomarkhataProvider>{children}</JomarkhataProvider>
+        {children}
         <ServiceWorkerRegister />
       </body>
     </html>

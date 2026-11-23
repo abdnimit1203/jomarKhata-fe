@@ -6,6 +6,8 @@ A mobile-first, offline-first bookkeeping app for small and medium retail shops 
 
 > **Status:** early development, **local mode only**. All data stays on the device. There's no login, backend or cloud sync yet; they come in later phases from a separate backend repository. Don't use it with real customer data yet.
 
+**New to the code? Read [docs/CODEMAP.md](docs/CODEMAP.md) first.** It's a one-page map of routes, data flow, folders, conventions and tests.
+
 ## Features (working today, offline)
 
 | Area | What you can do |
@@ -20,6 +22,7 @@ A mobile-first, offline-first bookkeeping app for small and medium retail shops 
 | **লেনদেন** | One unified ledger of every transaction with detail view |
 | **রিপোর্ট** | Profit and loss, last 7 days sales vs expenses, expense categories, current balances |
 | **সেটিংস** | Shop profile, opening balances, JSON backup export, demo data reset |
+| **Landing page** | Public page at `/` (features, install steps, FAQ). The app itself is at `/app` |
 | **Installable app** | Installs from Chrome ("Install app"), opens and works with **no internet** after the first visit |
 
 Dates are shown as `dd/MM/yyyy` with Bengali digits. Money is shown in Taka (৳).
@@ -69,7 +72,7 @@ To report a security problem, contact the maintainer privately; please don't ope
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000
+npm run dev        # landing: http://localhost:3000  ·  app: http://localhost:3000/app
 ```
 
 To open it on a phone on the same Wi-Fi, use the "Network" URL that `npm run dev` prints. Add that IP to `allowedDevOrigins` in `next.config.ts` if it differs.

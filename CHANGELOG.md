@@ -4,6 +4,29 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### L1: landing page, app moves to /app, 2026-11-23
+Owner decision D34: landing at `/`, app at `/app`.
+
+**Added**
+- The `/` landing page (`components/landing/LandingPage.tsx`) is static and Bengali-only. Sections: header, hero (2 CTAs), trust strip, 8 feature tiles with the owner's icons, 3 steps, install instructions (Android/iPhone), FAQ, final CTA, footer.
+- **Only true claims.** No cloud, sync, encryption, prices, counts or testimonials. The FAQ says plainly that data lives only on the phone for now. There's no "login-free" promise either (D26).
+- `StandaloneRedirect`: phones that installed earlier (start_url `/`) jump straight to `/app`.
+- `docs/CODEMAP.md`: a one-page map for anyone starting on the code.
+- `tests/landing.test.ts` (7): routing split, the database opens only under `/app`, CTAs, honest-claims guard.
+
+**Changed**
+- The app moved to `/app`. `JomarkhataProvider` moved from the root layout to `app/app/layout.tsx`, so the landing page never opens IndexedDB or seeds demo data.
+- Manifest `start_url` is now `/app`; `id` stays `/`, so existing installs update in place.
+- Service worker `jk-shell-v3`:
+  - precaches `/app`
+  - offline navigation under `/app` falls back to the cached app, everything else to `/`
+- Service-worker registration also caches the app's scripts when the first visit is the landing page.
+
+**Verified** (production build, headless Edge at 360px):
+- Landing renders with no errors at 360px and 1280px.
+- Offline `/app` e2e passed: all tabs, plus an offline sale that survives an offline reload.
+- **Landing-first visit, then offline `/app`, renders the dashboard.**
+
 ### Brand: owner's logo and 19 feature icons, 2026-11-23
 **Added**
 - `public/icons/features/*.svg`: the owner's 19 colourful icons. The source files were each a **whole traced icon sheet** cropped by `viewBox` (~105–165 KB each, 2.4 MB in total). Paths outside each icon's viewBox were removed: **266 KB total, pixel-identical render** (verified by canvas diff, max difference 0).

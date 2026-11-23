@@ -22,6 +22,13 @@ export function ServiceWorkerRegister() {
             .map((entry) => entry.name)
             .filter((name) => name.startsWith(window.location.origin)),
         ];
+        // If the first visit is the landing page, also fetch the app's own scripts so /app opens offline.
+        try {
+          const html = await (await fetch('/app', { credentials: 'same-origin' })).text();
+          urls.push('/app', ...(html.match(/\/_next\/static\/[^"'\s)]+/g) ?? []));
+        } catch {
+          /* offline right now; the app caches itself on its first online visit */
+        }
         (registration.active ?? navigator.serviceWorker.controller)?.postMessage({ type: 'CACHE_URLS', urls });
       } catch {
         // Offline support is an enhancement; the app keeps working online without it.

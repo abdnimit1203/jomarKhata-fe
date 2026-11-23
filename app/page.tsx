@@ -1,5 +1,6 @@
-import { AppShell } from '@/components/layout/AppShell';
+import { LandingPage } from '@/components/landing/LandingPage';
 
+/** Public landing page. The app itself is at /app (installed PWA starts there). */
 export default function HomePage() {
-  return <AppShell />;
+  return <LandingPage />;
 }

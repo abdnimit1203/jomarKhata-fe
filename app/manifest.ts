@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 
 /**
  * Web app manifest (PWA install). Served by Next at /manifest.webmanifest.
- * Icons in /public/icons are TEMPORARY placeholders until the owner's final logo arrives.
+ * Icons are generated from the owner's logo (see CHANGELOG, brand step).
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -12,7 +12,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'দোকানের সব হিসাব, এক খাতায়। ইন্টারনেট ছাড়াই চলে।',
     lang: 'bn',
     dir: 'ltr',
-    start_url: '/',
+    // The app lives at /app; the landing page is at /. `id` stays '/' so existing installs update in place.
+    start_url: '/app',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',

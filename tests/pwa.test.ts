@@ -20,7 +20,8 @@ describe('web app manifest', () => {
   it('is installable: name, standalone display, start URL, theme colours', () => {
     expect(m.short_name).toBe('জমারখাতা');
     expect(m.display).toBe('standalone');
-    expect(m.start_url).toBe('/');
+    expect(m.start_url).toBe('/app');
+    expect(m.id).toBe('/'); // unchanged, so phones that installed earlier update in place
     expect(m.theme_color).toBe('#4664E0');
     expect(m.background_color).toBe('#F5F7FE');
   });
@@ -51,13 +52,14 @@ describe('service worker rules', () => {
   it('pages are network-first with an offline fallback; old caches are cleaned on activate', () => {
     expect(sw).toMatch(/request\.mode === 'navigate'/);
     expect(sw).toMatch(/cache\.match\('\/'\)/);
+    expect(sw).toMatch(/startsWith\('\/app'\) \? '\/app' : '\/'/);
     expect(sw).toMatch(/caches\.delete/);
   });
 
   it('precaches every custom feature icon and the logo, so they show offline on any screen', () => {
     for (const name of APP_ICONS) expect(sw, name).toMatch(new RegExp(`'${name}'`));
     expect(sw).toMatch(/'\/brand\/logo-mark\.png'/);
-    expect(sw).not.toMatch(/jk-shell-v1'/); // v1 cached the placeholder icons cache-first
+    expect(sw).not.toMatch(/jk-shell-v[12]'/); // v1 cached the placeholder icons cache-first; v3 adds /app
   });
 
   it('is registered only in production builds (dev keeps hot reload)', () => {
