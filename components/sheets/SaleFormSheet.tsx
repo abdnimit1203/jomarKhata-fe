@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Minus, Plus, Search, UserPlus, AlertCircle, Package } from 'lucide-react';
+import { Minus, Plus, Search, AlertCircle, Package } from 'lucide-react';
 import { ModalSheet } from '@/components/ui/ModalSheet';
 import { NumericInput } from '@/components/ui/NumericInput';
 import { PaymentChannelPicker } from '@/components/ui/PaymentChannelPicker';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { formatBanglaNumber, formatTaka, parseNumericInput } from '@/lib/format';
 import type { EntryMode, PaymentChannel, SaleLineItem, SaleRecord } from '@/types/domain';
-import { SimpleSelect } from '@/components/ui/select';
+import { PartyPicker } from '@/components/ui/PartyPicker';
 import { SegmentedControl } from '@/components/ui/segmented';
 
 interface SaleFormSheetProps {
@@ -61,18 +61,10 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
   const [partyId, setPartyId] = useState<string>(() => editSale?.partyId ?? '');
   const [note, setNote] = useState(() => editSale?.note ?? '');
 
-  const [showInlineCustomer, setShowInlineCustomer] = useState(false);
-  const [newCustomerName, setNewCustomerName] = useState('');
-  const [newCustomerPhone, setNewCustomerPhone] = useState('');
-  const [creatingCustomer, setCreatingCustomer] = useState(false);
 
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const customers = useMemo(
-    () => (data?.parties ?? []).filter((p) => p.role === 'customer'),
-    [data?.parties]
-  );
 
   const filteredProducts = useMemo(() => {
     const q = productSearch.trim().toLowerCase();
@@ -134,30 +126,6 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
       };
       return next;
     });
-  };
-
-  const handleQuickCreateCustomer = async () => {
-    if (!newCustomerName.trim()) {
-      setFormError('নতুন কাস্টমারের নাম লিখুন।');
-      return;
-    }
-    setCreatingCustomer(true);
-    setFormError(null);
-    try {
-      const created = await actions.createParty({
-        name: newCustomerName.trim(),
-        phone: newCustomerPhone.trim(),
-        role: 'customer',
-      });
-      setPartyId(created.id);
-      setShowInlineCustomer(false);
-      setNewCustomerName('');
-      setNewCustomerPhone('');
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'কাস্টমার যোগ করা যায়নি।');
-    } finally {
-      setCreatingCustomer(false);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -474,65 +442,14 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
               : 'border-border bg-white'
           }`}
         >
-          <div className="flex items-center justify-between gap-2">
-            <label className="text-xs font-semibold text-ink-muted">
-              কাস্টমার {dueAmount > 0 ? <span className="text-danger">(বাকির জন্য বাধ্যতামূলক *)</span> : '(ঐচ্ছিক)'}
-            </label>
-            <button
-              type="button"
-              onClick={() => setShowInlineCustomer((v) => !v)}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary-ink hover:underline"
-            >
-              <UserPlus className="h-3.5 w-3.5" />
-              <span>নতুন কাস্টমার</span>
-            </button>
-          </div>
-
-          {!showInlineCustomer ? (
-            <SimpleSelect
-              value={partyId}
-              onValueChange={setPartyId}
-              aria-label="কাস্টমার"
-              options={[
-                { value: '', label: dueAmount > 0 ? '— কাস্টমার নির্বাচন করুন —' : 'নগদ ক্রেতা (নাম ছাড়া)' },
-                ...customers.map((c) => ({ value: c.id, label: `${c.name}${c.phone ? ` (${c.phone})` : ''}` })),
-              ]}
-            />
-          ) : (
-            <div className="space-y-2.5 rounded-xl bg-white p-3 shadow-xs">
-              <input
-                type="text"
-                value={newCustomerName}
-                onChange={(e) => setNewCustomerName(e.target.value)}
-                placeholder="কাস্টমারের নাম *"
-                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary-ink focus:outline-none"
-              />
-              <input
-                type="tel"
-                value={newCustomerPhone}
-                onChange={(e) => setNewCustomerPhone(e.target.value)}
-                placeholder="মোবাইল নম্বর (ঐচ্ছিক)"
-                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary-ink focus:outline-none"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowInlineCustomer(false)}
-                  className="h-10 flex-1 rounded-xl bg-surface-muted text-xs font-semibold text-ink-muted"
-                >
-                  বাতিল
-                </button>
-                <button
-                  type="button"
-                  disabled={creatingCustomer}
-                  onClick={handleQuickCreateCustomer}
-                  className="h-10 flex-1 rounded-xl bg-primary-gradient text-xs font-semibold text-on-primary"
-                >
-                  {creatingCustomer ? 'যোগ হচ্ছে...' : 'কাস্টমার যোগ করুন'}
-                </button>
-              </div>
-            </div>
-          )}
+          <PartyPicker
+            label={dueAmount > 0 ? 'কাস্টমার (বাকির জন্য বাধ্যতামূলক) *' : 'কাস্টমার (ঐচ্ছিক)'}
+            value={partyId}
+            onChange={setPartyId}
+            role="customer"
+            emptyLabel={dueAmount > 0 ? undefined : 'নগদ ক্রেতা (নাম ছাড়া)'}
+            invalid={dueAmount > 0 && !partyId}
+          />
 
           {dueAmount > 0 && !partyId && (
             <p className="text-xs text-danger">

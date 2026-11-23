@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Minus, Plus, Search, UserPlus, AlertCircle, Package } from 'lucide-react';
+import { Minus, Plus, Search, AlertCircle, Package } from 'lucide-react';
 import { ModalSheet } from '@/components/ui/ModalSheet';
 import { NumericInput } from '@/components/ui/NumericInput';
 import { PaymentChannelPicker } from '@/components/ui/PaymentChannelPicker';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { formatBanglaNumber, formatTaka, parseNumericInput } from '@/lib/format';
 import type { EntryMode, PaymentChannel, PurchaseLineItem, PurchaseRecord } from '@/types/domain';
-import { SimpleSelect } from '@/components/ui/select';
+import { PartyPicker } from '@/components/ui/PartyPicker';
 import { SegmentedControl } from '@/components/ui/segmented';
 
 interface PurchaseFormSheetProps {
@@ -46,18 +46,10 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
   const [partyId, setPartyId] = useState(() => editPurchase?.partyId ?? '');
   const [note, setNote] = useState(() => editPurchase?.note ?? '');
 
-  const [showInlineSupplier, setShowInlineSupplier] = useState(false);
-  const [newSupplierName, setNewSupplierName] = useState('');
-  const [newSupplierPhone, setNewSupplierPhone] = useState('');
-  const [creatingSupplier, setCreatingSupplier] = useState(false);
 
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const suppliers = useMemo(
-    () => (data?.parties ?? []).filter((p) => p.role === 'supplier'),
-    [data?.parties]
-  );
 
   const filteredProducts = useMemo(() => {
     const q = productSearch.trim().toLowerCase();
@@ -102,30 +94,6 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
       next[idx] = { ...existing, qty: nextQty, lineTotal: Math.round(nextQty * existing.unitPrice) };
       return next;
     });
-  };
-
-  const handleQuickCreateSupplier = async () => {
-    if (!newSupplierName.trim()) {
-      setFormError('সাপ্লায়ারের নাম লিখুন।');
-      return;
-    }
-    setCreatingSupplier(true);
-    setFormError(null);
-    try {
-      const created = await actions.createParty({
-        name: newSupplierName.trim(),
-        phone: newSupplierPhone.trim(),
-        role: 'supplier',
-      });
-      setPartyId(created.id);
-      setShowInlineSupplier(false);
-      setNewSupplierName('');
-      setNewSupplierPhone('');
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'সাপ্লায়ার যোগ করা যায়নি।');
-    } finally {
-      setCreatingSupplier(false);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -363,65 +331,14 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
             dueAmount > 0 && !partyId ? 'border-danger-border bg-danger-soft/60' : 'border-border bg-white'
           }`}
         >
-          <div className="flex items-center justify-between gap-2">
-            <label className="text-xs font-semibold text-ink-muted">
-              সাপ্লায়ার {dueAmount > 0 ? <span className="text-danger">(বাকির জন্য বাধ্যতামূলক *)</span> : '(ঐচ্ছিক)'}
-            </label>
-            <button
-              type="button"
-              onClick={() => setShowInlineSupplier((v) => !v)}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary-ink hover:underline"
-            >
-              <UserPlus className="h-3.5 w-3.5" />
-              <span>নতুন সাপ্লায়ার</span>
-            </button>
-          </div>
-
-          {!showInlineSupplier ? (
-            <SimpleSelect
-              value={partyId}
-              onValueChange={setPartyId}
-              aria-label="সাপ্লায়ার"
-              options={[
-                { value: '', label: dueAmount > 0 ? '— সাপ্লায়ার নির্বাচন করুন —' : 'নগদ সরবরাহকারী' },
-                ...suppliers.map((s) => ({ value: s.id, label: `${s.name}${s.phone ? ` (${s.phone})` : ''}` })),
-              ]}
-            />
-          ) : (
-            <div className="space-y-2.5 rounded-xl bg-white p-3 shadow-xs">
-              <input
-                type="text"
-                value={newSupplierName}
-                onChange={(e) => setNewSupplierName(e.target.value)}
-                placeholder="সাপ্লায়ারের নাম *"
-                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary-ink focus:outline-none"
-              />
-              <input
-                type="tel"
-                value={newSupplierPhone}
-                onChange={(e) => setNewSupplierPhone(e.target.value)}
-                placeholder="মোবাইল নম্বর (ঐচ্ছিক)"
-                className="h-11 w-full rounded-xl border border-border-strong px-3 text-sm text-ink focus:border-primary-ink focus:outline-none"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowInlineSupplier(false)}
-                  className="h-10 flex-1 rounded-xl bg-surface-muted text-xs font-semibold text-ink-muted"
-                >
-                  বাতিল
-                </button>
-                <button
-                  type="button"
-                  disabled={creatingSupplier}
-                  onClick={handleQuickCreateSupplier}
-                  className="h-10 flex-1 rounded-xl bg-primary-gradient text-xs font-semibold text-on-primary"
-                >
-                  {creatingSupplier ? 'যোগ হচ্ছে...' : 'সাপ্লায়ার যোগ করুন'}
-                </button>
-              </div>
-            </div>
-          )}
+          <PartyPicker
+            label={dueAmount > 0 ? 'সাপ্লায়ার (বাকির জন্য বাধ্যতামূলক) *' : 'সাপ্লায়ার (ঐচ্ছিক)'}
+            value={partyId}
+            onChange={setPartyId}
+            role="supplier"
+            emptyLabel={dueAmount > 0 ? undefined : 'নগদ সরবরাহকারী'}
+            invalid={dueAmount > 0 && !partyId}
+          />
         </div>
 
         <div>

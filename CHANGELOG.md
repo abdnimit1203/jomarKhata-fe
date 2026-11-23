@@ -4,6 +4,43 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### S5: simpler Due Book, role-aware due form, searchable party picker, 2026-11-23
+**Added / changed**
+- **Due list:**
+  - compact পাবো/দিবো summary, with **search right below it** (name or mobile, Bengali digits OK)
+  - one row with the role tabs, a filter icon (শুধু বাকি আছে + sort) and a new-party button
+  - a sticky **"নতুন বাকি"** button above the bottom bar
+- **Party detail:**
+  - name, role, mobile, and a big balance that always says **পাবো / দিবো**
+  - **কল করুন**, plus **তাগাদা পাঠান** with WhatsApp (`wa.me`, Bangladeshi number normalised), SMS (`sms:` with prefilled body) and copy as a fallback. The result message is honest: "WhatsApp খোলা হয়েছে — বার্তা পাঠানো হলো কিনা সেখানে দেখে নিন".
+  - payment-date row
+  - readable ledger rows: দিয়েছি/নিয়েছি amount, and a running balance that carries the word
+  - sticky **দিচ্ছি / নিচ্ছি** buttons
+- **Role-aware due form:**
+  - From a party screen there's no picker; দিচ্ছি or নিচ্ছি is preset.
+  - **"টাকা দিয়ে / শুধু বাকিতে"** toggle, with a role-based default.
+  - A plain-Bangla explanation line, a **"এরপর: পাবো ৳X" preview**, and a **date field** for backdated entries.
+  - **These map to the same 4 service entry types (`lib/dues.ts`). No service change.**
+- **`PartyPicker`** (shared) replaces the dropdowns in the due, sale and purchase forms.
+  - Search by name or mobile; shows at most 30 rows (fast with thousands of parties).
+  - Add a new party inline; "নগদ ক্রেতা / নগদ সরবরাহকারী" is the empty choice where allowed.
+  - The old inline-create code in the sale/purchase forms was removed.
+- `lib/dues.ts`: pure helpers (mapping, search normalisation, WhatsApp number, reminder text).
+- `tests/dues.test.ts` (8):
+  - all 4 mappings, both ways
+  - **the real service confirms the direction of the balance and cash change for each combination**
+  - backdated date
+  - search, including **5,000 parties in under 100 ms**
+  - labels, WhatsApp number, reminder text
+
+**Verified e2e** (360px):
+- search narrows the list
+- party detail → তাগাদা panel with a valid `wa.me` link
+- নিচ্ছি: no picker, explanation, preview; saved, পাবো ২,৪০০ → ২,৩০০
+- back → list
+- নতুন বাকি → search the picker → choose → choices shown
+- no page reload
+
 ### S4: Dashboard above the fold, 2026-11-23
 **Changed**
 - **New mobile order (plan 3.1):**

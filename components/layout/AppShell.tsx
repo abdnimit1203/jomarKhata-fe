@@ -403,7 +403,7 @@ export function AppShell() {
           key={activeSheet.editDue?.id ?? `${activeSheet.partyId ?? 'any'}-${activeSheet.defaultEntryType ?? 'coll'}`}
           open
           initialPartyId={activeSheet.partyId ?? null}
-          defaultEntryType={activeSheet.defaultEntryType ?? 'customer_collection'}
+          defaultEntryType={activeSheet.defaultEntryType}
           editDue={activeSheet.editDue ?? null}
           onClose={closeSheet}
         />

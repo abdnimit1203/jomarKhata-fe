@@ -1,74 +1,50 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import {
-  ArrowLeft,
-  Calendar,
-  Copy,
-  Edit3,
-  Phone,
-  Plus,
-  Search,
-  UserPlus,
-  Users,
-} from 'lucide-react';
+import { Calendar, Copy, Edit3, MessageCircle, MessageSquare, Phone, Plus, Search, SlidersHorizontal, UserPlus, Users } from 'lucide-react';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { EmptyState } from '@/components/ui/StateBlocks';
 import { DateInput } from '@/components/ui/DateInput';
+import { partyMatches } from '@/components/ui/PartyPicker';
 import { getPeriodBounds, isWithinRange } from '@/services/financeCalculator';
-import {
-  formatBanglaDate,
-  formatBanglaDateTime,
-  formatBanglaNumber,
-  formatTaka,
-  getChannelShortLabel,
-} from '@/lib/format';
-import type { PeriodPreset } from '@/types/domain';
-import { SimpleSelect } from '@/components/ui/select';
+import { formatBanglaDate, formatBanglaDateTime, formatBanglaNumber, formatTaka, getChannelShortLabel } from '@/lib/format';
+import type { Party, PeriodPreset } from '@/types/domain';
 import { SegmentedControl } from '@/components/ui/segmented';
+import { reminderMessage, toWhatsAppNumber } from '@/lib/dues';
+
+
+
+function BalanceLabel({ balance, className = '' }: { balance: number; className?: string }) {
+  if (balance > 0) return <span className={`text-danger ${className}`}>পাবো {formatTaka(balance)}</span>;
+  if (balance < 0) return <span className={`text-primary-ink ${className}`}>দিবো {formatTaka(Math.abs(balance))}</span>;
+  return <span className={`text-ink-subtle ${className}`}>বাকি নেই</span>;
+}
 
 export function DuesView() {
-  const {
-    data,
-    currentBalances,
-    selectedPartyId,
-    setSelectedPartyId,
-    openSheet,
-    actions,
-    showToast,
-  } = useJomarkhata();
+  const { data, currentBalances, selectedPartyId, setSelectedPartyId, openSheet, actions, showToast } = useJomarkhata();
 
   const [roleTab, setRoleTab] = useState<'all' | 'customer' | 'supplier'>('all');
   const [onlyWithDue, setOnlyWithDue] = useState(false);
   const [sortBy, setSortBy] = useState<'due' | 'recent' | 'name'>('due');
   const [search, setSearch] = useState('');
-
-  // Party detail filter
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [detailPeriod, setDetailPeriod] = useState<PeriodPreset>('all');
+  const [remindOpen, setRemindOpen] = useState(false);
 
   const parties = useMemo(() => data?.parties ?? [], [data?.parties]);
-
   const selectedParty = useMemo(
     () => (selectedPartyId ? parties.find((p) => p.id === selectedPartyId) ?? null : null),
     [parties, selectedPartyId]
   );
 
   const filteredParties = useMemo(() => {
-    const q = search.trim().toLowerCase();
     return parties
-      .filter((p) => {
-        if (roleTab !== 'all' && p.role !== roleTab) return false;
-        if (onlyWithDue && p.balance === 0) return false;
-        if (q && !p.name.toLowerCase().includes(q) && !p.phone.toLowerCase().includes(q)) {
-          return false;
-        }
-        return true;
-      })
+      .filter((p) => (roleTab === 'all' || p.role === roleTab) && (!onlyWithDue || p.balance !== 0) && partyMatches(p, search))
       .sort((a, b) => {
         if (sortBy === 'due') return Math.abs(b.balance) - Math.abs(a.balance);
-        if (sortBy === 'name') return a.name.localeCompare(b.name);
-        const ta = a.lastTransactionAt ? new Date(a.lastTransactionAt).getTime() : 0;
-        const tb = b.lastTransactionAt ? new Date(b.lastTransactionAt).getTime() : 0;
+        if (sortBy === 'name') return a.name.localeCompare(b.name, 'bn');
+        const ta = a.lastTransactionAt ? Date.parse(a.lastTransactionAt) : 0;
+        const tb = b.lastTransactionAt ? Date.parse(b.lastTransactionAt) : 0;
         return tb - ta;
       });
   }, [parties, roleTab, onlyWithDue, sortBy, search]);
@@ -82,112 +58,130 @@ export function DuesView() {
   }, [data, selectedParty, detailPeriod]);
 
   const partyTotals = useMemo(() => {
-    let totalReceived = 0;
-    let totalGiven = 0;
+    let given = 0;
+    let received = 0;
     for (const t of partyLedger) {
       if (t.status !== 'active') continue;
-      if (t.direction === 'received') totalReceived += t.amount;
-      else totalGiven += t.amount;
+      if (t.direction === 'given') given += t.amount;
+      else received += t.amount;
     }
-    return { totalReceived, totalGiven };
+    return { given, received };
   }, [partyLedger]);
 
   if (!data) return null;
 
-  // =========================================================================
-  // Party Detail Ledger View (বাকির বিবরণ)
-  // =========================================================================
+  // ===================================================================== Party detail
   if (selectedParty) {
-    const isReceivable = selectedParty.balance > 0;
-    const isPayable = selectedParty.balance < 0;
-
-    const handleCopyReminder = async () => {
-      const msg = `আসসালামু আলাইকুম ${selectedParty.name}, ${data.businessProfile.shopName} থেকে আপনার কাছে বর্তমান বাকি ${formatTaka(Math.abs(selectedParty.balance))}। সুবিধামতো পরিশোধ করার অনুরোধ রইল। ধন্যবাদ।`;
+    const msg = reminderMessage(selectedParty, data.businessProfile.shopName);
+    const wa = selectedParty.phone ? toWhatsAppNumber(selectedParty.phone) : null;
+    const copyReminder = async () => {
       try {
         await navigator.clipboard.writeText(msg);
-        showToast('বাকির তাগাদা বার্তা কপি হয়েছে — SMS বা WhatsApp-এ পাঠান।');
+        showToast('তাগাদার বার্তা কপি হয়েছে। এখন যেকোনো অ্যাপে পেস্ট করে পাঠান।');
       } catch {
-        showToast('তাগাদা বার্তা তৈরি হয়েছে।', 'info');
+        showToast('কপি করা যায়নি। বার্তাটি হাতে লিখে পাঠান।', 'error');
       }
+      setRemindOpen(false);
+    };
+    const opened = (app: string) => {
+      showToast(`${app} খোলা হয়েছে — বার্তা পাঠানো হলো কিনা সেখানে দেখে নিন।`, 'info');
+      setRemindOpen(false);
     };
 
     return (
-      <div className="mx-auto max-w-4xl space-y-4 pb-24 lg:pb-8">
-        {/* Header Bar */}
-        <div className="flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => setSelectedPartyId(null)}
-            className="inline-flex min-h-[44px] items-center gap-2 rounded-2xl bg-white px-3.5 text-sm font-semibold text-ink shadow-card transition-colors hover:bg-surface-muted"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>বাকির খাতায় ফিরুন</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => openSheet({ type: 'party', editParty: selectedParty })}
-            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-2xl bg-white px-3.5 text-xs font-semibold text-primary-ink shadow-card hover:bg-secondary"
-          >
-            <Edit3 className="h-4 w-4" />
-            <span>তথ্য এডিট</span>
-          </button>
-        </div>
-
-        {/* Party Header Summary Card */}
-        <section className="rounded-3xl bg-white p-5 shadow-card">
+      <div className="mx-auto max-w-4xl space-y-4 pb-36 lg:pb-8">
+        <section className="rounded-3xl bg-white p-4 shadow-card">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h1 className="truncate text-lg font-bold text-ink">{selectedParty.name}</h1>
-                <span className="text-xs text-ink-muted">
-                  · {selectedParty.role === 'customer' ? 'কাস্টমার' : 'সাপ্লায়ার'}
-                </span>
-              </div>
-              {selectedParty.phone && (
-                <p className="mt-0.5 text-sm text-ink-muted tabular-nums">{selectedParty.phone}</p>
-              )}
-              <p
-                className={`mt-2 text-lg font-bold tabular-nums ${
-                  isReceivable ? 'text-danger' : isPayable ? 'text-primary-ink' : 'text-ink-muted'
-                }`}
-              >
-                {isReceivable
-                  ? `পাবো: ${formatTaka(selectedParty.balance)}`
-                  : isPayable
-                    ? `দিবো: ${formatTaka(Math.abs(selectedParty.balance))}`
-                    : 'বাকি শূন্য (০ ৳)'}
-              </p>
+              <p className="text-xs font-semibold text-ink-muted">{selectedParty.role === 'customer' ? 'কাস্টমার' : 'সাপ্লায়ার'}</p>
+              <h2 className="truncate text-xl font-bold text-ink">{selectedParty.name}</h2>
+              <p className="text-sm text-ink-muted tabular-nums">{selectedParty.phone || 'মোবাইল নম্বর নেই'}</p>
             </div>
-
-            <div className="flex items-center gap-2">
-              {selectedParty.phone && (
-                <a
-                  href={`tel:${selectedParty.phone}`}
-                  aria-label="কল করুন"
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary-ink transition-colors hover:bg-secondary-hover"
-                >
-                  <Phone className="h-5 w-5" />
-                </a>
-              )}
-              {isReceivable && (
-                <button
-                  type="button"
-                  onClick={handleCopyReminder}
-                  className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-primary-gradient px-3.5 text-xs font-semibold text-on-primary transition-colors hover:brightness-[0.97]"
-                >
-                  <Copy className="h-4 w-4" />
-                  <span className="hidden sm:inline">তাগাদা কপি</span>
-                </button>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => openSheet({ type: 'party', editParty: selectedParty })}
+              aria-label="তথ্য এডিট"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-muted text-ink-muted"
+            >
+              <Edit3 className="h-4 w-4" />
+            </button>
           </div>
 
-          {/* Due Reminder Date Row */}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-canvas px-3.5 py-2.5">
-            <div className="flex items-center gap-2 text-xs font-medium text-ink-muted">
-              <Calendar className="h-4 w-4 text-primary-ink" />
-              <span>পরিশোধের সম্ভাব্য তারিখ:</span>
+          <p className="mt-3 text-2xl font-extrabold tabular-nums">
+            <BalanceLabel balance={selectedParty.balance} />
+          </p>
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {selectedParty.phone ? (
+              <a
+                href={`tel:${selectedParty.phone}`}
+                className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-secondary text-sm font-bold text-primary-ink"
+              >
+                <Phone className="h-4 w-4" /> কল করুন
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={() => openSheet({ type: 'party', editParty: selectedParty })}
+                className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-surface-muted text-sm font-bold text-ink-muted"
+              >
+                <Phone className="h-4 w-4" /> মোবাইল যোগ করুন
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={selectedParty.balance <= 0}
+              onClick={() => setRemindOpen((v) => !v)}
+              aria-expanded={remindOpen}
+              className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-primary-gradient text-sm font-bold text-on-primary disabled:opacity-40"
+            >
+              <MessageCircle className="h-4 w-4" /> তাগাদা পাঠান
+            </button>
+          </div>
+
+          {remindOpen && (
+            <div className="mt-2 space-y-2 rounded-2xl bg-canvas p-3">
+              <p className="text-sm text-ink">{msg}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {wa ? (
+                  <a
+                    href={`https://wa.me/${wa}?text=${encodeURIComponent(msg)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => opened('WhatsApp')}
+                    className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-tile-green-bg text-sm font-bold text-tile-green-fg"
+                  >
+                    <MessageCircle className="h-4 w-4" /> WhatsApp
+                  </a>
+                ) : (
+                  <span className="flex h-11 items-center justify-center rounded-xl bg-surface-muted text-xs text-ink-muted">WhatsApp নম্বর নেই</span>
+                )}
+                {selectedParty.phone ? (
+                  <a
+                    href={`sms:${selectedParty.phone}?body=${encodeURIComponent(msg)}`}
+                    onClick={() => opened('SMS')}
+                    className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-tile-sky-bg text-sm font-bold text-tile-sky-fg"
+                  >
+                    <MessageSquare className="h-4 w-4" /> SMS
+                  </a>
+                ) : (
+                  <span className="flex h-11 items-center justify-center rounded-xl bg-surface-muted text-xs text-ink-muted">মোবাইল নেই</span>
+                )}
+                <button
+                  type="button"
+                  onClick={copyReminder}
+                  className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-white text-sm font-bold text-ink shadow-card"
+                >
+                  <Copy className="h-4 w-4" /> কপি
+                </button>
+              </div>
             </div>
+          )}
+
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-canvas px-3.5 py-2.5">
+            <span className="flex items-center gap-2 text-sm font-medium text-ink-muted">
+              <Calendar className="h-4 w-4 text-primary-ink" /> পরিশোধের তারিখ
+            </span>
             <DateInput
               value={selectedParty.dueReminderDate ?? ''}
               onChange={(value) => actions.setPartyDueReminder(selectedParty.id, value || null)}
@@ -197,48 +191,32 @@ export function DuesView() {
           </div>
         </section>
 
-        {/* Period Filter Tabs */}
         <SegmentedControl
           aria-label="সময়কাল"
           variant="chips"
           value={detailPeriod}
           onValueChange={(v) => setDetailPeriod(v as PeriodPreset)}
           options={[
-            { value: 'today', label: 'দিন' },
+            { value: 'today', label: 'আজ' },
             { value: 'month', label: 'মাস' },
             { value: 'year', label: 'বছর' },
-            { value: 'all', label: 'সব সময়' },
+            { value: 'all', label: 'সব' },
           ]}
         />
 
-        {/* Running-Balance Ledger Table (Reference Screenshots 7 & 8) */}
+        {/* Ledger: one readable row per entry; every balance carries the word পাবো / দিবো */}
         <section className="overflow-hidden rounded-3xl bg-white shadow-card">
-          <div className="grid grid-cols-12 border-b border-border bg-canvas px-4 py-3 text-xs font-semibold text-ink-muted">
-            <div className="col-span-5">বাকির ইতিহাস</div>
-            <div className="col-span-2 text-right text-primary-ink">নিয়েছি</div>
-            <div className="col-span-2 text-right text-danger">দিয়েছি</div>
-            <div className="col-span-3 text-right">ব্যালেন্স</div>
+          <div className="grid grid-cols-2 gap-2 border-b border-border bg-canvas px-4 py-3 text-sm font-bold tabular-nums">
+            <p className="text-danger">দিয়েছি {formatTaka(partyTotals.given)}</p>
+            <p className="text-right text-primary-ink">নিয়েছি {formatTaka(partyTotals.received)}</p>
           </div>
-
           {partyLedger.length === 0 ? (
-            <p className="py-10 text-center text-sm text-ink-muted">
-              এই সময়ে কোনো বাকি লেনদেন নেই।
-            </p>
+            <p className="py-10 text-center text-sm text-ink-muted">এই সময়ে কোনো লেনদেন নেই।</p>
           ) : (
             <div className="divide-y divide-border">
               {partyLedger.map((t) => {
                 const isVoided = t.status === 'voided';
-                const targetSourceType =
-                  t.source === 'sale' && t.sourceId
-                    ? 'sale'
-                    : t.source === 'purchase' && t.sourceId
-                      ? 'purchase'
-                      : 'due_transaction';
-                const targetSourceId =
-                  (t.source === 'sale' || t.source === 'purchase') && t.sourceId
-                    ? t.sourceId
-                    : t.id;
-
+                const linked = (t.source === 'sale' || t.source === 'purchase') && t.sourceId;
                 return (
                   <button
                     key={t.id}
@@ -246,70 +224,38 @@ export function DuesView() {
                     onClick={() =>
                       openSheet({
                         type: 'transaction_detail',
-                        sourceType: targetSourceType,
-                        sourceId: targetSourceId,
+                        sourceType: linked ? (t.source as 'sale' | 'purchase') : 'due_transaction',
+                        sourceId: linked ? (t.sourceId as string) : t.id,
                       })
                     }
-                    className={`grid w-full grid-cols-12 items-center px-4 py-3 text-left transition-colors hover:bg-surface ${
-                      isVoided ? 'opacity-55' : ''
-                    }`}
+                    className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-canvas ${isVoided ? 'opacity-55' : ''}`}
                   >
-                    <div className="col-span-5 pr-2">
-                      <p className="truncate text-xs font-semibold text-ink">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-ink">
                         {t.note || (t.direction === 'received' ? 'নিয়েছি' : 'দিয়েছি')}
                       </p>
                       <p className="mt-0.5 text-xs text-ink-muted">
                         {formatBanglaDateTime(t.date)}
-                        {t.paymentMethod ? ` · ${getChannelShortLabel(t.paymentMethod)}` : ''}
-                        {isVoided ? ' · বাতিলকৃত' : ''}
+                        {t.paymentMethod ? ` · ${getChannelShortLabel(t.paymentMethod)}` : ' · শুধু বাকি'}
+                        {isVoided ? ' · বাতিল' : ''}
                       </p>
                     </div>
-
-                    <div className="col-span-2 rounded-lg bg-secondary/70 py-1.5 px-1 text-right text-xs font-semibold tabular-nums text-primary-ink">
-                      {t.direction === 'received' ? (
-                        <span className={isVoided ? 'line-through' : ''}>{formatTaka(t.amount)}</span>
-                      ) : (
-                        '—'
-                      )}
-                    </div>
-
-                    <div className="col-span-2 ml-1 rounded-lg bg-danger-soft/70 py-1.5 px-1 text-right text-xs font-semibold tabular-nums text-danger">
-                      {t.direction === 'given' ? (
-                        <span className={isVoided ? 'line-through' : ''}>{formatTaka(t.amount)}</span>
-                      ) : (
-                        '—'
-                      )}
-                    </div>
-
-                    <div className="col-span-3 text-right text-xs font-bold tabular-nums text-ink">
-                      {t.runningBalance > 0
-                        ? formatTaka(t.runningBalance)
-                        : t.runningBalance < 0
-                          ? `দিবো ${formatTaka(Math.abs(t.runningBalance))}`
-                          : '০ ৳'}
+                    <div className="shrink-0 text-right">
+                      <p className={`text-sm font-bold tabular-nums ${t.direction === 'given' ? 'text-danger' : 'text-primary-ink'} ${isVoided ? 'line-through' : ''}`}>
+                        {t.direction === 'given' ? 'দিয়েছি' : 'নিয়েছি'} {formatTaka(t.amount)}
+                      </p>
+                      <p className="text-xs font-semibold tabular-nums">
+                        <BalanceLabel balance={t.runningBalance} />
+                      </p>
                     </div>
                   </button>
                 );
               })}
             </div>
           )}
-
-          {/* Totals Footer Row */}
-          <div className="grid grid-cols-12 items-center border-t border-border bg-canvas px-4 py-3 text-xs font-bold tabular-nums">
-            <div className="col-span-5 text-ink">মোট</div>
-            <div className="col-span-2 text-right text-primary-ink">
-              {formatTaka(partyTotals.totalReceived)}
-            </div>
-            <div className="col-span-2 text-right text-danger">
-              {formatTaka(partyTotals.totalGiven)}
-            </div>
-            <div className="col-span-3 text-right text-ink">
-              {formatTaka(Math.abs(selectedParty.balance))}
-            </div>
-          </div>
         </section>
 
-        {/* Pinned Bottom Dual Actions (দিচ্ছি / নিচ্ছি) */}
+        {/* Sticky দিচ্ছি / নিচ্ছি (above the bottom bar on mobile) */}
         <div className="fixed right-0 bottom-16 left-0 z-30 border-t border-border bg-white/95 px-4 py-3 backdrop-blur-md lg:static lg:border-0 lg:bg-transparent lg:p-0">
           <div className="mx-auto grid max-w-4xl grid-cols-2 gap-3">
             <button
@@ -318,13 +264,12 @@ export function DuesView() {
                 openSheet({
                   type: 'due',
                   partyId: selectedParty.id,
-                  defaultEntryType:
-                    selectedParty.role === 'supplier' ? 'supplier_payment' : 'manual_due_given',
+                  defaultEntryType: selectedParty.role === 'supplier' ? 'supplier_payment' : 'manual_due_given',
                 })
               }
-              className="flex h-12 items-center justify-center rounded-2xl bg-danger text-base font-bold text-white shadow-sm transition-colors hover:bg-danger-hover active:scale-[0.98]"
+              className="flex h-12 items-center justify-center rounded-2xl bg-danger text-base font-bold text-white shadow-sm hover:bg-danger-hover active:scale-[0.98]"
             >
-              দিচ্ছি {selectedParty.role === 'supplier' ? '(পরিশোধ)' : '(বাকি)'}
+              দিচ্ছি
             </button>
             <button
               type="button"
@@ -332,13 +277,12 @@ export function DuesView() {
                 openSheet({
                   type: 'due',
                   partyId: selectedParty.id,
-                  defaultEntryType:
-                    selectedParty.role === 'customer' ? 'customer_collection' : 'manual_due_received',
+                  defaultEntryType: selectedParty.role === 'customer' ? 'customer_collection' : 'manual_due_received',
                 })
               }
-              className="flex h-12 items-center justify-center rounded-2xl bg-primary-gradient text-base font-bold text-on-primary shadow-sm transition-colors hover:brightness-[0.97] active:scale-[0.98]"
+              className="flex h-12 items-center justify-center rounded-2xl bg-primary-gradient text-base font-bold text-on-primary shadow-sm hover:brightness-[0.97] active:scale-[0.98]"
             >
-              নিচ্ছি {selectedParty.role === 'customer' ? '(আদায়)' : '(বাকি)'}
+              নিচ্ছি
             </button>
           </div>
         </div>
@@ -346,197 +290,143 @@ export function DuesView() {
     );
   }
 
-  // =========================================================================
-  // Main Due Book List View (বাকির খাতা)
-  // =========================================================================
+  // ===================================================================== List
   const customerCount = parties.filter((p) => p.role === 'customer').length;
-  const supplierCount = parties.filter((p) => p.role === 'supplier').length;
+  const supplierCount = parties.length - customerCount;
+  const filtersActive = onlyWithDue || sortBy !== 'due';
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4 pb-6">
-      {/* Summary Header Card (Reference Screenshots 2 & 5 styled in Emerald UI) */}
-      <section className="rounded-3xl bg-white p-5 shadow-card">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-danger-soft p-4 text-center">
-            <p className="text-xs font-semibold text-danger">বর্তমান মোট পাবো (কাস্টমার)</p>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-danger">
-              {formatTaka(currentBalances.totalReceivables)}
-            </p>
-          </div>
-          <div className="rounded-2xl bg-secondary p-4 text-center">
-            <p className="text-xs font-semibold text-primary-ink">বর্তমান মোট দিবো (সাপ্লায়ার)</p>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-primary-ink">
-              {formatTaka(currentBalances.totalPayables)}
-            </p>
-          </div>
+    <div className="mx-auto max-w-5xl space-y-3 pb-28 lg:pb-6">
+      {/* Compact summary */}
+      <section className="grid grid-cols-2 gap-2.5">
+        <div className="rounded-2xl bg-danger-soft px-3.5 py-3">
+          <p className="text-xs font-semibold text-danger">মোট পাবো</p>
+          <p className="text-xl font-bold tabular-nums text-danger">{formatTaka(currentBalances.totalReceivables)}</p>
         </div>
-
-        <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-xs">
-          <span className="text-ink-muted">
-            পাবো/দিবো সমন্বয়ের পর নিট:{' '}
-            <strong
-              className={`tabular-nums ${
-                currentBalances.netDuePosition >= 0 ? 'text-danger' : 'text-primary-ink'
-              }`}
-            >
-              {currentBalances.netDuePosition >= 0 ? 'পাবো' : 'দিবো'}{' '}
-              {formatTaka(Math.abs(currentBalances.netDuePosition))}
-            </strong>
-          </span>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => openSheet({ type: 'due', defaultEntryType: 'customer_collection' })}
-              className="rounded-xl bg-secondary px-3 py-1.5 font-semibold text-primary-ink hover:bg-secondary-hover"
-            >
-              + বাকি আদায়
-            </button>
-            <button
-              type="button"
-              onClick={() => openSheet({ type: 'party', defaultRole: roleTab === 'supplier' ? 'supplier' : 'customer' })}
-              className="inline-flex items-center gap-1 rounded-xl bg-primary-gradient px-3 py-1.5 font-semibold text-on-primary hover:brightness-[0.97]"
-            >
-              <UserPlus className="h-3.5 w-3.5" />
-              <span>নতুন পার্টি</span>
-            </button>
-          </div>
+        <div className="rounded-2xl bg-secondary px-3.5 py-3">
+          <p className="text-xs font-semibold text-primary-ink">মোট দিবো</p>
+          <p className="text-xl font-bold tabular-nums text-primary-ink">{formatTaka(currentBalances.totalPayables)}</p>
         </div>
       </section>
 
-      {/* Segmented Role Tabs (Reference Image 1 Emerald Tabs) */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SegmentedControl
-          aria-label="কাস্টমার / সাপ্লায়ার"
-          variant="track"
-          value={roleTab}
-          onValueChange={setRoleTab}
-          options={[
-            { value: 'all', label: `সব (${formatBanglaNumber(parties.length)})` },
-            { value: 'customer', label: `কাস্টমার (${formatBanglaNumber(customerCount)})` },
-            { value: 'supplier', label: `সাপ্লায়ার (${formatBanglaNumber(supplierCount)})` },
-          ]}
-        />
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setOnlyWithDue((v) => !v)}
-            className={`min-h-[40px] rounded-xl border px-3 text-xs font-semibold transition-colors ${
-              onlyWithDue
-                ? 'border-primary-ink bg-secondary text-primary-ink'
-                : 'border-border-strong bg-white text-ink-muted'
-            }`}
-          >
-            শুধু বাকি আছে
-          </button>
-          <SimpleSelect
-            value={sortBy}
-            onValueChange={(v) => setSortBy(v as 'due' | 'recent' | 'name')}
-            aria-label="সাজানোর ক্রম"
-            size="sm"
-            className="w-auto min-w-40"
-            options={[
-              { value: 'due', label: 'বেশি বাকি আগে' },
-              { value: 'recent', label: 'সাম্প্রতিক' },
-              { value: 'name', label: 'নাম অনুযায়ী' },
-            ]}
-          />
-        </div>
-      </div>
-
-      {/* Search Bar */}
+      {/* Search right below the summary */}
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
         <input
-          type="text"
+          type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="খুঁজুন (নাম বা মোবাইল নম্বর)"
-          className="h-12 w-full rounded-2xl border border-border-strong bg-white pr-4 pl-11 text-sm text-ink shadow-card placeholder:text-ink-subtle focus:border-primary-ink focus:outline-none"
+          placeholder="নাম বা মোবাইল দিয়ে খুঁজুন"
+          aria-label="পার্টি খুঁজুন"
+          className="h-12 w-full rounded-2xl border border-border-strong bg-white pr-4 pl-11 text-base text-ink shadow-card placeholder:text-ink-subtle focus:border-primary-ink focus:outline-none"
         />
       </div>
 
-      {/* Party List */}
+      {/* One row: role tabs + filter icon + new party */}
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1 overflow-x-auto">
+          <SegmentedControl
+            aria-label="কাস্টমার / সাপ্লায়ার"
+            variant="track"
+            size="sm"
+            value={roleTab}
+            onValueChange={setRoleTab}
+            options={[
+              { value: 'all', label: `সব ${formatBanglaNumber(parties.length)}` },
+              { value: 'customer', label: `কাস্টমার ${formatBanglaNumber(customerCount)}` },
+              { value: 'supplier', label: `সাপ্লায়ার ${formatBanglaNumber(supplierCount)}` },
+            ]}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((v) => !v)}
+          aria-label="ফিল্টার ও সাজানো"
+          aria-expanded={filtersOpen}
+          className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border-strong bg-white text-ink-muted"
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          {filtersActive && <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-danger" />}
+        </button>
+        <button
+          type="button"
+          onClick={() => openSheet({ type: 'party', defaultRole: roleTab === 'supplier' ? 'supplier' : 'customer' })}
+          aria-label="নতুন পার্টি"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary-ink"
+        >
+          <UserPlus className="h-4 w-4" />
+        </button>
+      </div>
+
+      {filtersOpen && (
+        <div className="space-y-2.5 rounded-2xl bg-white p-3.5 shadow-card">
+          <label className="flex items-center gap-2.5 text-sm font-semibold text-ink">
+            <input type="checkbox" checked={onlyWithDue} onChange={(e) => setOnlyWithDue(e.target.checked)} className="h-5 w-5 accent-primary" />
+            শুধু যাদের বাকি আছে
+          </label>
+          <SegmentedControl
+            aria-label="সাজানোর ক্রম"
+            variant="chips"
+            size="sm"
+            value={sortBy}
+            onValueChange={setSortBy}
+            options={[
+              { value: 'due', label: 'বেশি বাকি আগে' },
+              { value: 'recent', label: 'সাম্প্রতিক' },
+              { value: 'name', label: 'নাম' },
+            ]}
+          />
+        </div>
+      )}
+
       {filteredParties.length === 0 ? (
         <EmptyState
           icon={<Users className="h-6 w-6" />}
-          title="কোনো কাস্টমার বা সাপ্লায়ার পাওয়া যায়নি"
-          description="নতুন কাস্টমার বা সাপ্লায়ার যোগ করে সহজেই বাকির খাতা শুরু করুন।"
+          title={parties.length === 0 ? 'এখনও কোনো কাস্টমার বা সাপ্লায়ার নেই' : 'কাউকে পাওয়া যায়নি'}
+          description="নতুন কাস্টমার বা সাপ্লায়ার যোগ করে বাকির খাতা শুরু করুন।"
           actionLabel="+ নতুন পার্টি যোগ করুন"
           onAction={() => openSheet({ type: 'party', defaultRole: 'customer' })}
         />
       ) : (
-        <div className="space-y-2.5">
-          {filteredParties.map((party) => {
-            const initial = party.name.trim().charAt(0).toUpperCase();
-            const isReceivable = party.balance > 0;
-            const isPayable = party.balance < 0;
-
-            return (
-              <button
-                key={party.id}
-                type="button"
-                onClick={() => setSelectedPartyId(party.id)}
-                className="flex min-h-[72px] w-full items-center gap-3.5 rounded-2xl bg-white p-3.5 text-left shadow-card transition-all hover:bg-canvas active:scale-[0.99]"
+        <div className="space-y-2">
+          {filteredParties.map((party) => (
+            <button
+              key={party.id}
+              type="button"
+              onClick={() => setSelectedPartyId(party.id)}
+              className="flex min-h-[68px] w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-card transition-all hover:bg-canvas active:scale-[0.99]"
+            >
+              <span
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-base font-bold ${
+                  party.role === 'customer' ? 'bg-secondary text-primary-ink' : 'bg-warning-soft text-warning-ink'
+                }`}
               >
-                <div
-                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-base font-bold ${
-                    party.role === 'customer'
-                      ? 'bg-secondary text-primary-ink'
-                      : 'bg-warning-soft text-warning-ink'
-                  }`}
-                >
-                  {initial}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-ink">{party.name}</p>
-                  <p className="mt-0.5 truncate text-xs text-ink-muted">
-                    {party.phone || 'মোবাইল নেই'}
-                    {party.lastTransactionAt
-                      ? ` · ${formatBanglaDate(party.lastTransactionAt)}`
-                      : ''}
-                  </p>
-                </div>
-
-                <div className="shrink-0 text-right">
-                  <p
-                    className={`text-sm font-bold tabular-nums ${
-                      isReceivable
-                        ? 'text-danger'
-                        : isPayable
-                          ? 'text-primary-ink'
-                          : 'text-ink-subtle'
-                    }`}
-                  >
-                    {formatTaka(Math.abs(party.balance))}
-                  </p>
-                  <p className="text-xs text-ink-muted">
-                    {isReceivable
-                      ? 'পাবো'
-                      : isPayable
-                        ? 'দিবো'
-                        : party.role === 'customer'
-                          ? 'কাস্টমার'
-                          : 'সাপ্লায়ার'}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
+                {party.name.trim().charAt(0)}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-base font-semibold text-ink">{party.name}</span>
+                <span className="block truncate text-xs text-ink-muted">
+                  {party.role === 'customer' ? 'কাস্টমার' : 'সাপ্লায়ার'}
+                  {party.phone ? ` · ${party.phone}` : ''}
+                  {party.lastTransactionAt ? ` · ${formatBanglaDate(party.lastTransactionAt)}` : ''}
+                </span>
+              </span>
+              <span className="shrink-0 text-right text-sm font-bold tabular-nums">
+                <BalanceLabel balance={party.balance} />
+              </span>
+            </button>
+          ))}
         </div>
       )}
 
-      {/* Floating Mobile Quick Add Due CTA */}
-      <div className="pt-2">
+      {/* Sticky "নতুন বাকি" (mobile: floats above the bottom bar) */}
+      <div className="fixed right-4 bottom-20 z-30 lg:static lg:pt-2">
         <button
           type="button"
-          onClick={() => openSheet({ type: 'due', defaultEntryType: 'customer_collection' })}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary-gradient text-sm font-semibold text-on-primary shadow-sm transition-colors hover:brightness-[0.97] active:scale-[0.99]"
+          onClick={() => openSheet({ type: 'due' })}
+          className="flex h-12 items-center justify-center gap-2 rounded-full bg-primary-gradient px-5 text-base font-bold text-on-primary shadow-hero active:scale-[0.98] lg:w-full lg:rounded-2xl"
         >
-          <Plus className="h-4 w-4" />
-          <span>বাকি আদায় / পরিশোধ যোগ করুন</span>
+          <Plus className="h-5 w-5" /> নতুন বাকি
         </button>
       </div>
     </div>

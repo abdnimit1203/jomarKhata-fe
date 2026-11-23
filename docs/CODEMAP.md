@@ -47,6 +47,8 @@ A compact map of the project for anyone (human or tool) starting work. Kept up t
 | `components/ui/*` | Shared primitives: Button, Card, `select.tsx` (Radix), `segmented.tsx` (Radix ToggleGroup), DateInput, AppIcon, FeatureIcon, ModalSheet, ConfirmDialog… |
 | `components/landing/*` | Landing page |
 | `components/onboarding/*` | Welcome screen + illustration |
+| `lib/dues.ts` | Due Book helpers: দিচ্ছি/নিচ্ছি × টাকা/বাকি → entryType, search normalisation, WhatsApp number, reminder text |
+| `components/ui/PartyPicker.tsx` | Shared searchable party picker with inline add (due, sale and purchase forms) |
 | `lib/format.ts` | Bengali digits, `formatTaka`, dates (`dd/MM/yyyy`), payment-channel labels |
 | `types/domain.ts` | All domain types |
 | `db/seedData.ts` | Demo data |
