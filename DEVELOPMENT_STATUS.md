@@ -19,7 +19,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 | S10 | Account interfaces & access policy | ✅ Done: sign-in screen (honest, no session), AuthProvider interface, access policy (grace → read-only, clock-safe), dev-only /preview designs, docs/BACKEND_CONTRACT.md |
 | S11 | ~~Optional PIN lock~~ | ❌ Removed by owner decision |
 | S12 | Android PWA | ✅ Done in code: manifest, offline shell (v4), update prompt (waits for owner), install card (Android prompt / iOS steps). Real-phone check is in the S13 checklist |
-| S13 | Performance, real-device testing, MVP acceptance | ⏸ |
+| S13 | Performance, real-device testing, MVP acceptance | ✅ Done: large-data fixtures, measured budgets (typical shop within budget), paging + Dexie cache fix, real-device checklist, MVP acceptance report. Pending: owner's real-phone run, AP-8 decision |
 
 ## What works today
 - **Fully local bookkeeping in IndexedDB:** sales, purchases, customers and suppliers, due collection and payment, expenses, stock, reports, edit/void with audit history, and JSON backup export.
@@ -30,7 +30,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 ## Quality gates
 | Check | Command | S0 | S1 |
 |---|---|---|---|
-| Tests | `npm test` | 49 / 49 | **209 / 209** (20 files) |
+| Tests | `npm test` | 49 / 49 | **213 / 213** (21 files) |
 | TypeScript | `npm run typecheck` | 0 errors | **0 errors** |
 | Production build | `npm run build` | — | **✓ compiled, 3/3 static pages** |
 | Mobile render check (360px, Edge via puppeteer) | manual | — | Welcome and Dashboard render with **0px horizontal overflow** |

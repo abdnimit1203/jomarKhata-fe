@@ -90,6 +90,14 @@ A compact map of the project for anyone (human or tool) starting work. Kept up t
 - **`/preview`** (development only) shows the OTP, logout-guard and claim-flow designs.
 - **[docs/BACKEND_CONTRACT.md](BACKEND_CONTRACT.md)** is everything the backend must implement.
 
+## Performance (S13)
+- **Long lists use `usePaged` + `<ShowMore>`** (100 rows per page). **Keep this for any new long list.**
+- **Dexie is opened with `cache: 'disabled'`.** Don't re-enable it without measuring restore time.
+- **Timing log:** set `localStorage.jk_perf = '1'` in the browser console.
+- **The known remaining cost** is the full `loadAllData` after each save (AP-8, needs approval).
+- **Large-data tests** use `tests/helpers/fixtures.ts` (test-only).
+- **Owner checklists:** [REAL_DEVICE_TEST.md](REAL_DEVICE_TEST.md) and [MVP_ACCEPTANCE.md](MVP_ACCEPTANCE.md).
+
 ## Workflow
 - Work on the **`dev`** branch; pushes there don't deploy (`vercel.json`).
 - Merge to **`main`** only when a phone check is needed; Vercel deploys `main`.

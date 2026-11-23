@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Plus, Search, ShoppingCart } from 'lucide-react';
+import { ShowMore, usePaged } from '@/components/ui/ShowMore';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { EmptyState } from '@/components/ui/StateBlocks';
 import { getPeriodBounds, isWithinRange } from '@/services/financeCalculator';
@@ -38,6 +39,7 @@ export function PurchasesView() {
       return true;
     });
   }, [data, period, showVoided, search]);
+  const page = usePaged(filteredPurchases, JSON.stringify(filteredPurchases.length));
 
   const summary = useMemo(() => {
     let total = 0;
@@ -140,7 +142,7 @@ export function PurchasesView() {
         />
       ) : (
         <div className="space-y-2.5">
-          {filteredPurchases.map((p) => {
+          {page.visible.map((p) => {
             const isVoided = p.status === 'voided';
             return (
               <button
@@ -189,6 +191,7 @@ export function PurchasesView() {
               </button>
             );
           })}
+          <ShowMore remaining={page.remaining} onMore={page.more} />
         </div>
       )}
     </div>

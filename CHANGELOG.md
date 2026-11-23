@@ -4,6 +4,35 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### S13: performance, large-data fixtures, MVP acceptance, 2026-11-23
+**Measured** on the production build with **4× CPU throttling**:
+- **Typical shop** (2,000 sales, 500 parties): open 0.76 s, save → visible 302 ms, search 38 ms, 2k-row ledger 181 ms, restore 0.8 s.
+- **Very large khata** (20,000 sales, 5,000 parties, a 2,003-row party ledger): open 1.9 s, search 44 ms, ledger 190 ms, restore 8.5 s, **save → visible 1.42 s (over budget; needs AP-8)**.
+- **JS shipped:** landing 175 KB gzip, app 349 KB gzip.
+
+**Fixes, made only where measurement showed a problem (plan 8.4)**
+- **Long lists render 100 rows at a time** with "আরও দেখুন" (`components/ui/ShowMore.tsx`): party list, party ledger, all transactions, sales, purchases, expenses, stock.
+  - Search with 5,000 parties: **337 → 44 ms**.
+  - Opening a 2,003-row ledger: **2.4 s → 0.19 s**.
+- **Dexie query cache disabled** (`cache: 'disabled'`). The app doesn't use liveQuery, and the cache cloned every written row.
+  - Restoring a 20k-sale khata: **88 s → 8.5 s**.
+  - A raw IndexedDB baseline (20k rows with 8 indexes in 2 s) confirmed the slowdown was in the library layer.
+- **Opt-in timing log** (`lib/perf.ts`, `localStorage.jk_perf = '1'`) for actions, `loadAllData` and restore phases.
+
+**Added**
+- `tests/helpers/fixtures.ts`: a **test-only**, deterministic generator for a large khata with consistent books (balances, running balances, stock = Σ movements). It's never used by the app.
+- `tests/performance.test.ts` (4):
+  - **the 5k-party / 20k-sale khata restores through the validated path and passes every ledger invariant**
+  - calculation timing guard (Node: balances 3 ms, period 5–18 ms, ledger 44 ms, search 10 ms)
+  - guards that keep paging and the disabled cache in place
+- `docs/REAL_DEVICE_TEST.md`: the owner's real-phone checklist (install, airplane mode, killed mid-form, back button, তাগাদা, oversell, backup → reinstall → restore, update prompt, speed).
+- `docs/MVP_ACCEPTANCE.md`: feature status, approved changes, the performance table, honest limits, open decisions, sign-off.
+- `ARCHITECTURE.md`: storage and testing sections updated (two databases, schema v3, read-only startup, outbox and sync, backup).
+
+**Verified:** the full e2e set passed again on the production build after these changes (offline, navigation, first run, dues, forms, history, backup, sync).
+
+**Needs owner approval:** AP-8 (incremental loading), only for very large khatas.
+
 ### S12 (rest): update prompt + install card, 2026-11-23
 **Added / changed**
 - **"নতুন আপডেট আছে" prompt:**

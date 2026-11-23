@@ -3,6 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { SheetGuardContext } from '@/lib/sheet-guard';
 import { toFriendlyError } from '@/lib/errors';
+import { timed } from '@/lib/perf';
 import { decideAccess, type AccessDecision, type CachedSubscription } from '@/lib/access-policy';
 import { LOCAL_AUTH, type AuthState } from '@/lib/auth';
 
@@ -333,7 +334,7 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
 
   const refresh = useCallback(async () => {
     try {
-      const snap = await jomarkhataService.loadAllData();
+      const snap = await timed('loadAllData', () => jomarkhataService.loadAllData());
       setData(snap);
       setError(null);
       // Every successful action reloads data, so the open form's input has been saved.
@@ -614,7 +615,7 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
       out[k] = async (...args: unknown[]) => {
         if (!accessRef.current.canWrite && WRITE_ACTION.test(k)) throw new Error(READ_ONLY_MESSAGE);
         try {
-          return await (fn as (...a: unknown[]) => Promise<unknown>)(...args);
+          return await timed(`action ${k}`, () => (fn as (...a: unknown[]) => Promise<unknown>)(...args));
         } catch (err) {
           throw toFriendlyError(err);
         }

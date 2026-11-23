@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Banknote, Building2, Plus, Receipt, Smartphone, Wallet } from 'lucide-react';
+import { ShowMore, usePaged } from '@/components/ui/ShowMore';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { EmptyState } from '@/components/ui/StateBlocks';
 import { computePeriodFlows, getPeriodBounds, isWithinRange } from '@/services/financeCalculator';
@@ -43,6 +44,7 @@ export function CashExpenseView() {
       return true;
     });
   }, [data, period, categoryFilter, showVoided]);
+  const page = usePaged(filteredExpenses, JSON.stringify(filteredExpenses.length));
 
   const periodExpenseTotal = useMemo(
     () => filteredExpenses.filter((e) => e.status === 'active').reduce((s, e) => s + e.amount, 0),
@@ -209,7 +211,7 @@ export function CashExpenseView() {
         />
       ) : (
         <div className="divide-y divide-border overflow-hidden rounded-3xl bg-white shadow-card">
-          {filteredExpenses.map((exp) => {
+          {page.visible.map((exp) => {
             const isVoided = exp.status === 'voided';
             return (
               <button
@@ -245,6 +247,7 @@ export function CashExpenseView() {
               </button>
             );
           })}
+          <ShowMore remaining={page.remaining} onMore={page.more} />
         </div>
       )}
     </div>

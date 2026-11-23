@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { ArrowDownLeft, ArrowUpRight, BookText, Receipt, Search } from 'lucide-react';
+import { ShowMore, usePaged } from '@/components/ui/ShowMore';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { EmptyState } from '@/components/ui/StateBlocks';
 import { buildUnifiedLedger } from '@/services/financeCalculator';
@@ -24,7 +25,7 @@ export function LedgerView() {
   const [showVoided, setShowVoided] = useState(false);
   const [search, setSearch] = useState('');
 
-  const grouped = useMemo(() => {
+  const filtered = useMemo(() => {
     if (!data) return [];
     const all = buildUnifiedLedger(
       data.sales,
@@ -58,11 +59,16 @@ export function LedgerView() {
       }
       return true;
     });
+    return filtered;
+  }, [data, filter, channelFilter, showVoided, search]);
 
+  // S13: page the flat list (100 at a time), then group only what is shown.
+  const page = usePaged(filtered, `${filter}|${channelFilter}|${showVoided}|${search}`);
+  const grouped = useMemo(() => {
     const groups: Array<{ label: string; items: UnifiedLedgerItem[] }> = [];
     const map = new Map<string, UnifiedLedgerItem[]>();
 
-    for (const item of filtered) {
+    for (const item of page.visible) {
       const label = getRelativeDateGroupLabel(item.date);
       if (!map.has(label)) {
         const arr: UnifiedLedgerItem[] = [];
@@ -73,7 +79,7 @@ export function LedgerView() {
     }
 
     return groups;
-  }, [data, filter, channelFilter, showVoided, search]);
+  }, [page.visible]);
 
   if (!data) return null;
 
@@ -224,6 +230,7 @@ export function LedgerView() {
               </div>
             </section>
           ))}
+          <ShowMore remaining={page.remaining} onMore={page.more} />
         </div>
       )}
     </div>

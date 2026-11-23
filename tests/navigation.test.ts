@@ -65,7 +65,7 @@ describe('Android back integration (history API)', () => {
   it('unsaved input asks before discarding (back, X, backdrop); saving clears the guard', () => {
     expect(read('components/ui/ModalSheet.tsx')).toMatch(/addEventListener\('input', markDirty, true\)/);
     expect(ctx).toMatch(/if \(sheetDirtyRef\.current\) (return )?setDiscardPrompt\(true\)/);
-    expect(ctx).toMatch(/loadAllData\(\);[\s\S]{0,200}sheetDirtyRef\.current = false/);
+    expect(ctx).toMatch(/loadAllData\(\)\)?;[\s\S]{0,200}sheetDirtyRef\.current = false/);
     expect(shell).toMatch(/<ConfirmDialog[\s\S]*open=\{discardPrompt\}/);
   });
 });

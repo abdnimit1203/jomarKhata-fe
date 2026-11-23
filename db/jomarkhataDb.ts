@@ -42,7 +42,9 @@ export class JomarkhataDB extends Dexie {
   appMeta!: Table<AppMetaRecord, string>;
 
   constructor(name: string = JOMARKHATA_DB_NAME) {
-    super(name);
+    // S13: Dexie's query cache (for liveQuery, which this app doesn't use) clones every written row.
+    // With it off, restoring a 20k-sale khata no longer spends most of its time in the cache.
+    super(name, { cache: 'disabled' });
 
     this.version(1).stores({
       businessProfile: 'id',

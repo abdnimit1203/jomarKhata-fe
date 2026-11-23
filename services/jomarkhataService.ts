@@ -10,6 +10,7 @@ import {
 import { buildSeedDataset } from '@/db/seedData';
 import { BACKUP_TABLES, buildBackupFile, parseBackup, type BackupData, type BackupPreview } from '@/lib/backup';
 import { JOMARKHATA_DB_VERSION } from '@/db/jomarkhataDb';
+import { timed } from '@/lib/perf';
 import type { CachedSubscription } from '@/lib/access-policy';
 import { computePartyRunningTimeline } from '@/services/financeCalculator';
 import { formatTaka, generateId } from '@/lib/format';
@@ -593,10 +594,10 @@ export const jomarkhataService = {
    */
   async restoreBackup(text: string, password?: string): Promise<AppDataSnapshot> {
     if (getActiveDbMode() !== 'real') throw new Error('ডেমো খাতায় ব্যাকআপ ফিরিয়ে আনা যায় না। আগে আসল খাতায় যান।');
-    const { data } = await parseBackup(text, password);
-    await this.saveSafetyCopy('restore');
+    const { data } = await timed('restore: parse+validate', () => parseBackup(text, password));
+    await timed('restore: safety copy', () => this.saveSafetyCopy('restore'));
     const db = getRealDb();
-    await db.transaction('rw', [...shopTables(db), db.appMeta], async () => {
+    await timed('restore: write', () => db.transaction('rw', [...shopTables(db), db.appMeta], async () => {
       for (const t of shopTables(db)) await t.clear();
       await db.businessProfile.put(data.businessProfile as unknown as BusinessProfile);
       for (const t of BACKUP_TABLES) {
@@ -608,8 +609,8 @@ export const jomarkhataService = {
         await setMeta(db, 'workspace', workspace);
       }
       await setMeta(db, 'prefs', { activeMode: 'real' });
-    });
-    return this.loadAllData();
+    }));
+    return timed('restore: reload', () => this.loadAllData());
   },
 
   /**

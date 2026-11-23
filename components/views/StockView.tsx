@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { AlertTriangle, Edit3, Package, Plus, Search, SlidersHorizontal } from 'lucide-react';
+import { ShowMore, usePaged } from '@/components/ui/ShowMore';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { EmptyState } from '@/components/ui/StateBlocks';
 import { formatBanglaNumber, formatTaka, PRODUCT_CATEGORIES } from '@/lib/format';
@@ -28,6 +29,7 @@ export function StockView() {
       })
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [data, search, category, onlyLowStock]);
+  const page = usePaged(products, JSON.stringify(products.length));
 
   if (!data) return null;
 
@@ -124,7 +126,7 @@ export function StockView() {
         />
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {products.map((prod) => {
+          {page.visible.map((prod) => {
             const isLow = prod.stockQty <= prod.lowStockThreshold;
             const isNegative = prod.stockQty < 0; // AP-9: sold more than recorded stock
             return (
@@ -180,6 +182,7 @@ export function StockView() {
               </div>
             );
           })}
+          <ShowMore remaining={page.remaining} onMore={page.more} />
         </div>
       )}
     </div>

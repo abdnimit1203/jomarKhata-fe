@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Calendar, Copy, Edit3, MessageCircle, MessageSquare, Phone, Plus, Search, SlidersHorizontal, UserPlus, Users } from 'lucide-react';
+import { ShowMore, usePaged } from '@/components/ui/ShowMore';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { EmptyState } from '@/components/ui/StateBlocks';
 import { DateInput } from '@/components/ui/DateInput';
@@ -67,6 +68,10 @@ export function DuesView() {
     }
     return { given, received };
   }, [partyLedger]);
+
+  // Hooks must run before any early return.
+  const listPage = usePaged(filteredParties, `${roleTab}|${onlyWithDue}|${sortBy}|${search}`);
+  const ledgerPage = usePaged(partyLedger, `${selectedPartyId}|${detailPeriod}`);
 
   if (!data) return null;
 
@@ -214,7 +219,7 @@ export function DuesView() {
             <p className="py-10 text-center text-sm text-ink-muted">এই সময়ে কোনো লেনদেন নেই।</p>
           ) : (
             <div className="divide-y divide-border">
-              {partyLedger.map((t) => {
+              {ledgerPage.visible.map((t) => {
                 const isVoided = t.status === 'voided';
                 const linked = (t.source === 'sale' || t.source === 'purchase') && t.sourceId;
                 return (
@@ -251,6 +256,11 @@ export function DuesView() {
                   </button>
                 );
               })}
+              {ledgerPage.remaining > 0 && (
+                <div className="p-3">
+                  <ShowMore remaining={ledgerPage.remaining} onMore={ledgerPage.more} />
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -389,7 +399,7 @@ export function DuesView() {
         />
       ) : (
         <div className="space-y-2">
-          {filteredParties.map((party) => (
+          {listPage.visible.map((party) => (
             <button
               key={party.id}
               type="button"
@@ -416,6 +426,7 @@ export function DuesView() {
               </span>
             </button>
           ))}
+          <ShowMore remaining={listPage.remaining} onMore={listPage.more} />
         </div>
       )}
 
