@@ -71,22 +71,25 @@ async function buildRealisticShop(app: App) {
   return { cust, sup, prod, sale };
 }
 
+/** v2 (S3, AP-3): v1 plus the `appMeta` table. Every v1 table and index is unchanged. */
+const V2_SCHEMA: Record<string, string> = { ...V1_SCHEMA, appMeta: 'key' };
+
 describe('schema lock (any change must be a deliberate, additive migration)', () => {
-  it('database name and version are unchanged', async () => {
+  it('database name is unchanged; version is 2 (AP-3)', async () => {
     const app = await bootApp();
     expect(app.dbModule.JOMARKHATA_DB_NAME).toBe('jomarkhata_db');
-    expect(app.dbModule.JOMARKHATA_DB_VERSION).toBe(1);
+    expect(app.dbModule.JOMARKHATA_DB_VERSION).toBe(2);
     await app.db.open();
-    expect(app.db.verno).toBe(1);
+    expect(app.db.verno).toBe(2);
   });
 
-  it('tables, primary keys and indexes match the shipped v1 schema', async () => {
+  it('tables, primary keys and indexes = v1 schema + appMeta (nothing removed or re-indexed)', async () => {
     const app = await bootApp();
     await app.db.open();
     const actual = Object.fromEntries(
       app.db.tables.map((t) => [t.name, [t.schema.primKey.src, ...t.schema.indexes.map((i) => i.src)].join(', ')])
     );
-    expect(actual).toEqual(V1_SCHEMA);
+    expect(actual).toEqual(V2_SCHEMA);
   });
 });
 
@@ -154,11 +157,14 @@ describe('existing installs: data written by an older build of the app', () => {
 
     // 2. The current app opens the same storage.
     const app = await bootApp(factory);
-    const snap = await app.service.initializeAndLoad();
-    expect(snap.businessProfile.shopName).toBe('পুরোনো দোকান');
+    const start = await app.service.bootstrap(); // upgrades v1 -> v2 on open
+    expect(app.db.verno).toBe(2);
+    expect(start.phase).toBe('legacy_choice'); // D15: the owner decides; nothing changed yet
+    expect(start.snapshot?.businessProfile.shopName).toBe('পুরোনো দোকান');
     for (const t of app.db.tables) {
       const rows = await t.toArray();
-      expect(rows, t.name).toEqual(legacyDump[t.name]);
+      if (t.name === 'appMeta') expect(rows).toEqual([]);
+      else expect(rows, t.name).toEqual(legacyDump[t.name]);
     }
 
     // 3. New work on top of the old data leaves old records untouched.
@@ -173,32 +179,24 @@ describe('existing installs: data written by an older build of the app', () => {
   });
 });
 
-describe('current first-run behaviour (characterised before S3 changes it under AP-1/AP-2)', () => {
-  it('a fresh device is auto-seeded with demo data; user work survives restarts and is not re-seeded', async () => {
-    const app1 = await bootApp();
-    const first = await app1.service.initializeAndLoad();
-    const seededParties = first.parties.length;
-    expect(seededParties).toBeGreaterThan(0);
-    const mine = await app1.service.createParty({ name: 'আমার কাস্টমার', phone: '', role: 'customer' });
-    closeApp(app1);
-
-    const app2 = await bootApp(app1.factory);
-    const again = await app2.service.initializeAndLoad();
-    expect(again.parties).toHaveLength(seededParties + 1);
-    expect(again.parties.some((p) => p.id === mine.id)).toBe(true);
+describe('first run after S3 (AP-1/AP-2): no auto-seed; demo is a separate database', () => {
+  it('a fresh device is NOT seeded: startup shows welcome and writes nothing', async () => {
+    const app = await bootApp();
+    const start = await app.service.bootstrap();
+    expect(start).toMatchObject({ phase: 'welcome', mode: 'real', snapshot: null });
+    for (const t of app.db.tables) expect(await t.count(), t.name).toBe(0);
   });
 
-  it('KNOWN RISK (fixed in S3/S8): resetDemoData wipes user-entered records as well', async () => {
-    const app = await bootApp();
-    await app.service.initializeAndLoad();
+  it('resetDemoData refuses in the real khata and never touches user records (old risk fixed)', async () => {
+    const app = await bootEmptyShop();
     const mine = await app.service.createParty({ name: 'আমার কাস্টমার', phone: '', role: 'customer' });
-    await app.service.resetDemoData();
-    expect(await app.db.parties.get(mine.id)).toBeUndefined();
+    await expect(app.service.resetDemoData()).rejects.toThrow();
+    expect(await app.db.parties.get(mine.id)).toBeDefined();
   });
 });
 
-describe('future additive migration pattern (harness for AP-3 / AP-4; the app schema itself is NOT changed)', () => {
-  it('opening v1 data with a v2 schema that adds a table and outbox fields preserves every existing record', async () => {
+describe('future additive migration pattern (harness for AP-4 as v3; the app schema itself is NOT changed)', () => {
+  it('opening v2 data with a v3 schema that adds outbox fields preserves every existing record', async () => {
     const app = await bootEmptyShop();
     await buildRealisticShop(app);
     const before = await dumpAllTables(app);
@@ -208,8 +206,9 @@ describe('future additive migration pattern (harness for AP-3 / AP-4; the app sc
     // Test-only candidate v2 — mirrors the planned AP-3 (appMeta table) and AP-4 (outbox status/retry fields).
     const v2 = new Dexie('jomarkhata_db', { indexedDB: factory, IDBKeyRange });
     v2.version(1).stores(V1_SCHEMA);
-    v2.version(2)
-      .stores({ appMeta: 'key', syncQueue: 'id, entityType, entityId, operation, syncStatus, queuedAt, status' })
+    v2.version(2).stores({ appMeta: 'key' }); // the shipped v2 (S3)
+    v2.version(3)
+      .stores({ syncQueue: 'id, entityType, entityId, operation, syncStatus, queuedAt, status' })
       .upgrade(async (tx) => {
         await tx.table('syncQueue').toCollection().modify((item: Record<string, unknown>) => {
           item.status = 'pending';
@@ -218,7 +217,7 @@ describe('future additive migration pattern (harness for AP-3 / AP-4; the app sc
         });
       });
     await v2.open();
-    expect(v2.verno).toBe(2);
+    expect(v2.verno).toBe(3);
 
     for (const t of BUSINESS_TABLES) {
       expect(await v2.table(t).toArray(), t).toEqual(before[t]);

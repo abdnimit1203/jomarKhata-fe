@@ -1,4 +1,11 @@
-import { getJomarkhataDb, type JomarkhataDB } from '@/db/jomarkhataDb';
+import {
+  getActiveDbMode,
+  getDemoDb,
+  getJomarkhataDb,
+  getRealDb,
+  setActiveDbMode,
+  type JomarkhataDB,
+} from '@/db/jomarkhataDb';
 import { buildSeedDataset } from '@/db/seedData';
 import { computePartyRunningTimeline } from '@/services/financeCalculator';
 import { formatTaka, generateId } from '@/lib/format';
@@ -8,6 +15,8 @@ import type {
   AuditLog,
   BusinessProfile,
   ChannelOpeningBalances,
+  DbMode,
+  WorkspaceMeta,
   DueDirection,
   DueTransaction,
   EntryMode,
@@ -37,6 +46,55 @@ export interface AppDataSnapshot {
   stockMovements: StockMovement[];
   auditLogs: AuditLog[];
   pendingSyncCount: number;
+}
+
+/** What the app shows at startup (S3). Decided by reading only; startup never writes. */
+export type StartupPhase = 'welcome' | 'legacy_choice' | 'ready';
+
+export interface StartupState {
+  phase: StartupPhase;
+  mode: DbMode;
+  snapshot: AppDataSnapshot | null;
+}
+
+export interface NewShopInput {
+  shopName: string;
+  ownerName: string;
+  phone: string;
+  address?: string;
+  businessType: string;
+  openingBalances: ChannelOpeningBalances;
+}
+
+/** Bangladesh mobile: 01[3-9] + 8 digits (Bengali digits accepted). Empty is allowed. */
+export function isValidBdMobile(phone: string): boolean {
+  const ascii = phone.replace(/[০-৯]/g, (d) => String('০১২৩৪৫৬৭৮৯'.indexOf(d))).replace(/[\s-]/g, '');
+  return ascii === '' || /^(\+?88)?01[3-9]\d{8}$/.test(ascii);
+}
+
+/** Every table that holds shop records (everything except appMeta). */
+function shopTables(db: JomarkhataDB) {
+  return [
+    db.businessProfile,
+    db.parties,
+    db.products,
+    db.sales,
+    db.purchases,
+    db.moneyMovements,
+    db.dueTransactions,
+    db.expenses,
+    db.stockMovements,
+    db.auditLogs,
+    db.syncQueue,
+  ];
+}
+
+async function getMeta<T>(db: JomarkhataDB, key: string): Promise<T | undefined> {
+  return (await db.appMeta.get(key))?.value as T | undefined;
+}
+
+async function setMeta(db: JomarkhataDB, key: string, value: unknown) {
+  await db.appMeta.put({ key, value, updatedAt: new Date().toISOString() });
 }
 
 export interface CreateSaleInput {
@@ -163,15 +221,131 @@ async function nextInvoiceNumber(db: JomarkhataDB, prefix: 'INV' | 'BILL'): Prom
  * live strictly here inside atomic Dexie transactions.
  */
 export const jomarkhataService = {
-  async initializeAndLoad(): Promise<AppDataSnapshot> {
-    const db = getJomarkhataDb();
-    const existingProfile = await db.businessProfile.get('default');
-
-    if (!existingProfile) {
-      await this.seedDatabase(db);
+  /**
+   * Startup (S3, AP-1). READ-ONLY: decides what to show and never writes, seeds or deletes.
+   * - welcome: no shop yet on this device.
+   * - legacy_choice: an older build left data here (no workspace record). The owner decides
+   *   whether it's demo or their real khata (D15). Nothing is changed until they choose.
+   * - ready: real khata, or demo mode.
+   */
+  async bootstrap(): Promise<StartupState> {
+    const real = getRealDb();
+    const prefs = await getMeta<{ activeMode?: DbMode }>(real, 'prefs');
+    if (prefs?.activeMode === 'demo') {
+      setActiveDbMode('demo');
+      const demo = getDemoDb();
+      if (!(await demo.businessProfile.get('default'))) await this.seedDatabase(demo); // demo DB only
+      return { phase: 'ready', mode: 'demo', snapshot: await this.loadAllData() };
     }
+    setActiveDbMode('real');
+    if (!(await real.businessProfile.get('default'))) return { phase: 'welcome', mode: 'real', snapshot: null };
+    const workspace = await getMeta<WorkspaceMeta>(real, 'workspace');
+    return { phase: workspace ? 'ready' : 'legacy_choice', mode: 'real', snapshot: await this.loadAllData() };
+  },
 
+  /** Loads the active database. Kept for existing callers; it no longer auto-seeds (AP-1). */
+  async initializeAndLoad(): Promise<AppDataSnapshot> {
     return this.loadAllData();
+  },
+
+  /** Start the owner's real khata from the setup form (empty khata, D3). */
+  async createShop(input: NewShopInput): Promise<AppDataSnapshot> {
+    const db = getRealDb();
+    const shopName = input.shopName.trim();
+    if (!shopName) throw new Error('দোকানের নাম লিখুন।');
+    if (!isValidBdMobile(input.phone)) throw new Error('সঠিক মোবাইল নম্বর লিখুন (যেমন 01712345678)।');
+    const now = new Date().toISOString();
+    const profile: BusinessProfile = {
+      id: 'default',
+      shopName,
+      ownerName: input.ownerName.trim(),
+      phone: input.phone.trim(),
+      address: (input.address ?? '').trim(),
+      businessType: input.businessType.trim() || 'সাধারণ খুচরা',
+      openingBalances: {
+        cash: Math.max(0, Math.round(input.openingBalances.cash || 0)),
+        bkash: Math.max(0, Math.round(input.openingBalances.bkash || 0)),
+        nagad: Math.max(0, Math.round(input.openingBalances.nagad || 0)),
+        bank: Math.max(0, Math.round(input.openingBalances.bank || 0)),
+      },
+      defaultLowStockThreshold: 5,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await db.transaction('rw', [db.businessProfile, db.appMeta, db.auditLogs, db.syncQueue], async () => {
+      if (await db.businessProfile.get('default')) throw new Error('এই ফোনে আগেই একটি দোকানের খাতা আছে।');
+      await db.businessProfile.put(profile);
+      const workspace: WorkspaceMeta = { workspaceId: generateId(), createdAt: now, origin: 'setup' };
+      await setMeta(db, 'workspace', workspace);
+      await setMeta(db, 'prefs', { activeMode: 'real' });
+      await appendAuditLog(db, {
+        entityType: 'business_profile',
+        entityId: 'default',
+        action: 'create',
+        summary: `নতুন খাতা শুরু: ${profile.shopName}`,
+        beforeSnapshot: null,
+        afterSnapshot: profile,
+      });
+      await enqueueSyncMutation(db, 'business_profile', 'default', 'upsert', profile);
+    });
+    setActiveDbMode('real');
+    return this.loadAllData();
+  },
+
+  /** D15 choice 1: the data an older build left here is the owner's real khata. Data unchanged. */
+  async keepLegacyAsMine(): Promise<AppDataSnapshot> {
+    const db = getRealDb();
+    await db.transaction('rw', [db.appMeta], async () => {
+      if (!(await getMeta(db, 'workspace'))) {
+        const workspace: WorkspaceMeta = { workspaceId: generateId(), createdAt: new Date().toISOString(), origin: 'legacy' };
+        await setMeta(db, 'workspace', workspace);
+      }
+      await setMeta(db, 'prefs', { activeMode: 'real' });
+    });
+    setActiveDbMode('real');
+    return this.loadAllData();
+  },
+
+  /**
+   * D15 choice 2: the data an older build left here was only demo. It is MOVED (never just deleted)
+   * into the demo database: copied, verified row-for-row, and only then cleared from the real one.
+   */
+  async moveLegacyToDemo(): Promise<void> {
+    const real = getRealDb();
+    const demo = getDemoDb();
+    if (await getMeta(real, 'workspace')) throw new Error('এই খাতাটি আপনার আসল খাতা হিসেবে চিহ্নিত, তাই সরানো যাবে না।');
+    const tables = shopTables(real).filter((t) => t.name !== 'syncQueue'); // demo never syncs
+    const copy: Record<string, unknown[]> = {};
+    for (const t of tables) copy[t.name] = await t.toArray();
+
+    await demo.transaction('rw', shopTables(demo), async () => {
+      for (const t of shopTables(demo)) await t.clear();
+      for (const t of tables) await demo.table(t.name).bulkPut(copy[t.name]);
+    });
+    for (const t of tables) {
+      const n = await demo.table(t.name).count();
+      if (n !== copy[t.name].length) throw new Error('ডেমোতে সরানো যাচাই করা যায়নি; কিছুই মোছা হয়নি।');
+    }
+    await real.transaction('rw', shopTables(real), async () => {
+      for (const t of shopTables(real)) await t.clear();
+    });
+  },
+
+  /** Open the demo khata (its own database). The real khata is untouched. */
+  async enterDemo(): Promise<AppDataSnapshot> {
+    const real = getRealDb();
+    await setMeta(real, 'prefs', { activeMode: 'demo' });
+    setActiveDbMode('demo');
+    const demo = getDemoDb();
+    if (!(await demo.businessProfile.get('default'))) await this.seedDatabase(demo);
+    return this.loadAllData();
+  },
+
+  /** Leave demo mode and go back to the real khata (or the welcome screen if there is none yet). */
+  async exitDemo(): Promise<StartupState> {
+    await setMeta(getRealDb(), 'prefs', { activeMode: 'real' });
+    setActiveDbMode('real');
+    return this.bootstrap();
   },
 
   async seedDatabase(db: JomarkhataDB): Promise<void> {
@@ -206,8 +380,10 @@ export const jomarkhataService = {
     );
   },
 
+  /** Reset the DEMO khata only. Refuses in the real khata (fixes the old wipe-everything risk). */
   async resetDemoData(): Promise<AppDataSnapshot> {
-    const db = getJomarkhataDb();
+    if (getActiveDbMode() !== 'demo') throw new Error('আসল খাতায় ডেমো রিসেট করা যায় না।');
+    const db = getDemoDb();
     await db.transaction(
       'rw',
       [

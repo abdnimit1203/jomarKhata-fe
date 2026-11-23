@@ -4,6 +4,37 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### S3: first run, separate demo khata, shop setup, 2026-11-23
+Approved under D32: AP-1, AP-2 and AP-3.
+
+**Added**
+- **Dexie v2, additive (AP-3):** a new `appMeta` table (`workspace`, `prefs`). Every v1 table and index is unchanged. Existing v1 databases upgrade in place with every row kept (tested).
+- **Separate demo database `jomarkhata_demo` (AP-2).**
+  - `getJomarkhataDb()` returns the real or the demo DB depending on the active mode, which is remembered in the real DB's `appMeta.prefs`.
+  - Demo work never touches the real khata or its outbox.
+- **No auto-seed (AP-1):** a fresh device shows the Welcome screen.
+  - **"আমার খাতা শুরু করুন"** opens the shop setup form, which starts an **empty** khata. Only the shop name is required; mobile is validated in Bangladeshi format (Bengali digits OK); opening balances are optional.
+  - **"আগে ডেমো দেখুন"** opens the demo khata, with a banner and an "আসল খাতায় যান" button.
+- **Existing installs (D15):** data from an older build triggers a choice screen.
+  - **"আমার ব্যবসার হিসাব"** keeps every row exactly as it is.
+  - **"ডেমো হিসাব"** **moves** the data into the demo DB: copy → verify counts → only then clear the real DB.
+  - Startup itself is **read-only** (`bootstrap()`) and never writes, seeds or deletes.
+- **Settings:** "ডেমো রিসেট" exists **only inside demo mode** and resets only the demo DB. The real khata offers "ডেমো খাতা দেখুন" instead.
+- New service functions: `bootstrap`, `createShop`, `keepLegacyAsMine`, `moveLegacyToDemo`, `enterDemo`, `exitDemo`, `isValidBdMobile`.
+- New screens: `ShopSetupScreen`, `LegacyChoiceScreen`; the Welcome screen gets start + demo actions. The dev-only `?preview=welcome` is removed.
+- `tests/first-run.test.ts` (20).
+
+**Fixed (known risks closed)**
+- `resetDemoData` used to wipe user-entered records. It now refuses in the real khata.
+- A fresh device used to be auto-seeded with demo data mixed into the real khata.
+
+**Verified e2e** (headless Edge at 360px):
+- fresh device → welcome → validation → setup → empty dashboard with ৳৫,০০০ cash → survives reload
+- demo in/out with a separate `jomarkhata_demo` DB
+- a raw v1 database written like the old build → choice screen → keep → old shop dashboard
+
+**Note for testers:** phones that used the earlier preview will see the choice screen once.
+
 ### S2: app shell & navigation, 2026-11-23
 **Added**
 - **Bottom bar (D2):** হোম · বাকি · **[+]** · লেনদেন · আরও.

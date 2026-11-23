@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ArrowLeft,
   BarChart3,
@@ -43,6 +43,8 @@ import { StockView } from '@/components/views/StockView';
 import { ReportsView } from '@/components/views/ReportsView';
 import { SettingsView } from '@/components/views/SettingsView';
 import { WelcomeScreen } from '@/components/onboarding/WelcomeScreen';
+import { ShopSetupScreen } from '@/components/onboarding/ShopSetupScreen';
+import { LegacyChoiceScreen } from '@/components/onboarding/LegacyChoiceScreen';
 import type { AppRoute } from '@/types/domain';
 
 const DESKTOP_NAV: Array<{ id: AppRoute; label: string; icon: React.ComponentType<{ className?: string }> }> = [
@@ -96,7 +98,11 @@ export function AppShell() {
     cancelDiscard,
     forceCloseSheet,
     showToast,
+    phase,
+    mode,
+    actions,
   } = useJomarkhata();
+  const [setupOpen, setSetupOpen] = useState(false);
   const pending = data?.pendingSyncCount ?? 0;
   const isHome = activeRoute === 'dashboard';
   const showConnectionInfo = () =>
@@ -105,24 +111,28 @@ export function AppShell() {
       'info'
     );
 
-  // S1 design preview only: `?preview=welcome` shows the not-logged-in first page in development.
-  // Real first-run / account wiring arrives in S3 (AP-1..AP-3). Never active in production builds.
-  const [welcomePreview, setWelcomePreview] = useState(false);
-  useEffect(() => {
-    if (process.env.NODE_ENV !== 'development') return;
-    if (new URLSearchParams(window.location.search).get('preview') === 'welcome') {
-      setWelcomePreview(true);
-    }
-  }, []);
-
-  if (welcomePreview) {
+  // S3 first run: welcome → shop setup (empty khata), or the D15 choice for an older build's data.
+  if (!isLoading && !error && phase === 'welcome') {
     return (
-      <WelcomeScreen
-        onStartLocal={() => {
-          window.history.replaceState(null, '', window.location.pathname);
-          setWelcomePreview(false);
-        }}
-      />
+      <>
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+        {setupOpen ? (
+          <ShopSetupScreen onBack={() => setSetupOpen(false)} />
+        ) : (
+          <WelcomeScreen
+            onStart={() => setSetupOpen(true)}
+            onDemo={() => void actions.enterDemo()}
+          />
+        )}
+      </>
+    );
+  }
+  if (!isLoading && !error && phase === 'legacy_choice') {
+    return (
+      <>
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+        <LegacyChoiceScreen />
+      </>
     );
   }
 
@@ -275,6 +285,21 @@ export function AppShell() {
 
           {/* Main Scrollable Viewport */}
           <main className="flex-1 px-4 pt-4 pb-24 lg:px-8 lg:pt-6 lg:pb-10">
+            {mode === 'demo' && !isLoading && (
+              <div
+                role="status"
+                className="mx-auto mb-4 flex max-w-6xl flex-wrap items-center justify-between gap-2 rounded-2xl bg-warning-soft px-4 py-3 text-sm font-semibold text-warning-ink"
+              >
+                <span>ডেমো খাতা দেখছেন — এখানের কিছুই আপনার আসল খাতায় যাবে না।</span>
+                <button
+                  type="button"
+                  onClick={() => void actions.exitDemo()}
+                  className="rounded-full bg-white px-3.5 py-1.5 text-sm font-bold text-warning-ink shadow-sm"
+                >
+                  আসল খাতায় যান
+                </button>
+              </div>
+            )}
             {isLoading ? (
               <DashboardSkeleton />
             ) : error ? (

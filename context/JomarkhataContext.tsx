@@ -9,12 +9,16 @@ import {
   type CreatePurchaseInput,
   type CreateSaleInput,
   type RecordDueEntryInput,
+  type NewShopInput,
+  type StartupPhase,
+  type StartupState,
 } from '@/services/jomarkhataService';
 import { computeCurrentBalances } from '@/services/financeCalculator';
 import type {
   AppRoute,
   ChannelOpeningBalances,
   CurrentBalancesSummary,
+  DbMode,
   DueTransaction,
   ExpenseRecord,
   Party,
@@ -55,6 +59,10 @@ export type ActiveSheet =
 interface JomarkhataContextValue {
   data: AppDataSnapshot | null;
   isLoading: boolean;
+  /** S3 startup phase: welcome (no shop yet), legacy_choice (older build's data), ready. */
+  phase: StartupPhase;
+  /** Which database is active: the owner's real khata, or the separate demo khata. */
+  mode: DbMode;
   error: string | null;
   currentBalances: CurrentBalancesSummary;
   activeRoute: AppRoute;
@@ -135,6 +143,11 @@ interface JomarkhataContextValue {
     voidExpense: (expenseId: string, reason?: string) => Promise<void>;
     resetDemoData: () => Promise<void>;
     exportBackupJson: () => Promise<string>;
+    createShop: (input: NewShopInput) => Promise<void>;
+    keepLegacyAsMine: () => Promise<void>;
+    moveLegacyToDemo: () => Promise<void>;
+    enterDemo: () => Promise<void>;
+    exitDemo: () => Promise<void>;
   };
 }
 
@@ -181,6 +194,14 @@ const EMPTY_BALANCES: CurrentBalancesSummary = {
 export function JomarkhataProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AppDataSnapshot | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [phase, setPhase] = useState<StartupPhase>('welcome');
+  const [mode, setMode] = useState<DbMode>('real');
+  const applyStartup = useCallback((st: StartupState) => {
+    setPhase(st.phase);
+    setMode(st.mode);
+    setData(st.snapshot);
+    setError(null);
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [activeRoute, setActiveRoute] = useState<AppRoute>('dashboard');
   const [selectedPartyId, setSelectedPartyIdState] = useState<string | null>(null);
@@ -264,11 +285,8 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
     let active = true;
     (async () => {
       try {
-        const snap = await jomarkhataService.initializeAndLoad();
-        if (active) {
-          setData(snap);
-          setError(null);
-        }
+        const st = await jomarkhataService.bootstrap(); // read-only: never seeds or deletes
+        if (active) applyStartup(st);
       } catch (err) {
         if (active) {
           setError(err instanceof Error ? err.message : 'লোকাল ডেটাবেস চালু করা যায়নি।');
@@ -280,7 +298,7 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
     return () => {
       active = false;
     };
-  }, []);
+  }, [applyStartup]);
 
   const navigate = useCallback((route: AppRoute, options?: { partyId?: string | null }) => {
     const partyId = options && 'partyId' in options ? options.partyId ?? null : null;
@@ -468,6 +486,33 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
         await refresh();
         showToast('খরচ বাতিল করা হয়েছে এবং ব্যালেন্স ফেরত এসেছে।', 'info');
       },
+      createShop: async (input: NewShopInput) => {
+        const snap = await jomarkhataService.createShop(input);
+        applyStartup({ phase: 'ready', mode: 'real', snapshot: snap });
+        showToast(`${snap.businessProfile.shopName}-এর খাতা শুরু হলো।`);
+      },
+      keepLegacyAsMine: async () => {
+        const snap = await jomarkhataService.keepLegacyAsMine();
+        applyStartup({ phase: 'ready', mode: 'real', snapshot: snap });
+        showToast('এই হিসাব আপনার দোকানের খাতা হিসেবে রাখা হলো।');
+      },
+      moveLegacyToDemo: async () => {
+        await jomarkhataService.moveLegacyToDemo();
+        applyStartup({ phase: 'welcome', mode: 'real', snapshot: null });
+        showToast('আগের হিসাব ডেমো খাতায় সরানো হয়েছে। এবার আপনার খাতা শুরু করুন।', 'info');
+      },
+      enterDemo: async () => {
+        const snap = await jomarkhataService.enterDemo();
+        applyStartup({ phase: 'ready', mode: 'demo', snapshot: snap });
+        setActiveRoute('dashboard');
+        showToast('ডেমো খাতা খোলা হয়েছে। এখানের কিছুই আপনার আসল খাতায় যাবে না।', 'info');
+      },
+      exitDemo: async () => {
+        const st = await jomarkhataService.exitDemo();
+        applyStartup(st);
+        setActiveRoute('dashboard');
+        setSelectedPartyIdState(null);
+      },
       resetDemoData: async () => {
         const fresh = await jomarkhataService.resetDemoData();
         setData(fresh);
@@ -479,13 +524,15 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
         return jomarkhataService.exportBackupJson();
       },
     }),
-    [refresh, showToast]
+    [refresh, showToast, applyStartup]
   );
 
   const value = useMemo<JomarkhataContextValue>(
     () => ({
       data,
       isLoading,
+      phase,
+      mode,
       error,
       currentBalances,
       activeRoute,
@@ -506,6 +553,8 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
       actions,
     }),
     [
+      phase,
+      mode,
       forceCloseSheet,
       discardPrompt,
       cancelDiscard,

@@ -5,8 +5,10 @@ import { ArrowRight, Info } from 'lucide-react';
 import { WelcomeIllustration } from './WelcomeIllustration';
 
 interface WelcomeScreenProps {
-  /** Start using the app in local mode (no account). */
-  onStartLocal: () => void;
+  /** Start the owner's own khata (opens the shop setup form). */
+  onStart: () => void;
+  /** Look around with sample data (separate demo database). */
+  onDemo: () => void;
 }
 
 /**
@@ -14,10 +16,11 @@ interface WelcomeScreenProps {
  * ("Main app THEME … first page"): brand on top, large headline, illustration, one big pill CTA,
  * and a secondary sign-in line.
  *
- * Honest auth (plan §7.2): login needs the backend, so "লগইন করুন" only explains that cloud
- * accounts are not available yet. It never creates a signed-in state.
+ * Honest auth (plan §7.2): login needs the backend, so "লগইন করুন" only explains that accounts
+ * are not available yet. It never creates a signed-in state. (D26: login becomes mandatory once
+ * the backend exists; until then the khata is local to this phone.)
  */
-export function WelcomeScreen({ onStartLocal }: WelcomeScreenProps) {
+export function WelcomeScreen({ onStart, onDemo }: WelcomeScreenProps) {
   const [showLoginNote, setShowLoginNote] = useState(false);
 
   return (
@@ -48,11 +51,18 @@ export function WelcomeScreen({ onStartLocal }: WelcomeScreenProps) {
         {/* Primary CTA */}
         <button
           type="button"
-          onClick={onStartLocal}
+          onClick={onStart}
           className="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-primary-gradient px-6 text-base font-bold text-on-primary shadow-hero transition-colors hover:brightness-[0.97] active:scale-[0.99]"
         >
-          <span>লগইন ছাড়া শুরু করুন</span>
+          <span>আমার খাতা শুরু করুন</span>
           <ArrowRight className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          onClick={onDemo}
+          className="mt-3 flex min-h-12 w-full items-center justify-center rounded-full border border-border-strong bg-white px-6 text-base font-bold text-ink"
+        >
+          আগে ডেমো দেখুন
         </button>
 
         {/* Secondary: sign in (backend not available yet) */}
@@ -72,7 +82,7 @@ export function WelcomeScreen({ onStartLocal }: WelcomeScreenProps) {
           <div role="status" className="mt-3 flex items-start gap-2.5 rounded-2xl bg-warning-soft p-3.5 text-sm font-medium text-warning-ink">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
-              ক্লাউড অ্যাকাউন্ট এখনও চালু হয়নি। আপাতত লগইন ছাড়াই ব্যবহার করুন — আপনার হিসাব এই ফোনেই সংরক্ষিত থাকবে।
+              অ্যাকাউন্ট ও লগইন এখনও চালু হয়নি। আপাতত আপনার হিসাব এই ফোনেই সংরক্ষিত থাকবে; অ্যাকাউন্ট চালু হলে এই হিসাব আপনার অ্যাকাউন্টে যুক্ত করা যাবে।
             </span>
           </div>
         )}

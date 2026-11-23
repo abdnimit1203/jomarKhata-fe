@@ -1,6 +1,8 @@
 import Dexie, { type Table } from 'dexie';
 import type {
+  AppMetaRecord,
   AuditLog,
+  DbMode,
   BusinessProfile,
   DueTransaction,
   ExpenseRecord,
@@ -14,7 +16,9 @@ import type {
 } from '@/types/domain';
 
 export const JOMARKHATA_DB_NAME = 'jomarkhata_db';
-export const JOMARKHATA_DB_VERSION = 1;
+/** Demo data lives in its own database (AP-2), so it can never mix with or upload as real data. */
+export const JOMARKHATA_DEMO_DB_NAME = 'jomarkhata_demo';
+export const JOMARKHATA_DB_VERSION = 2;
 
 /**
  * Versioned Dexie + IndexedDB Database for জমারখাতা (Jomarkhata).
@@ -35,9 +39,10 @@ export class JomarkhataDB extends Dexie {
   stockMovements!: Table<StockMovement, string>;
   auditLogs!: Table<AuditLog, string>;
   syncQueue!: Table<SyncQueueItem, string>;
+  appMeta!: Table<AppMetaRecord, string>;
 
-  constructor() {
-    super(JOMARKHATA_DB_NAME);
+  constructor(name: string = JOMARKHATA_DB_NAME) {
+    super(name);
 
     this.version(1).stores({
       businessProfile: 'id',
@@ -53,22 +58,44 @@ export class JomarkhataDB extends Dexie {
       syncQueue: 'id, entityType, entityId, operation, syncStatus, queuedAt',
     });
 
-    /**
-     * Future Migration Pattern:
-     * When upgrading to version(2), declare `.version(2).stores({ ... }).upgrade(tx => { ... })`
-     * so existing shopkeeper IndexedDB data upgrades safely without data loss.
-     */
+    // v2 (AP-3, additive): app metadata only. Every v1 table and index is unchanged.
+    // Rule: future versions are additive too, `version(n).stores({...}).upgrade(...)`, never dropping data.
+    this.version(2).stores({ appMeta: 'key' });
   }
 }
 
-let dbInstance: JomarkhataDB | null = null;
+let realDb: JomarkhataDB | null = null;
+let demoDb: JomarkhataDB | null = null;
+let activeMode: DbMode = 'real';
 
-export function getJomarkhataDb(): JomarkhataDB {
+function assertBrowser() {
   if (typeof window === 'undefined') {
     throw new Error('IndexedDB (Dexie) is only available in the browser runtime.');
   }
-  if (!dbInstance) {
-    dbInstance = new JomarkhataDB();
-  }
-  return dbInstance;
+}
+
+/** The owner's real khata. Also holds `appMeta` (which mode is active, workspace). */
+export function getRealDb(): JomarkhataDB {
+  assertBrowser();
+  if (!realDb) realDb = new JomarkhataDB(JOMARKHATA_DB_NAME);
+  return realDb;
+}
+
+export function getDemoDb(): JomarkhataDB {
+  assertBrowser();
+  if (!demoDb) demoDb = new JomarkhataDB(JOMARKHATA_DEMO_DB_NAME);
+  return demoDb;
+}
+
+/** The database every service read/write uses: real by default, demo only in demo mode. */
+export function getJomarkhataDb(): JomarkhataDB {
+  return activeMode === 'demo' ? getDemoDb() : getRealDb();
+}
+
+export function setActiveDbMode(mode: DbMode) {
+  activeMode = mode;
+}
+
+export function getActiveDbMode(): DbMode {
+  return activeMode;
 }

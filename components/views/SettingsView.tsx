@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Database, Download, RotateCcw, Save, Store } from 'lucide-react';
+import { Database, Download, FlaskConical, RotateCcw, Save, Store } from 'lucide-react';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { NumericInput } from '@/components/ui/NumericInput';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -158,7 +158,7 @@ function SettingsProfileForm({ profile }: { profile: BusinessProfile }) {
 }
 
 export function SettingsView() {
-  const { data, actions, showToast } = useJomarkhata();
+  const { data, actions, showToast, mode } = useJomarkhata();
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
@@ -236,21 +236,32 @@ export function SettingsView() {
             <span>ব্যাকআপ ডাউনলোড (JSON)</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setConfirmResetOpen(true)}
-            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-danger-soft text-xs font-semibold text-danger hover:bg-danger-soft"
-          >
-            <RotateCcw className="h-4 w-4" />
-            <span>ডেমো ডেটা রিসেট করুন</span>
-          </button>
+          {mode === 'demo' ? (
+            <button
+              type="button"
+              onClick={() => setConfirmResetOpen(true)}
+              className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-danger-soft text-xs font-semibold text-danger hover:bg-danger-soft"
+            >
+              <RotateCcw className="h-4 w-4" />
+              <span>ডেমো খাতা রিসেট করুন</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void actions.enterDemo()}
+              className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-surface-muted text-xs font-semibold text-ink hover:bg-secondary"
+            >
+              <FlaskConical className="h-4 w-4" />
+              <span>ডেমো খাতা দেখুন (আসল খাতা অক্ষত থাকবে)</span>
+            </button>
+          )}
         </div>
       </section>
 
       <ConfirmDialog
         open={confirmResetOpen}
-        title="ডেমো ডেটা রিসেট করবেন?"
-        description="আপনার বর্তমান লোকাল হিসাব মুছে গিয়ে নতুন ডেমো দোকানের হিসাব পুনরায় লোড হবে। প্রয়োজনে আগে JSON ব্যাকআপ ডাউনলোড করে নিন।"
+        title="ডেমো খাতা রিসেট করবেন?"
+        description="শুধু ডেমো খাতার হিসাব আবার শুরুর অবস্থায় ফিরবে। আপনার আসল খাতায় কোনো পরিবর্তন হবে না।"
         confirmLabel="হ্যাঁ, রিসেট করুন"
         tone="danger"
         isSubmitting={isResetting}

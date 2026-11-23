@@ -53,6 +53,22 @@ export type PeriodPreset = 'today' | 'week' | 'month' | 'year' | 'all';
 
 export type ChannelOpeningBalances = Record<PaymentChannel, number>;
 
+/** Key/value app metadata (Dexie v2, AP-3). Never business data. */
+export interface AppMetaRecord {
+  key: 'workspace' | 'prefs' | string;
+  value: unknown;
+  updatedAt: string;
+}
+
+/** `workspace` meta: written once, when the owner starts their real khata (or keeps legacy data). */
+export interface WorkspaceMeta {
+  workspaceId: string;
+  createdAt: string;
+  origin: 'setup' | 'legacy';
+}
+
+export type DbMode = 'real' | 'demo';
+
 export interface BusinessProfile {
   id: string; // singleton 'default'
   shopName: string;

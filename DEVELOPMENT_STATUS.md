@@ -9,7 +9,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 | S0 | Safety net (tests) | ✅ Accepted by owner |
 | S1 | Design system foundation (colours, type, font, shared components, welcome screen design, ক্যাশ/নগদ wording) + revisions D22/D23 (amber) → **D24 blue redesign** (reference style, multicolour tiles, Radix Select/ToggleGroup) | ✅ Done, awaiting owner review |
 | S2 | App shell & navigation | ✅ Done: bottom bar with + and আরও, top bar back/title/online pill, Android back integration, unsaved-form guard |
-| S3 | First run, local mode, business profile (+ wiring the welcome screen) | ⏸ |
+| S3 | First run, local mode, business profile (+ wiring the welcome screen) | ✅ Done: welcome → shop setup (empty khata), separate demo DB, legacy choice (D15), Dexie v2 appMeta (AP-1/2/3) |
 | S4 | Dashboard & cash summary | ⏸ |
 | S5 | Customers, suppliers & Due Book | ⏸ |
 | S6 | Sales, purchases, expenses | ⏸ |
@@ -30,7 +30,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 ## Quality gates
 | Check | Command | S0 | S1 |
 |---|---|---|---|
-| Tests | `npm test` | 49 / 49 | **115 / 115** (8 files) |
+| Tests | `npm test` | 49 / 49 | **132 / 132** (9 files) |
 | TypeScript | `npm run typecheck` | 0 errors | **0 errors** |
 | Production build | `npm run build` | — | **✓ compiled, 3/3 static pages** |
 | Mobile render check (360px, Edge via puppeteer) | manual | — | Welcome and Dashboard render with **0px horizontal overflow** |

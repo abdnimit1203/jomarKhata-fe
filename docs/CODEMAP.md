@@ -20,6 +20,15 @@ A compact map of the project for anyone (human or tool) starting work. Kept up t
 - **Back button:** `navigate`, `setSelectedPartyId` and `openSheet` push history entries; `popstate` in the context restores them. **Always write history through `pushEntry` / `replaceEntry`**, which keep Next's `__NA` key. Without it, Next reloads the page on back.
 - **Unsaved-input guard:** `ModalSheet` marks the sheet dirty on input. Use `closeSheet()` (asks first) or `forceCloseSheet()`. A successful action calls `refresh()`, which clears dirty.
 
+## Startup & databases (S3)
+- **Two IndexedDB databases:** `jomarkhata_db` (the real khata, plus `appMeta`) and `jomarkhata_demo` (demo only). `db/jomarkhataDb.ts` provides `getJomarkhataDb()`, which returns the active one, plus `getRealDb()`, `getDemoDb()` and `setActiveDbMode()`.
+- **Schema is v2** (v1 tables + `appMeta`). Locked by tests.
+- **`jomarkhataService.bootstrap()` is read-only** and returns a phase:
+  - `welcome` (no shop) → `WelcomeScreen` → `ShopSetupScreen` → `createShop`
+  - `legacy_choice` (an older build's data, no `workspace` meta) → `LegacyChoiceScreen` → `keepLegacyAsMine` or `moveLegacyToDemo`
+  - `ready`
+- **Demo:** `enterDemo` / `exitDemo`; `resetDemoData` works only in demo mode.
+
 ## Data flow (the one rule)
 **UI → `useJomarkhata()` (`context/JomarkhataContext.tsx`) → `jomarkhataService` (`services/jomarkhataService.ts`) → Dexie (`db/jomarkhataDb.ts`).**
 - **UI never writes to Dexie directly.**
