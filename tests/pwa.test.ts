@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import manifest from '@/app/manifest';
+import { APP_ICONS, appIconSrc } from '@/components/ui/AppIcon';
 
 const ROOT = path.resolve(__dirname, '..');
 const sw = fs.readFileSync(path.join(ROOT, 'public/sw.js'), 'utf8');
@@ -53,9 +54,52 @@ describe('service worker rules', () => {
     expect(sw).toMatch(/caches\.delete/);
   });
 
+  it('precaches every custom feature icon and the logo, so they show offline on any screen', () => {
+    for (const name of APP_ICONS) expect(sw, name).toMatch(new RegExp(`'${name}'`));
+    expect(sw).toMatch(/'\/brand\/logo-mark\.png'/);
+    expect(sw).not.toMatch(/jk-shell-v1'/); // v1 cached the placeholder icons cache-first
+  });
+
   it('is registered only in production builds (dev keeps hot reload)', () => {
     const reg = fs.readFileSync(path.join(ROOT, 'components/pwa/ServiceWorkerRegister.tsx'), 'utf8');
     expect(reg).toMatch(/process\.env\.NODE_ENV !== 'production'/);
     expect(fs.readFileSync(path.join(ROOT, 'app/layout.tsx'), 'utf8')).toMatch(/<ServiceWorkerRegister \/>/);
+  });
+});
+
+describe('brand assets (owner logo + 19 feature icons)', () => {
+  const pub = (p: string) => path.join(ROOT, 'public', p);
+
+  it('every feature icon file exists, is a real vector (no embedded raster) and stays small', () => {
+    for (const name of APP_ICONS) {
+      const file = pub(appIconSrc(name));
+      expect(fs.existsSync(file), name).toBe(true);
+      const svg = fs.readFileSync(file, 'utf8');
+      expect(svg, name).not.toMatch(/<image\b|data:image\//);
+      // The source files were whole icon sheets cropped by viewBox (~165 KB each); pruned ones are < 25 KB.
+      expect(svg.length, name).toBeLessThan(40 * 1024);
+    }
+  });
+
+  it('no stray icon files outside the typed list', () => {
+    const onDisk = fs.readdirSync(pub('icons/features')).map((f) => f.replace(/\.svg$/, '')).sort();
+    expect(onDisk).toEqual([...APP_ICONS].sort());
+  });
+
+  it('logo files exist and are web-sized (the 10 MB logo SVG must never be shipped)', () => {
+    for (const [p, maxKb] of [
+      ['brand/logo-mark.png', 60],
+      ['brand/logo-horizontal.webp', 120],
+      ['favicon.ico', 30],
+      ['icons/apple-touch-icon.png', 60],
+      ['icons/icon-192.png', 80],
+      ['icons/icon-512.png', 300],
+      ['icons/icon-maskable-512.png', 300],
+    ] as const) {
+      expect(fs.existsSync(pub(p)), p).toBe(true);
+      expect(fs.statSync(pub(p)).size / 1024, p).toBeLessThan(maxKb);
+    }
+    const all = fs.readdirSync(pub('brand'));
+    expect(all.filter((f) => f.endsWith('.svg'))).toEqual([]);
   });
 });

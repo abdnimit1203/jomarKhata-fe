@@ -25,9 +25,8 @@ export function WelcomeScreen({ onStartLocal }: WelcomeScreenProps) {
       <div className="mx-auto flex min-h-dvh max-w-md flex-col px-6 pt-10 pb-8">
         {/* Brand */}
         <div className="flex items-center gap-2.5">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-gradient text-lg font-extrabold text-on-primary shadow-sm">
-            জ
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/logo-mark.png" alt="" width={40} height={40} className="h-10 w-10" />
           <span className="text-xl font-extrabold tracking-tight text-primary-ink">জমারখাতা</span>
         </div>
 

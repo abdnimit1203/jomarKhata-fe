@@ -9,8 +9,24 @@
  * - Pages: network-first (fresh when online, cached copy when offline).
  *   Hashed static assets (/_next/static, /icons): cache-first (they never change).
  */
-const VERSION = 'jk-shell-v1';
-const SHELL_URLS = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png'];
+// Bump VERSION whenever a file under /icons or /brand is replaced: those paths are served
+// cache-first, so phones keep the old copy until the cache name changes.
+const VERSION = 'jk-shell-v2';
+const FEATURE_ICONS = [
+  'add-plus', 'book-due', 'book-expense', 'book-purchase', 'book-sales', 'cashbox', 'due-collect',
+  'expense', 'money-in', 'money-out', 'nav-home', 'nav-transactions', 'party-list', 'purchase',
+  'reports', 'sale', 'settings', 'stock', 'supplier-pay',
+].map((n) => `/icons/features/${n}.svg`);
+const SHELL_URLS = [
+  '/',
+  '/manifest.webmanifest',
+  '/favicon.ico',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/icon-maskable-512.png',
+  '/brand/logo-mark.png',
+  ...FEATURE_ICONS,
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -35,7 +51,11 @@ function isSameOriginGet(request) {
 }
 
 function isImmutableAsset(url) {
-  return url.pathname.startsWith('/_next/static/') || url.pathname.startsWith('/icons/');
+  return (
+    url.pathname.startsWith('/_next/static/') ||
+    url.pathname.startsWith('/icons/') ||
+    url.pathname.startsWith('/brand/')
+  );
 }
 
 async function putInCache(request, response) {

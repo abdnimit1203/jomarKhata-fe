@@ -1,24 +1,10 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  BarChart3,
-  BookOpen,
-  ChevronRight,
-  Eye,
-  EyeOff,
-  Package,
-  Receipt,
-  Settings,
-  ShoppingBag,
-  ShoppingCart,
-  Users,
-  Wallet,
-} from 'lucide-react';
+import { ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { FeatureIcon, type FeatureTone } from '@/components/ui/FeatureIcon';
+import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import {
   buildUnifiedLedger,
   computePeriodFlows,
@@ -220,8 +206,8 @@ export function DashboardView() {
           onClick={() => openSheet({ type: 'sale' })}
           className="flex min-h-[60px] items-center justify-center gap-2.5 rounded-2xl bg-primary-gradient px-4 py-3.5 text-on-primary shadow-sm transition-all hover:brightness-[0.97] active:scale-[0.98]"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/30">
-            <ShoppingBag className="h-5 w-5" />
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white">
+            <AppIcon name="sale" className="h-8 w-8" />
           </span>
           <div className="text-left">
             <p className="text-base font-bold leading-tight">বেচা</p>
@@ -235,7 +221,7 @@ export function DashboardView() {
           className="flex min-h-[60px] items-center justify-center gap-2.5 rounded-2xl border border-border-strong bg-white px-4 py-3.5 text-ink shadow-card transition-all hover:border-primary-ink/50 active:scale-[0.98]"
         >
           <FeatureIcon tone="blue" size="sm">
-            <ShoppingCart />
+            <AppIcon name="purchase" />
           </FeatureIcon>
           <div className="text-left">
             <p className="text-base font-bold leading-tight">কেনা</p>
@@ -249,30 +235,29 @@ export function DashboardView() {
         {[
           {
             label: 'বাকি আদায়',
-            icon: ArrowDownLeft,
+            icon: 'due-collect' as AppIconName,
             tone: 'orange' as FeatureTone,
             onClick: () => openSheet({ type: 'due', defaultEntryType: 'customer_collection' }),
           },
           {
             label: 'সহজ খরচ',
-            icon: Receipt,
+            icon: 'expense' as AppIconName,
             tone: 'red' as FeatureTone,
             onClick: () => openSheet({ type: 'expense' }),
           },
           {
             label: 'পরিশোধ',
-            icon: ArrowUpRight,
+            icon: 'supplier-pay' as AppIconName,
             tone: 'teal' as FeatureTone,
             onClick: () => openSheet({ type: 'due', defaultEntryType: 'supplier_payment' }),
           },
           {
             label: 'স্টক',
-            icon: Package,
+            icon: 'stock' as AppIconName,
             tone: 'indigo' as FeatureTone,
             onClick: () => navigate('stock'),
           },
         ].map((item) => {
-          const Icon = item.icon;
           return (
             <button
               key={item.label}
@@ -281,7 +266,7 @@ export function DashboardView() {
               className="flex flex-col items-center gap-2 rounded-2xl bg-white py-3.5 px-2 shadow-card transition-transform active:scale-[0.97]"
             >
               <FeatureIcon tone={item.tone}>
-                <Icon />
+                <AppIcon name={item.icon} />
               </FeatureIcon>
               <span className="text-xs font-semibold text-ink whitespace-nowrap">
                 {item.label}
@@ -299,12 +284,11 @@ export function DashboardView() {
             <h2 className="mb-3 px-1 text-sm font-semibold text-ink">খাতা সমূহ</h2>
             <div className="grid grid-cols-4 gap-2">
               {[
-                { label: 'বেচার খাতা', icon: ShoppingBag, route: 'sales' as const, tone: 'green' as FeatureTone },
-                { label: 'কেনার খাতা', icon: ShoppingCart, route: 'purchases' as const, tone: 'blue' as FeatureTone },
-                { label: 'বাকির খাতা', icon: BookOpen, route: 'dues' as const, tone: 'orange' as FeatureTone },
-                { label: 'খরচের খাতা', icon: Wallet, route: 'cash' as const, tone: 'red' as FeatureTone },
+                { label: 'বেচার খাতা', icon: 'book-sales' as AppIconName, route: 'sales' as const, tone: 'green' as FeatureTone },
+                { label: 'কেনার খাতা', icon: 'book-purchase' as AppIconName, route: 'purchases' as const, tone: 'blue' as FeatureTone },
+                { label: 'বাকির খাতা', icon: 'book-due' as AppIconName, route: 'dues' as const, tone: 'orange' as FeatureTone },
+                { label: 'খরচের খাতা', icon: 'book-expense' as AppIconName, route: 'cash' as const, tone: 'red' as FeatureTone },
               ].map((b) => {
-                const Icon = b.icon;
                 return (
                   <button
                     key={b.label}
@@ -313,7 +297,7 @@ export function DashboardView() {
                     className="flex min-h-[84px] flex-col items-center justify-start gap-1.5 rounded-2xl p-1.5 text-center transition-colors hover:bg-canvas active:scale-[0.97]"
                   >
                     <FeatureIcon tone={b.tone}>
-                      <Icon />
+                      <AppIcon name={b.icon} />
                     </FeatureIcon>
                     <span className="text-xs font-semibold text-ink leading-tight">
                       {b.label}
@@ -328,17 +312,16 @@ export function DashboardView() {
             <h2 className="mb-3 px-1 text-sm font-semibold text-ink">আপনার ব্যবসার জন্য</h2>
             <div className="grid grid-cols-4 gap-2">
               {[
-                { label: 'পার্টি তালিকা', icon: Users, route: 'dues' as const, tone: 'purple' as FeatureTone },
+                { label: 'পার্টি তালিকা', icon: 'party-list' as AppIconName, route: 'dues' as const, tone: 'purple' as FeatureTone },
                 {
                   label: `স্টক (${formatBanglaNumber(currentBalances.totalStockQty)})`,
-                  icon: Package,
+                  icon: 'stock' as AppIconName,
                   route: 'stock' as const,
                   tone: 'indigo' as FeatureTone,
                 },
-                { label: 'রিপোর্ট', icon: BarChart3, route: 'reports' as const, tone: 'sky' as FeatureTone },
-                { label: 'সেটিংস', icon: Settings, route: 'settings' as const, tone: 'slate' as FeatureTone },
+                { label: 'রিপোর্ট', icon: 'reports' as AppIconName, route: 'reports' as const, tone: 'sky' as FeatureTone },
+                { label: 'সেটিংস', icon: 'settings' as AppIconName, route: 'settings' as const, tone: 'slate' as FeatureTone },
               ].map((t) => {
-                const Icon = t.icon;
                 return (
                   <button
                     key={t.label}
@@ -347,7 +330,7 @@ export function DashboardView() {
                     className="flex min-h-[84px] flex-col items-center justify-start gap-1.5 rounded-2xl p-1.5 text-center transition-colors hover:bg-canvas active:scale-[0.97]"
                   >
                     <FeatureIcon tone={t.tone}>
-                      <Icon />
+                      <AppIcon name={t.icon} />
                     </FeatureIcon>
                     <span className="text-xs font-semibold text-ink leading-tight">
                       {t.label}
@@ -418,13 +401,11 @@ export function DashboardView() {
                                 : 'orange'
                       }
                     >
-                      {isPositive ? (
-                        <ArrowDownLeft className="h-5 w-5" />
-                      ) : item.sourceType === 'expense' ? (
-                        <Receipt className="h-5 w-5" />
-                      ) : (
-                        <ArrowUpRight className="h-5 w-5" />
-                      )}
+                      <AppIcon
+                        name={
+                          isPositive ? 'money-in' : item.sourceType === 'expense' ? 'expense' : 'money-out'
+                        }
+                      />
                     </FeatureIcon>
 
                     <div className="min-w-0 flex-1">

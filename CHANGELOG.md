@@ -4,6 +4,24 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### Brand: owner's logo and 19 feature icons, 2026-11-23
+**Added**
+- `public/icons/features/*.svg`: the owner's 19 colourful icons. The source files were each a **whole traced icon sheet** cropped by `viewBox` (~105–165 KB each, 2.4 MB in total). Paths outside each icon's viewBox were removed: **266 KB total, pixel-identical render** (verified by canvas diff, max difference 0).
+- `components/ui/AppIcon.tsx`: typed `AppIcon` (name list `APP_ICONS`). `FeatureIcon` sizes `<img>` icons larger than line icons.
+- The Dashboard uses the custom icons (বেচা, কেনা, quick actions, খাতা সমূহ, business tools, recent transactions). Bottom-nav icons (`nav-home`, `nav-transactions`, `add-plus`, `cashbox`) are ready for S2.
+- The real logo replaces the "জ" placeholder (top bar, desktop sidebar, welcome screen): `public/brand/logo-mark.png` (128 px).
+- PWA icons regenerated from the owner's 3072 px master: `icon-192`, `icon-512`, the owner's maskable 512 (content within the safe zone), opaque `apple-touch-icon` (180), `favicon.ico` (16/32/48).
+- `public/brand/logo-horizontal.webp`: the horizontal logo, cropped to the content (was 16:9 with large empty margins), 1200×551, 42 KB. For the landing page and marketing.
+- `vercel.json`: pushes to the `dev` branch don't deploy; only `main` deploys.
+- README: feature list, codebase overview, security and data notes, branch workflow.
+
+**Changed**
+- Service worker `jk-shell-v1` → `jk-shell-v2` (old caches held the placeholder icons cache-first) and it now precaches the logo and all feature icons, so they show offline on screens not visited yet.
+
+**Not used:** `logo-mark.svg` (10.9 MB). It's two embedded raster images inside an SVG wrapper, not a vector, so it gives no benefit over the PNG.
+
+**Tests:** +4 (icons precached, icon files are small real vectors, no stray icons, logo files exist and are web-sized). 100/100.
+
 ### S12 (core) pulled forward: installable PWA + offline app shell, 2026-11-23
 Owner needed to demo installing on a phone and using it offline today.
 

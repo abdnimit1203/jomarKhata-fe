@@ -125,9 +125,8 @@ export function AppShell() {
         {/* Desktop Left Sidebar (lg+) */}
         <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-border lg:bg-white">
           <div className="flex h-16 items-center gap-3 border-b border-border px-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-gradient text-lg font-bold text-on-primary">
-              জ
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/logo-mark.png" alt="" width={40} height={40} className="h-10 w-10 shrink-0" />
             <div className="min-w-0">
               <p className="truncate text-base font-bold text-ink">জমারখাতা</p>
               <p className="truncate text-xs text-ink-muted">
@@ -184,9 +183,14 @@ export function AppShell() {
             <span aria-hidden="true" className="pointer-events-none absolute -bottom-12 right-[-1.5rem] h-28 w-28 rounded-full bg-white/10" />
             <div className="relative flex h-16 items-center justify-between gap-3 px-4 lg:px-8">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-base font-extrabold text-primary-ink shadow-sm lg:hidden">
-                  জ
-                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/brand/logo-mark.png"
+                  alt=""
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 shrink-0 rounded-[0.7rem] ring-2 ring-white/80 lg:hidden"
+                />
                 <div className="min-w-0">
                   <p className="truncate text-xs font-medium text-on-primary">আসসালামু আলাইকুম,</p>
                   <p className="truncate text-base font-bold text-on-primary">

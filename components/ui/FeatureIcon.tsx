@@ -30,10 +30,12 @@ const TONE: Record<FeatureTone, string> = {
   slate: 'bg-tile-slate-bg text-tile-slate-fg',
 };
 
+// Line icons (lucide <svg>) and the colourful custom icons (<img>, see AppIcon) size differently:
+// custom icons fill more of the tile because they carry their own colour and detail.
 const SIZE = {
-  sm: 'h-10 w-10 rounded-xl [&>svg]:h-5 [&>svg]:w-5',
-  md: 'h-12 w-12 rounded-2xl [&>svg]:h-6 [&>svg]:w-6',
-  lg: 'h-14 w-14 rounded-2xl [&>svg]:h-7 [&>svg]:w-7',
+  sm: 'h-10 w-10 rounded-xl [&>svg]:h-5 [&>svg]:w-5 [&>img]:h-7 [&>img]:w-7',
+  md: 'h-12 w-12 rounded-2xl [&>svg]:h-6 [&>svg]:w-6 [&>img]:h-9 [&>img]:w-9',
+  lg: 'h-14 w-14 rounded-2xl [&>svg]:h-7 [&>svg]:w-7 [&>img]:h-10 [&>img]:w-10',
 } as const;
 
 export function FeatureIcon({
