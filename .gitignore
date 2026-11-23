@@ -15,25 +15,59 @@ coverage/
 .vercel/
 
 # AI tools / coding-agent artifacts — never commit
+# Google AI Studio / Antigravity / Gemini
 .aistudio/
 .antigravity/
-.agent/
-.agents/
-.claude/
-.cursor/
-.cursorrules
 .gemini/
-.windsurf/
-.codeium/
-.continue/
-.aider*
-.copilot/
-.github/copilot-instructions.md
-AGENTS.md
-CLAUDE.md
-GEMINI.md
+.idx/
 metadata.json
 public/assets/aistudio/
+GEMINI.md
+# Claude / Anthropic
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+# Cursor / Windsurf / Codeium / Trae / Kiro / Zed AI
+.cursor/
+.cursorrules
+.cursorignore
+.cursorindexingignore
+.windsurf/
+.windsurfrules
+.codeium/
+.trae/
+.kiro/
+# Copilot / Continue / Cline / Roo / Aider / Tabnine / Junie / Augment / Qodo / Goose
+.copilot/
+.github/copilot-instructions.md
+.github/instructions/
+.github/prompts/
+.continue/
+.continuerules
+.cline/
+.clinerules
+.clineignore
+.roo/
+.roomodes
+.rooignore
+.aider*
+.tabnine/
+.junie/
+.augment/
+.augmentignore
+.qodo/
+.goosehints
+# Generic agent instruction / MCP / tool config files
+.agent/
+.agents/
+AGENTS.md
+AGENT.md
+.mcp.json
+mcp.json
+.specstory/
+.history/
+*.prompt.md
+*.chatmode.md
 # Foreign lockfile (this project uses npm / package-lock.json)
 bun.lock
 
