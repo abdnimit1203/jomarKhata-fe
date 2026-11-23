@@ -36,7 +36,7 @@ describe('own wording, not another app’s labels', () => {
   });
 
   it('wording lives in one place (lib/terms.ts) and the Due Book uses it', () => {
-    expect(read('lib/terms.ts')).toMatch(/receivable: 'পাওনা'/);
+    expect(read('lib/terms.ts')).toMatch(/receivable: 'বাকি পাবেন'/);
     expect(read('components/views/DuesView.tsx')).toMatch(/T\.newDueEntry/);
   });
   it('party screen: one "লেনদেন লিখুন" action, not a red/green split pair; month timeline', () => {

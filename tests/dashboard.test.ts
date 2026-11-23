@@ -17,7 +17,7 @@ describe('Dashboard (S4)', () => {
   it('mobile order: hero (cash + পাওনা/দেনা) → বিক্রি/কেনা → quick actions → আজ/মাস → সব হিসাব → recent', () => {
     const order = [
       at('হাতে ক্যাশ'),
-      at('মোট পাওনা'),
+      at('বাকি পাবেন'),
       at("openSheet({ type: 'sale' })"),
       at("label: 'বাকি আদায়'"),
       at("'আজকের হিসাব'"),
@@ -35,6 +35,6 @@ describe('Dashboard (S4)', () => {
   it('hero is compact: one cash figure, channel line and a পাওনা/দেনা row', () => {
     expect(dash).toMatch(/text-3xl font-bold/);
     expect(dash).not.toMatch(/sm:text-4xl/);
-    expect(dash).toMatch(/মোট দেনা/);
+    expect(dash).toMatch(/বাকি দেবেন/);
   });
 });

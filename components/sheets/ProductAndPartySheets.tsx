@@ -384,7 +384,7 @@ export function PartyFormSheet({
         {!editParty && (
           <div>
             <label className="mb-1 block text-xs text-ink-muted">
-              {role === 'customer' ? 'পূর্বের পাওনা (ঐচ্ছিক)' : 'পূর্বের দেনা (ঐচ্ছিক)'}
+              {role === 'customer' ? 'আগের বাকি, আপনি পাবেন (ঐচ্ছিক)' : 'আগের বাকি, আপনি দেবেন (ঐচ্ছিক)'}
             </label>
             <NumericInput value={openingDue} onChange={(raw) => setOpeningDue(raw)} placeholder="০" />
           </div>

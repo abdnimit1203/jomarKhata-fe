@@ -21,6 +21,8 @@ type LedgerFilter = 'all' | 'sale' | 'settlement' | 'purchase' | 'expense';
 
 export function LedgerView() {
   const { data, openSheet } = useJomarkhata();
+  // phone under the party name in rows (owner request)
+  const phoneOf = useMemo(() => new Map((data?.parties ?? []).map((p) => [p.id, p.phone])), [data?.parties]);
   const [filter, setFilter] = useState<LedgerFilter>('all');
   const [channelFilter, setChannelFilter] = useState<'all' | PaymentChannel>('all');
   const [showVoided, setShowVoided] = useState(false);
@@ -209,6 +211,9 @@ export function LedgerView() {
 
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
+                        {item.partyId && phoneOf.get(item.partyId) && (
+                          <p className="truncate text-xs tabular-nums text-ink-muted">{phoneOf.get(item.partyId)}</p>
+                        )}
                         <p className="mt-0.5 truncate text-xs text-ink-muted">{item.subtitle}</p>
                         <p className="text-xs leading-4 text-ink-subtle">{formatBanglaTime(item.date)}</p>
                       </div>

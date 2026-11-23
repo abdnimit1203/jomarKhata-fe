@@ -39,6 +39,16 @@ const CHOICE_ICON: Record<DueChoice, React.ComponentType<{ className?: string }>
 };
 const CHOICE = Object.fromEntries(DUE_CHOICES.map((c) => [c.key, c])) as Record<DueChoice, (typeof DUE_CHOICES)[number]>;
 
+/** Party timeline as a simple table: description | দিলাম | পেলাম (owner request, 2026-11-24). */
+const ROW_GRID = 'grid grid-cols-[minmax(0,1fr)_4.25rem_4.25rem] items-start gap-2 px-3';
+/** Whole-row light tint per entry type: green got, red paid, yellow credit given, purple credit taken. */
+const ROW_TINT: Record<DueChoice, { bg: string; fg: string }> = {
+  got: { bg: 'bg-tile-green-bg', fg: 'text-tile-green-fg' },
+  paid: { bg: 'bg-tile-red-bg', fg: 'text-tile-red-fg' },
+  gave_credit: { bg: 'bg-tile-gold-bg', fg: 'text-tile-gold-fg' },
+  took_credit: { bg: 'bg-tile-purple-bg', fg: 'text-tile-purple-fg' },
+};
+
 /** পাওনা = green (money will come to you), দেনা = red (you have to pay). */
 function balanceTone(balance: number) {
   if (balance > 0) return 'text-success';
@@ -115,17 +125,21 @@ export function DuesView() {
     };
 
     // group the visible rows by month, newest first
-    const groups: Array<{ key: string; label: string; rows: DueTransaction[]; net: number }> = [];
+    const groups: Array<{ key: string; label: string; rows: DueTransaction[]; net: number; gave: number; got: number }> = [];
     for (const r of rowsPage.visible) {
       const d = new Date(r.date);
       const key = `${d.getFullYear()}-${d.getMonth()}`;
       let g = groups.find((x) => x.key === key);
       if (!g) {
-        g = { key, label: `${BANGLA_MONTHS[d.getMonth()]} ${toBanglaDigits(d.getFullYear())}`, rows: [], net: 0 };
+        g = { key, label: `${BANGLA_MONTHS[d.getMonth()]} ${toBanglaDigits(d.getFullYear())}`, rows: [], net: 0, gave: 0, got: 0 };
         groups.push(g);
       }
       g.rows.push(r);
-      if (r.status === 'active') g.net += r.direction === 'given' ? r.amount : -r.amount;
+      if (r.status === 'active') {
+        g.net += r.direction === 'given' ? r.amount : -r.amount;
+        if (r.direction === 'given') g.gave += r.amount;
+        else g.got += r.amount;
+      }
     }
 
     const action = (label: string, Icon: React.ComponentType<{ className?: string }>, onClick: () => void, disabled = false) => (
@@ -221,18 +235,26 @@ export function DuesView() {
           <div className="space-y-4">
             {groups.map((g) => (
               <section key={g.key} className="overflow-hidden rounded-3xl bg-white shadow-card">
-                <div className="flex items-center justify-between gap-2 bg-canvas px-4 py-2.5">
-                  <h3 className="text-sm font-bold text-ink">{g.label}</h3>
-                  <span className={`text-xs font-bold tabular-nums ${balanceTone(g.net)}`}>
-                    {g.net === 0 ? 'এ মাসে বদল নেই' : g.net > 0 ? `এ মাসে ${T.receivable} +${formatTaka(g.net)}` : `এ মাসে ${T.receivable} −${formatTaka(-g.net)}`}
+                {/* Month header + column titles: তারিখ ও বিবরণ | দিলাম | পেলাম */}
+                <h3 className="bg-canvas px-4 pt-2.5 pb-1 text-sm font-bold text-ink">{g.label}</h3>
+                <div className={`${ROW_GRID} border-b border-border bg-canvas pb-2 text-xs font-semibold text-ink-muted`}>
+                  <span>তারিখ ও বিবরণ</span>
+                  <span className="text-right">
+                    দিলাম
+                    <span className="block font-bold text-ink tabular-nums">{formatTaka(g.gave)}</span>
+                  </span>
+                  <span className="text-right">
+                    পেলাম
+                    <span className="block font-bold text-ink tabular-nums">{formatTaka(g.got)}</span>
                   </span>
                 </div>
-                <div className="divide-y divide-border">
+                <div className="space-y-1 p-1.5">
                   {g.rows.map((t) => {
                     const kind = dueRowLabel(t);
-                    const Icon = CHOICE_ICON[kind];
+                    const tint = ROW_TINT[kind];
                     const voided = t.status === 'voided';
                     const linked = (t.source === 'sale' || t.source === 'purchase') && t.sourceId;
+                    const amount = <span className={`text-sm font-bold tabular-nums text-ink ${voided ? 'line-through' : ''}`}>{formatTaka(t.amount)}</span>;
                     return (
                       <button
                         key={t.id}
@@ -244,26 +266,22 @@ export function DuesView() {
                             sourceId: linked ? (t.sourceId as string) : t.id,
                           })
                         }
-                        className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-canvas ${voided ? 'opacity-55' : ''}`}
+                        className={`${ROW_GRID} w-full rounded-2xl py-2.5 text-left ${tint.bg} ${voided ? 'opacity-55' : ''}`}
                       >
-                        <FeatureIcon tone={CHOICE[kind].tone} size="sm">
-                          <Icon />
-                        </FeatureIcon>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-ink">
-                            {CHOICE[kind].label}
-                            {ownNote(t.note) ? ` · ${ownNote(t.note)}` : ''}
-                          </span>
+                        <span className="min-w-0">
+                          <span className={`block text-sm font-bold ${tint.fg}`}>{CHOICE[kind].label}</span>
+                          {ownNote(t.note) && <span className="block truncate text-xs text-ink">{ownNote(t.note)}</span>}
                           <span className="block text-xs text-ink-muted">
                             {formatBanglaDateTime(t.date)}
                             {t.paymentMethod ? ` · ${getChannelShortLabel(t.paymentMethod)}` : ''}
                             {voided ? ' · বাতিল' : ''}
                           </span>
+                          <span className={`block text-xs font-semibold tabular-nums ${balanceTone(t.runningBalance)}`}>
+                            এরপর {balanceText(t.runningBalance)}
+                          </span>
                         </span>
-                        <span className="shrink-0 text-right">
-                          <span className={`block text-sm font-bold tabular-nums text-ink ${voided ? 'line-through' : ''}`}>{formatTaka(t.amount)}</span>
-                          <span className={`block text-xs font-semibold tabular-nums ${balanceTone(t.runningBalance)}`}>এরপর {balanceText(t.runningBalance)}</span>
-                        </span>
+                        <span className="self-center text-right">{t.direction === 'given' ? amount : null}</span>
+                        <span className="self-center text-right">{t.direction === 'received' ? amount : null}</span>
                       </button>
                     );
                   })}
@@ -299,11 +317,11 @@ export function DuesView() {
     <div className="mx-auto max-w-5xl space-y-3 pb-28 lg:pb-6">
       <section className="grid grid-cols-2 gap-2.5">
         <button type="button" onClick={() => setView('receivable')} className="rounded-2xl bg-tile-green-bg px-3.5 py-3 text-left">
-          <p className="text-xs font-semibold text-ink-muted">মোট {T.receivable} — আপনি পাবেন</p>
+          <p className="text-xs font-semibold text-ink-muted">মোট {T.receivable}</p>
           <p className="text-xl font-bold tabular-nums text-success">{formatTaka(currentBalances.totalReceivables)}</p>
         </button>
         <button type="button" onClick={() => setView('payable')} className="rounded-2xl bg-danger-soft px-3.5 py-3 text-left">
-          <p className="text-xs font-semibold text-ink-muted">মোট {T.payable} — আপনাকে দিতে হবে</p>
+          <p className="text-xs font-semibold text-ink-muted">মোট {T.payable}</p>
           <p className="text-xl font-bold tabular-nums text-danger">{formatTaka(currentBalances.totalPayables)}</p>
         </button>
       </section>
@@ -388,7 +406,7 @@ export function DuesView() {
         <EmptyState
           icon={<Users className="h-6 w-6" />}
           title={parties.length === 0 ? 'এখনও কোনো কাস্টমার বা সাপ্লায়ার নেই' : 'কাউকে পাওয়া যায়নি'}
-          description="কাস্টমার বা সাপ্লায়ার যোগ করে পাওনা-দেনার হিসাব শুরু করুন।"
+          description="কাস্টমার বা সাপ্লায়ার যোগ করে বাকির হিসাব শুরু করুন।"
           actionLabel="+ নতুন পার্টি যোগ করুন"
           onAction={() => openSheet({ type: 'party', defaultRole: 'customer' })}
         />
@@ -405,12 +423,21 @@ export function DuesView() {
               <span className="flex min-w-0 flex-1 items-center gap-3 p-3">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-base font-semibold text-ink">{party.name}</span>
+                  {party.phone && <span className="block truncate text-xs tabular-nums text-ink-muted">{party.phone}</span>}
                   <span className="block truncate text-xs text-ink-muted">
                     {party.role === 'customer' ? 'কাস্টমার' : 'সাপ্লায়ার'}
                     {party.lastTransactionAt ? ` · শেষ লেনদেন ${formatBanglaDate(party.lastTransactionAt)}` : ''}
                   </span>
                 </span>
-                <span className={`shrink-0 text-right text-sm font-bold tabular-nums ${balanceTone(party.balance)}`}>{balanceText(party.balance)}</span>
+                {/* word above the amount, so the name/phone/date column keeps its width */}
+                {party.balance === 0 ? (
+                  <span className="w-16 shrink-0 text-right text-xs leading-4 font-semibold text-ink-muted">{balanceText(0)}</span>
+                ) : (
+                  <span className={`shrink-0 text-right tabular-nums ${balanceTone(party.balance)}`}>
+                    <span className="block text-xs font-semibold">{party.balance > 0 ? T.receivable : T.payable}</span>
+                    <span className="block text-base font-bold">{formatTaka(Math.abs(party.balance))}</span>
+                  </span>
+                )}
               </span>
             </button>
           ))}

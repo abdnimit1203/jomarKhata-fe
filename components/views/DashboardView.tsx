@@ -26,6 +26,8 @@ import { currentMonth, monthLabel, monthRange, yearOptions, type MonthValue } fr
 
 export function DashboardView() {
   const { data, currentBalances, navigate, openSheet, mode, actions, showToast } = useJomarkhata();
+  // phone under the party name in rows (owner request)
+  const phoneOf = useMemo(() => new Map((data?.parties ?? []).map((p) => [p.id, p.phone])), [data?.parties]);
   const [lastBackupAt, setLastBackupAt] = useState<string | null | undefined>(undefined);
   useEffect(() => {
     void actions.getLastBackupAt().then(setLastBackupAt);
@@ -138,7 +140,7 @@ export function DashboardView() {
               onClick={() => navigate('dues')}
               className="rounded-2xl bg-white/20 px-3 py-2 text-left transition-colors hover:bg-white/30"
             >
-              <p className="text-xs text-on-primary">মোট পাওনা</p>
+              <p className="text-xs text-on-primary">বাকি পাবেন</p>
               <p className="text-base font-bold tabular-nums">{mask(formatTaka(currentBalances.totalReceivables))}</p>
             </button>
             <button
@@ -146,7 +148,7 @@ export function DashboardView() {
               onClick={() => navigate('dues')}
               className="rounded-2xl bg-white/20 px-3 py-2 text-left transition-colors hover:bg-white/30"
             >
-              <p className="text-xs text-on-primary">মোট দেনা</p>
+              <p className="text-xs text-on-primary">বাকি দেবেন</p>
               <p className="text-base font-bold tabular-nums">{mask(formatTaka(currentBalances.totalPayables))}</p>
             </button>
           </div>
@@ -198,7 +200,7 @@ export function DashboardView() {
               onClick: () => openSheet({ type: 'expense' }),
             },
             {
-              label: 'দেনা শোধ',
+              label: 'বাকি শোধ',
               icon: 'supplier-pay' as AppIconName,
               tone: 'teal' as FeatureTone,
               onClick: () => openSheet({ type: 'due', defaultEntryType: 'supplier_payment' }),
@@ -371,6 +373,9 @@ export function DashboardView() {
 
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
+                      {item.partyId && phoneOf.get(item.partyId) && (
+                        <p className="truncate text-xs tabular-nums text-ink-muted">{phoneOf.get(item.partyId)}</p>
+                      )}
                       <p className="truncate text-xs text-ink-muted">{item.subtitle}</p>
                       {/* date on its own small line so a long subtitle never hides it */}
                       <p className="text-xs leading-4 text-ink-subtle">

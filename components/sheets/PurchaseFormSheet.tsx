@@ -187,7 +187,7 @@ export function PurchaseFormSheet({ open, editPurchase, onClose }: PurchaseFormS
               <span className="text-lg font-bold text-ink">{formatTaka(total)}</span>
               {dueAmount > 0 && (
                 <span className="text-xs font-semibold text-primary-ink">
-                  দেনা {formatTaka(dueAmount)}
+                  বাকি {formatTaka(dueAmount)}
                 </span>
               )}
             </div>
