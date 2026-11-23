@@ -4,6 +4,27 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### AP-8: incremental loading after a save, 2026-11-23
+- **A save no longer reloads the whole khata.**
+  - `db/changeTracker.ts`: a Dexie DBCore middleware on every khata database records the keys each write touches. It only records keys and never reads anything, so restore and clear stay fast (table hooks would read every row before a `clear()`).
+  - `jomarkhataService.loadChanges()` re-reads just those rows with `bulkGet` and merges them with `lib/snapshot-merge.ts`. The merge produces exactly the order of a full read: date (or timestamp) descending, then id descending; plain tables in id order; rows without a date left out.
+  - Tables that a save didn't touch keep the same array.
+  - **Falls back to a full read** after:
+    - a range delete or clear, or keys it can't see
+    - switching between the demo and real khata
+    - the first load, or a failed refresh
+  - The app context calls `loadChanges` after each action. Startup, restore, clear, demo and seed still return a full `loadAllData`.
+- **Measured** (production build, headless Edge, 360px, 4× CPU throttle):
+
+  | | Refresh after a save | Save → visible |
+  |---|---|---|
+  | 20,000-sale khata | ≈1 s → **29–41 ms** | 1.42 s → **382 ms** |
+  | Typical shop | 9 ms | 302 → **162 ms** |
+
+  The 382 ms that remains is React recompute, not database reads.
+- **Tests:** `tests/incremental-load.test.ts` (8) checks that, after each of 21 kinds of write (back-dated sale, edits, voids, stock, profile, reminder…), the merged data equals a full read. It also covers chained refreshes, kept array identity, clear/demo fallbacks and the merge order. `performance.test.ts` adds an AP-8 timing guard.
+- `npm test` passes arguments through (`npm test -- tests/x.test.ts`).
+
 ### Dev dependencies: npm audit cleared, 2026-11-23
 - **Removed `firebase-tools`:** an unused leftover dev dependency (no `firebase.json`; the app deploys to Vercel). Removing it cleared `tar`, `basic-ftp`, `path-to-regexp`, `csv-parse`, `glob`/`minimatch` and the rest of its tree.
 - **Upgraded `vitest` 3.2 → 5.1.1** (with `@types/node` ^20 → ^22, which vitest 5 needs as a peer). This cleared `tinypool` (critical) and `@vitest/mocker`.

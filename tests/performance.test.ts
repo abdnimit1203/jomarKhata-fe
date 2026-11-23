@@ -45,6 +45,24 @@ describe('large khata: 5,000 parties, 20,000 sales, 2,000-row party ledger', () 
     await assertLedgerInvariants(app); // balances, links, and stock = Σ movements
   }, 120_000);
 
+  it('AP-8: the refresh after a save re-reads only what changed (much faster than a full read)', async () => {
+    const app = await bootApp();
+    await app.service.restoreBackup(await buildBackupFile(data, 3));
+    const t0 = performance.now();
+    await app.service.loadAllData();
+    const full = performance.now() - t0;
+    await app.service.createSale({
+      mode: 'quick', paymentMethod: 'cash', paidAmount: 50,
+      items: [{ productId: null, name: 'চা', qty: 1, unitPrice: 50, unitCostSnapshot: null, lineTotal: 50 }],
+    });
+    const t1 = performance.now();
+    const inc = await app.service.loadChanges();
+    const incremental = performance.now() - t1;
+    console.log({ fullReadMs: Math.round(full), refreshAfterSaveMs: Math.round(incremental) });
+    expect(inc.sales).toHaveLength(20001);
+    expect(incremental).toBeLessThan(full / 3);
+  }, 120_000);
+
   it('dashboard / reports / ledger calculations stay fast (regression budget)', () => {
     const s = data as unknown as {
       businessProfile: Parameters<typeof computeCurrentBalances>[0];

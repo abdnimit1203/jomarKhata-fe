@@ -1,3 +1,4 @@
+import { trackChanges } from './changeTracker';
 import Dexie, { type Table } from 'dexie';
 import type {
   AppMetaRecord,
@@ -74,6 +75,9 @@ export class JomarkhataDB extends Dexie {
           .toCollection()
           .modify((item: Record<string, unknown>) => Object.assign(item, normalizeOutboxItem(item)));
       });
+
+    // AP-8: remember written keys so a save re-reads only what changed.
+    trackChanges(this);
   }
 }
 

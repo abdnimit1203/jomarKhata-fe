@@ -39,7 +39,11 @@ A compact map of the project for anyone (human or tool) starting work. Kept up t
 **UI → `useJomarkhata()` (`context/JomarkhataContext.tsx`) → `jomarkhataService` (`services/jomarkhataService.ts`) → Dexie (`db/jomarkhataDb.ts`).**
 - **UI never writes to Dexie directly.**
 - **Each service mutation is one Dexie transaction.** It writes the record, its linked rows (money movement, due transaction, stock movement), an `auditLogs` row and a `syncQueue` row.
-- **After each action, the context reloads everything** (`loadAllData`) and shows a toast.
+- **After each action, the context refreshes and shows a toast.** The refresh is `loadChanges` (AP-8): it re-reads only the rows written since the last load and merges them in the same order a full read gives. It falls back to `loadAllData` after a range delete or clear, a khata switch, or a first load.
+  - `db/changeTracker.ts`: a DBCore middleware that records written keys and never reads anything.
+  - `lib/snapshot-merge.ts`: the merge.
+  - Tables that a save didn't touch keep the same array.
+  - Startup, restore, clear, demo and seed still use `loadAllData`.
 - **Derived numbers** (balances, profit, period flows, ledger) are pure functions in `services/financeCalculator.ts`.
 - **`moneyMovements` is the single source of truth for cash, bKash, Nagad and bank balances.** Party balance: positive = পাবো (customer owes us), negative = দিবো (we owe).
 - **Voids are soft** (`status: 'voided'`) and reverse every linked row. Nothing financial is hard-deleted.
@@ -99,7 +103,7 @@ A compact map of the project for anyone (human or tool) starting work. Kept up t
 - **Long lists use `usePaged` + `<ShowMore>`** (100 rows per page). **Keep this for any new long list.**
 - **Dexie is opened with `cache: 'disabled'`.** Don't re-enable it without measuring restore time.
 - **Timing log:** set `localStorage.jk_perf = '1'` in the browser console.
-- **The known remaining cost** is the full `loadAllData` after each save (AP-8, needs approval).
+- **AP-8 is done.** What's left on 20k-sale khatas is React recompute (≈380 ms per save at 4× throttle).
 - **Large-data tests** use `tests/helpers/fixtures.ts` (test-only).
 - **Owner checklists:** [REAL_DEVICE_TEST.md](REAL_DEVICE_TEST.md) and [MVP_ACCEPTANCE.md](MVP_ACCEPTANCE.md).
 

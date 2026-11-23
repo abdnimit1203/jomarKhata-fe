@@ -7,8 +7,10 @@ import { spawnSync } from 'node:child_process';
 let cwd = process.cwd();
 if (process.platform === 'win32' && /^[a-z]:/.test(cwd)) cwd = cwd[0].toUpperCase() + cwd.slice(1);
 
+// `npm test` and `npm test -- tests/x.test.ts` run once; `npm test -- watch` watches.
 const args = process.argv.slice(2);
-const result = spawnSync('npx', ['vitest', ...(args.length ? args : ['run'])], {
+const mode = ['run', 'watch', 'dev'].includes(args[0]) ? [] : ['run'];
+const result = spawnSync('npx', ['vitest', ...mode, ...args], {
   cwd,
   stdio: 'inherit',
   shell: process.platform === 'win32',

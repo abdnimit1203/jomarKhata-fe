@@ -44,8 +44,8 @@ Measured on the production build in headless Edge at 360px **with 4× CPU thrott
 
 | Metric | Budget | Typical shop (2,000 sales, 500 parties) | Very large (20,000 sales, 5,000 parties, 2,003-row ledger) |
 |---|---|---|---|
-| App open → usable | ≤ 3 s | **0.76 s** ✅ | **1.9 s** ✅ |
-| Save a sale and see it | ≤ 300 ms | **302 ms** ✅ (at the limit) | 1.42 s ❌ |
+| App open → usable | ≤ 3 s | **0.70 s** ✅ | **1.8 s** ✅ |
+| Save a sale and see it | ≤ 300 ms | **162 ms** ✅ (was 302 ms) | **382 ms** ⚠ (was 1.42 s; see AP-8 below) |
 | Party search while typing | ≤ 100 ms | **38 ms** ✅ | **44 ms** ✅ |
 | Open a 2,000-row party ledger | smooth | 181 ms ✅ | **190 ms** ✅ |
 | Restore from a backup file | — | 0.8 s | 8.5 s (was 88 s before the fix) |
@@ -55,7 +55,10 @@ Measured on the production build in headless Edge at 360px **with 4× CPU thrott
 - **Lists render 100 rows at a time** with "আরও দেখুন" (party list, party ledger, ledger, sales, purchases, expenses, stock). Search went from 337 → 44 ms and the big ledger from 2.4 s → 0.19 s.
 - **Dexie's query cache is off.** Restore went from 88 s → 8.5 s, and the app doesn't use the cache.
 
-**Still over budget:** saving on a very large khata, because every save reloads all data (`loadAllData` ≈ 1 s at 20k sales with 4× throttling). The fix is **AP-8 (incremental loading)**, a data-layer change that needs owner approval. It only matters for very large khatas (roughly 10,000+ transactions), not for launch.
+- **AP-8, incremental loading (2026-11-23):** after a save, only the written rows are re-read and merged into the loaded data. Refresh time on 20k sales went from ≈1 s to **29–41 ms** (4× throttle), and from 475 ms to 4 ms in Node.
+  - Tests compare the merged result with a full read after every kind of write.
+
+**Still slightly over budget:** on a 20,000-sale khata, a save takes 382 ms to show. What's left is React recomputing the dashboard and lists, not reading the database. This only matters for khatas with more than about 10,000 transactions; a typical shop takes 162 ms.
 
 ## 4. Known limitations (honest)
 - **Data lives only on the phone** until the backend exists. Recovery after losing the phone is only possible from a backup file.
@@ -65,7 +68,7 @@ Measured on the production build in headless Edge at 360px **with 4× CPU thrott
 - **Real-phone behaviour** (install, cold offline start, iOS) is not yet verified on a physical device.
 
 ## 5. Decisions waiting for the owner
-1. **AP-8** incremental loading, for very large khatas. Recommended later, not needed for launch.
+1. ~~**AP-8**~~ ✅ Done (2026-11-23): incremental loading.
 2. ~~**npm audit**~~ ✅ Done (2026-11-23): `firebase-tools` removed, vitest upgraded to 5.1.1, `npm audit` = 0.
 3. **Name check:** "জমারখাতা / Jomarkhata" is close to "JomaKhata" (an Indian product). Run a trademark check before a public launch.
 4. **Landing page content:** WhatsApp support number, privacy and terms text, pricing wording.

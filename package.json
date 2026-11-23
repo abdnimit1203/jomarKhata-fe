@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "clean": "next clean",
-    "test": "node scripts/test.mjs run",
+    "test": "node scripts/test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

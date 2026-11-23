@@ -8,6 +8,8 @@ import {
   type JomarkhataDB,
 } from '@/db/jomarkhataDb';
 import { buildSeedDataset } from '@/db/seedData';
+import { takeChanges } from '@/db/changeTracker';
+import { mergeRows } from '@/lib/snapshot-merge';
 import { BACKUP_TABLES, buildBackupFile, parseBackup, type BackupData, type BackupPreview } from '@/lib/backup';
 import { JOMARKHATA_DB_VERSION } from '@/db/jomarkhataDb';
 import { timed } from '@/lib/perf';
@@ -52,6 +54,23 @@ export interface AppDataSnapshot {
   auditLogs: AuditLog[];
   pendingSyncCount: number;
 }
+
+/** AP-8: list tables in a snapshot and how a full read orders them (null = id order). */
+const SNAPSHOT_TABLES = {
+  parties: null,
+  products: null,
+  sales: 'date',
+  purchases: 'date',
+  moneyMovements: 'date',
+  dueTransactions: 'date',
+  expenses: 'date',
+  stockMovements: 'date',
+  auditLogs: 'timestamp',
+} as const;
+type SnapshotTable = keyof typeof SNAPSHOT_TABLES;
+
+/** The last snapshot handed to the app and the database it came from (AP-8). */
+let lastLoaded: { db: JomarkhataDB; snap: AppDataSnapshot } | null = null;
 
 /** What the app shows at startup (S3). Decided by reading only; startup never writes. */
 export type StartupPhase = 'welcome' | 'legacy_choice' | 'ready';
@@ -474,6 +493,8 @@ export const jomarkhataService = {
 
   async loadAllData(): Promise<AppDataSnapshot> {
     const db = getJomarkhataDb();
+    lastLoaded = null;
+    takeChanges(db); // start a fresh change list BEFORE reading (see db/changeTracker.ts)
     const [
       businessProfile,
       parties,
@@ -504,7 +525,7 @@ export const jomarkhataService = {
       throw new Error('বিজনেস প্রোফাইল লোড করা যায়নি।');
     }
 
-    return {
+    const snap: AppDataSnapshot = {
       businessProfile,
       parties,
       products,
@@ -517,6 +538,49 @@ export const jomarkhataService = {
       auditLogs,
       pendingSyncCount,
     };
+    lastLoaded = { db, snap };
+    return snap;
+  },
+
+  /**
+   * AP-8: the refresh after a save. Re-reads only the rows written since the last load and merges
+   * them into the previous snapshot. The result equals `loadAllData()` (tests compare the two after
+   * every kind of write). Unchanged tables keep their array, so screens that depend on them don't
+   * recompute. Falls back to a full read after a khata switch, a range delete/clear, or anything
+   * it can't merge.
+   */
+  async loadChanges(): Promise<AppDataSnapshot> {
+    const db = getJomarkhataDb();
+    const prev = lastLoaded;
+    if (!prev || prev.db !== db) return this.loadAllData();
+    lastLoaded = null; // until this refresh succeeds, the next one is a full read
+    const changes = takeChanges(db);
+    if (changes.whole.size > 0) return this.loadAllData();
+
+    const next: AppDataSnapshot = { ...prev.snap };
+    const tables = (Object.keys(SNAPSHOT_TABLES) as SnapshotTable[]).filter((t) => changes.keys.has(t));
+    const [businessProfile, pendingSyncCount, ...fresh] = await Promise.all([
+      changes.keys.has('businessProfile') ? db.businessProfile.get('default') : prev.snap.businessProfile,
+      changes.keys.has('syncQueue') ? db.syncQueue.where('status').noneOf(['synced']).count() : prev.snap.pendingSyncCount,
+      ...tables.map((t) => db.table(t).bulkGet([...changes.keys.get(t)!])),
+    ]);
+    if (!businessProfile) throw new Error('বিজনেস প্রোফাইল লোড করা যায়নি।');
+    next.businessProfile = businessProfile as BusinessProfile;
+    next.pendingSyncCount = pendingSyncCount as number;
+
+    for (let i = 0; i < tables.length; i++) {
+      const t = tables[i];
+      const merged = mergeRows(
+        prev.snap[t] as Array<{ id: string }>,
+        [...changes.keys.get(t)!],
+        fresh[i] as Array<{ id: string } | undefined>,
+        SNAPSHOT_TABLES[t],
+      );
+      if (!merged) return this.loadAllData();
+      (next as unknown as Record<string, unknown>)[t] = merged;
+    }
+    lastLoaded = { db, snap: next };
+    return next;
   },
 
   // =========================================================================

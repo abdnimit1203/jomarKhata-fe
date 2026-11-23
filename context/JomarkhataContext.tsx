@@ -334,7 +334,8 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
 
   const refresh = useCallback(async () => {
     try {
-      const snap = await timed('loadAllData', () => jomarkhataService.loadAllData());
+      // AP-8: re-read only what the save changed (falls back to a full read when needed).
+      const snap = await timed('loadChanges', () => jomarkhataService.loadChanges());
       setData(snap);
       setError(null);
       // Every successful action reloads data, so the open form's input has been saved.
