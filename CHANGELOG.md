@@ -4,6 +4,22 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### On-page SEO + developer credit, 2026-11-23
+- **Install requirements were already in place:** manifest plus 192, 512, maskable, apple-touch and favicon icons. Now covered by a test.
+- **Metadata** (`lib/seo.ts`, `app/layout.tsx`):
+  - `metadataBase`, a title template, a Bangla + English description and keywords, and a canonical link
+  - **author / creator / publisher = Abdullah Ibne Ali**
+  - Open Graph (`bn_BD`) and Twitter card with a new **1200×630 share image** (`public/og-image.jpg`, 65 KB) made from the owner's logo
+- **`/robots.txt`:** allows the landing page and blocks `/app` and `/preview`. **`/sitemap.xml`** lists the landing page. **The `/app` pages are `noindex`**, because a shop's khata is private.
+- **Landing page:**
+  - schema.org **SoftwareApplication** JSON-LD with the developer as author (`<` is escaped)
+  - footer credit: **"Developed by Abdullah Ibne Ali"**, linked to the portfolio when `NEXT_PUBLIC_DEVELOPER_URL` is set
+- **New public env vars** (`.env.example`):
+  - `NEXT_PUBLIC_SITE_URL` is optional; on Vercel it defaults to the production domain
+  - `NEXT_PUBLIC_DEVELOPER_URL` is the portfolio link
+- `tests/seo.test.ts` (6).
+- **Verified on the production build:** robots.txt, sitemap.xml, the meta and OG tags, the JSON-LD Person, and `/app` returning `noindex, nofollow`.
+
 ### Own identity, month/year selector, WhatsApp help, compact connection dot, 2026-11-23
 Owner request: the app must not look or read like another khata app.
 

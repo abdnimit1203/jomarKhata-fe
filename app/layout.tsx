@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Noto_Sans_Bengali } from 'next/font/google';
 import { ServiceWorkerRegister } from '@/components/pwa/ServiceWorkerRegister';
+import { DEVELOPER, SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, SITE_TAGLINE, siteUrl } from '@/lib/seo';
 import './globals.css';
 
 // Single app font (owner decision, S1): Noto Sans Bengali — the generic, Android-native Bangla family.
@@ -12,7 +13,17 @@ const notoSansBengali = Noto_Sans_Bengali({
 });
 
 export const metadata: Metadata = {
+  metadataBase: siteUrl(),
+  title: { default: `${SITE_NAME} — ${SITE_TAGLINE}`, template: `%s | জমারখাতা` },
+  description: SITE_DESCRIPTION,
+  keywords: SITE_KEYWORDS,
   applicationName: 'জমারখাতা',
+  authors: [{ name: DEVELOPER.name, url: DEVELOPER.url }],
+  creator: DEVELOPER.name,
+  publisher: DEVELOPER.name,
+  category: 'business',
+  alternates: { canonical: '/' },
+  robots: { index: true, follow: true },
   appleWebApp: { capable: true, title: 'জমারখাতা', statusBarStyle: 'default' },
   icons: {
     icon: [
@@ -21,18 +32,20 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180' }],
   },
-  title: 'জমারখাতা (Jomarkhata) — দোকানের সব হিসাব, এক খাতায়।',
-  description:
-    'দোকানের সব হিসাব, এক খাতায়। বাংলাদেশের ক্ষুদ্র ও মাঝারি ব্যবসায়ীদের জন্য সহজ ডিজিটাল হিসাবখাতা।',
   openGraph: {
-    title: 'জমারখাতা (Jomarkhata)',
-    description: 'দোকানের সব হিসাব, এক খাতায়।',
     type: 'website',
+    siteName: SITE_NAME,
+    locale: 'bn_BD',
+    url: '/',
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
+    images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'জমারখাতা — সহজ ও নির্ভরযোগ্য ডিজিটাল হিসাব' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'জমারখাতা (Jomarkhata)',
-    description: 'দোকানের সব হিসাব, এক খাতায়।',
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
+    images: ['/og-image.jpg'],
   },
 };
 

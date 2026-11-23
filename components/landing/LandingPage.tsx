@@ -4,6 +4,27 @@ import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { FeatureIcon, type FeatureTone } from '@/components/ui/FeatureIcon';
 import { WelcomeIllustration } from '@/components/onboarding/WelcomeIllustration';
 import { StandaloneRedirect } from './StandaloneRedirect';
+import { DEVELOPER, SITE_DESCRIPTION, siteUrl } from '@/lib/seo';
+
+/** schema.org SoftwareApplication with the developer as author (Google rich results). */
+function jsonLd(): string {
+  const author = { '@type': 'Person', name: DEVELOPER.name, ...(DEVELOPER.url ? { url: DEVELOPER.url } : {}) };
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'জমারখাতা (Jomarkhata)',
+    alternateName: 'Jomarkhata',
+    url: siteUrl().toString(),
+    description: SITE_DESCRIPTION,
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Android, iOS, Web',
+    inLanguage: 'bn',
+    image: new URL('/og-image.jpg', siteUrl()).toString(),
+    author,
+    creator: author,
+  };
+  return JSON.stringify(data).replace(/</g, '\\u003c');
+}
 
 /**
  * Public landing page (L1). Bengali only. Every claim here must be true today:
@@ -61,6 +82,8 @@ export function LandingPage() {
   return (
     <div className="min-h-dvh bg-canvas text-ink">
       <StandaloneRedirect />
+      {/* Structured data for search engines (our own constants only; "<" escaped). */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd() }} />
 
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-border bg-white/90 backdrop-blur-md">
@@ -248,7 +271,16 @@ export function LandingPage() {
           <p className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4" /> আপনার হিসাব আপনার ফোনেই থাকে।
           </p>
-          <p>© জমারখাতা · গোপনীয়তা নীতি ও শর্তাবলি শীঘ্রই</p>
+          <p>
+            © জমারখাতা · Developed by{' '}
+            {DEVELOPER.url ? (
+              <a href={DEVELOPER.url} target="_blank" rel="author noopener" className="font-semibold text-primary-ink hover:underline">
+                {DEVELOPER.name}
+              </a>
+            ) : (
+              <span className="font-semibold text-ink">{DEVELOPER.name}</span>
+            )}
+          </p>
         </div>
       </footer>
     </div>
