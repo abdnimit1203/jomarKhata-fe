@@ -5,25 +5,26 @@ import { Plus, Search, ShoppingBag } from 'lucide-react';
 import { ShowMore, usePaged } from '@/components/ui/ShowMore';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { EmptyState } from '@/components/ui/StateBlocks';
-import { getPeriodBounds, isWithinRange } from '@/services/financeCalculator';
+import { isWithinRange } from '@/services/financeCalculator';
 import {
   formatBanglaDateTime,
   formatBanglaNumber,
   formatTaka,
   getChannelShortLabel,
 } from '@/lib/format';
-import type { PeriodPreset } from '@/types/domain';
 import { SegmentedControl } from '@/components/ui/segmented';
+import { PeriodFilter, usePeriodFilter } from '@/components/ui/PeriodFilter';
 
 export function SalesView() {
   const { data, openSheet } = useJomarkhata();
-  const [period, setPeriod] = useState<PeriodPreset>('month');
+  const listDates = useMemo(() => (data?.sales ?? []).map((r) => r.date), [data?.sales]);
+  const pf = usePeriodFilter(listDates); // presets + any month/year
   const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'due' | 'voided'>('all');
   const [search, setSearch] = useState('');
 
   const filteredSales = useMemo(() => {
     if (!data) return [];
-    const range = getPeriodBounds(period);
+    const range = pf.range;
     const q = search.trim().toLowerCase();
     return data.sales.filter((s) => {
       if (!isWithinRange(s.date, range)) return false;
@@ -44,7 +45,7 @@ export function SalesView() {
       }
       return true;
     });
-  }, [data, period, statusFilter, search]);
+  }, [data, pf.range, statusFilter, search]);
   const page = usePaged(filteredSales, JSON.stringify(filteredSales.length));
 
   const summary = useMemo(() => {
@@ -103,18 +104,7 @@ export function SalesView() {
 
       {/* Period & Status Filters */}
       <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <SegmentedControl
-          aria-label="সময়কাল"
-          variant="track"
-          value={period}
-          onValueChange={(v) => setPeriod(v as PeriodPreset)}
-          options={[
-            { value: 'today', label: 'আজ' },
-            { value: 'week', label: 'সপ্তাহ' },
-            { value: 'month', label: 'মাস' },
-            { value: 'all', label: 'সব' },
-          ]}
-        />
+        <PeriodFilter state={pf} />
 
         <SegmentedControl
           aria-label="অবস্থা"

@@ -5,25 +5,25 @@ import { Plus, Search, ShoppingCart } from 'lucide-react';
 import { ShowMore, usePaged } from '@/components/ui/ShowMore';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { EmptyState } from '@/components/ui/StateBlocks';
-import { getPeriodBounds, isWithinRange } from '@/services/financeCalculator';
+import { isWithinRange } from '@/services/financeCalculator';
 import {
   formatBanglaDateTime,
   formatBanglaNumber,
   formatTaka,
   getChannelShortLabel,
 } from '@/lib/format';
-import type { PeriodPreset } from '@/types/domain';
-import { SegmentedControl } from '@/components/ui/segmented';
+import { PeriodFilter, usePeriodFilter } from '@/components/ui/PeriodFilter';
 
 export function PurchasesView() {
   const { data, openSheet } = useJomarkhata();
-  const [period, setPeriod] = useState<PeriodPreset>('month');
+  const listDates = useMemo(() => (data?.purchases ?? []).map((r) => r.date), [data?.purchases]);
+  const pf = usePeriodFilter(listDates); // presets + any month/year
   const [showVoided, setShowVoided] = useState(false);
   const [search, setSearch] = useState('');
 
   const filteredPurchases = useMemo(() => {
     if (!data) return [];
-    const range = getPeriodBounds(period);
+    const range = pf.range;
     const q = search.trim().toLowerCase();
     return data.purchases.filter((p) => {
       if (!isWithinRange(p.date, range)) return false;
@@ -38,7 +38,7 @@ export function PurchasesView() {
       }
       return true;
     });
-  }, [data, period, showVoided, search]);
+  }, [data, pf.range, showVoided, search]);
   const page = usePaged(filteredPurchases, JSON.stringify(filteredPurchases.length));
 
   const summary = useMemo(() => {
@@ -95,18 +95,7 @@ export function PurchasesView() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <SegmentedControl
-          aria-label="সময়কাল"
-          variant="track"
-          value={period}
-          onValueChange={(v) => setPeriod(v as PeriodPreset)}
-          options={[
-            { value: 'today', label: 'আজ' },
-            { value: 'week', label: 'সপ্তাহ' },
-            { value: 'month', label: 'মাস' },
-            { value: 'all', label: 'সব' },
-          ]}
-        />
+        <PeriodFilter state={pf} />
 
         <button
           type="button"

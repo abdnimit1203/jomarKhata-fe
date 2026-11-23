@@ -83,6 +83,8 @@ A compact map of the project for anyone (human or tool) starting work. Kept up t
 - **Honesty:** no fake login, sync, cloud or prices. Anything a backend would do says so plainly.
 - **Feature colour families:** green = sale/money-in, blue = purchase, orange = dues, red = expense/money-out, teal = supplier payment, indigo = stock, purple = parties, sky = reports, gold = cash, slate = settings.
 
+- **Date filters:** any list filtered by date uses `usePeriodFilter` + `<PeriodFilter>` (`components/ui/PeriodFilter.tsx`), which includes any month + year. Don't add a new period selector.
+
 ## Tests (`npm test`; also `npm run typecheck` and `npx next build`)
 - On Windows, use `npm test`, not bare `npx vitest`. `scripts/test.mjs` fixes the drive-letter case that breaks Vitest 5.
 | File | Covers |

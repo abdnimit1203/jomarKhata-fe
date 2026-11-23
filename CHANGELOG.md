@@ -4,6 +4,13 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### Month + year on every date-filtered list, 2026-11-23
+- **New `components/ui/PeriodFilter.tsx`:** one shared filter (`usePeriodFilter` + `<PeriodFilter>`) with আজ · সপ্তাহ · মাস · **অন্য মাস** · সব. Choosing "অন্য মাস" opens the month + year picker (`MonthYearPicker`), so you can pick any month back to the oldest record.
+- **Used on** বিক্রি, কেনা, খরচ, Reports, and now **সব লেনদেন** (the ledger had no date filter before; it defaults to "সব", so nothing changes until you choose).
+- The dashboard and party timeline keep their own month picker.
+- **Checked at 360px:** no horizontal scroll. With five choices the month label is the short "মাস".
+- `tests/period-filter.test.ts` (4).
+
 ### AP-8: incremental loading after a save, 2026-11-23
 - **A save no longer reloads the whole khata.**
   - `db/changeTracker.ts`: a Dexie DBCore middleware on every khata database records the keys each write touches. It only records keys and never reads anything, so restore and clear stay fast (table hooks would read every row before a `clear()`).

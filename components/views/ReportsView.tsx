@@ -7,23 +7,18 @@ import {
   computeDailyBarSeries,
   computeHonestProfit,
   computePeriodFlows,
-  getPeriodBounds,
   isWithinRange,
 } from '@/services/financeCalculator';
 import { downloadTextFile, formatBanglaNumber, formatTaka } from '@/lib/format';
-import type { PeriodPreset } from '@/types/domain';
-import { MonthYearPicker } from '@/components/ui/MonthYearPicker';
-import { currentMonth, monthRange, yearOptions, type MonthValue } from '@/lib/months';
-import { SegmentedControl } from '@/components/ui/segmented';
+import { PeriodFilter, usePeriodFilter } from '@/components/ui/PeriodFilter';
 
 export function ReportsView() {
   const { data, currentBalances, showToast } = useJomarkhata();
-  const [period, setPeriod] = useState<PeriodPreset | 'pick'>('month');
-  const [picked, setPicked] = useState<MonthValue>(() => currentMonth());
-  const years = useMemo(() => yearOptions((data?.sales ?? []).map((s) => s.date)), [data?.sales]);
+  const saleDates = useMemo(() => (data?.sales ?? []).map((s) => s.date), [data?.sales]);
+  const pf = usePeriodFilter(saleDates);
+  const { period, picked, range } = pf;
   const [activeBarIdx, setActiveBarIdx] = useState<number>(6);
 
-  const range = useMemo(() => (period === 'pick' ? monthRange(picked) : getPeriodBounds(period)), [period, picked]);
 
   const flows = useMemo(() => {
     if (!data) return null;
@@ -122,19 +117,7 @@ export function ReportsView() {
       </div>
 
       {/* Period Segmented Tabs (Reference Image 1 Style) */}
-      <SegmentedControl
-        aria-label="সময়কাল"
-        variant="track"
-        value={period}
-        onValueChange={(v) => setPeriod(v as PeriodPreset | 'pick')}
-        options={[
-          { value: 'today', label: 'আজ' },
-          { value: 'month', label: 'এই মাস' },
-          { value: 'pick', label: 'মাস বাছুন' },
-          { value: 'all', label: 'সব সময়' },
-        ]}
-      />
-      {period === 'pick' && <MonthYearPicker value={picked} onChange={setPicked} years={years} />}
+      <PeriodFilter state={pf} presets={['today', 'month', 'pick', 'all']} />
 
       {/* 1. Strictly Separated Period Flows */}
       <section className="rounded-3xl bg-white p-5 shadow-card">

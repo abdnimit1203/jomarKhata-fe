@@ -95,9 +95,10 @@ describe('month + year selector', () => {
     expect(yearOptions(['2024-05-01T00:00:00Z', undefined], new Date('2026-11-23'))).toEqual([2026, 2025, 2024]);
   });
   it('is on the dashboard, reports and the party timeline', () => {
-    for (const f of ['components/views/DashboardView.tsx', 'components/views/ReportsView.tsx', 'components/views/DuesView.tsx']) {
+    for (const f of ['components/views/DashboardView.tsx', 'components/views/DuesView.tsx', 'components/ui/PeriodFilter.tsx']) {
       expect(read(f), f).toMatch(/<MonthYearPicker/);
     }
+    expect(read('components/views/ReportsView.tsx')).toMatch(/<PeriodFilter /); // reports: via the shared filter
   });
 });
 

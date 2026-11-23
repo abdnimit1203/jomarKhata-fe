@@ -5,7 +5,8 @@ import { ArrowDownLeft, ArrowUpRight, BookText, Receipt, Search } from 'lucide-r
 import { ShowMore, usePaged } from '@/components/ui/ShowMore';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { EmptyState } from '@/components/ui/StateBlocks';
-import { buildUnifiedLedger } from '@/services/financeCalculator';
+import { buildUnifiedLedger, isWithinRange } from '@/services/financeCalculator';
+import { PeriodFilter, usePeriodFilter } from '@/components/ui/PeriodFilter';
 import {
   formatBanglaTime,
   formatTaka,
@@ -24,6 +25,8 @@ export function LedgerView() {
   const [channelFilter, setChannelFilter] = useState<'all' | PaymentChannel>('all');
   const [showVoided, setShowVoided] = useState(false);
   const [search, setSearch] = useState('');
+  const saleDates = useMemo(() => (data?.sales ?? []).map((s) => s.date), [data?.sales]);
+  const pf = usePeriodFilter(saleDates, 'all'); // default: everything, as before
 
   const filtered = useMemo(() => {
     if (!data) return [];
@@ -37,6 +40,7 @@ export function LedgerView() {
 
     const q = search.trim().toLowerCase();
     const filtered = all.filter((item) => {
+      if (!isWithinRange(item.date, pf.range)) return false;
       if (!showVoided && item.status !== 'active') return false;
       if (filter === 'sale' && item.sourceType !== 'sale') return false;
       if (filter === 'purchase' && item.sourceType !== 'purchase') return false;
@@ -60,10 +64,10 @@ export function LedgerView() {
       return true;
     });
     return filtered;
-  }, [data, filter, channelFilter, showVoided, search]);
+  }, [data, filter, channelFilter, showVoided, search, pf.range]);
 
   // S13: page the flat list (100 at a time), then group only what is shown.
-  const page = usePaged(filtered, `${filter}|${channelFilter}|${showVoided}|${search}`);
+  const page = usePaged(filtered, `${filter}|${channelFilter}|${showVoided}|${search}|${pf.period}|${pf.picked.year}-${pf.picked.month}`);
   const grouped = useMemo(() => {
     const groups: Array<{ label: string; items: UnifiedLedgerItem[] }> = [];
     const map = new Map<string, UnifiedLedgerItem[]>();
@@ -91,6 +95,8 @@ export function LedgerView() {
           যেকোনো লেনদেনে ট্যাপ করে সংশোধন, বাতিল বা পরিবর্তনের ইতিহাস দেখুন
         </p>
       </div>
+
+      <PeriodFilter state={pf} />
 
       {/* Reference Image 1 Segmented Filter Tabs */}
       <SegmentedControl

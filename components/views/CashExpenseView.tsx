@@ -12,13 +12,13 @@ import {
   formatTaka,
   getChannelShortLabel,
 } from '@/lib/format';
-import type { PeriodPreset } from '@/types/domain';
 import { SimpleSelect } from '@/components/ui/select';
-import { SegmentedControl } from '@/components/ui/segmented';
+import { PeriodFilter, usePeriodFilter } from '@/components/ui/PeriodFilter';
 
 export function CashExpenseView() {
   const { data, currentBalances, openSheet } = useJomarkhata();
-  const [period, setPeriod] = useState<PeriodPreset>('month');
+  const listDates = useMemo(() => (data?.expenses ?? []).map((r) => r.date), [data?.expenses]);
+  const pf = usePeriodFilter(listDates); // presets + any month/year
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [showVoided, setShowVoided] = useState(false);
 
@@ -36,14 +36,14 @@ export function CashExpenseView() {
 
   const filteredExpenses = useMemo(() => {
     if (!data) return [];
-    const range = getPeriodBounds(period);
+    const range = pf.range;
     return data.expenses.filter((e) => {
       if (!isWithinRange(e.date, range)) return false;
       if (!showVoided && e.status !== 'active') return false;
       if (categoryFilter !== 'all' && e.category !== categoryFilter) return false;
       return true;
     });
-  }, [data, period, categoryFilter, showVoided]);
+  }, [data, pf.range, categoryFilter, showVoided]);
   const page = usePaged(filteredExpenses, JSON.stringify(filteredExpenses.length));
 
   const periodExpenseTotal = useMemo(
@@ -156,18 +156,7 @@ export function CashExpenseView() {
 
       {/* Expense List Header & Filters */}
       <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <SegmentedControl
-          aria-label="সময়কাল"
-          variant="track"
-          value={period}
-          onValueChange={(v) => setPeriod(v as PeriodPreset)}
-          options={[
-            { value: 'today', label: 'আজ' },
-            { value: 'week', label: 'সপ্তাহ' },
-            { value: 'month', label: 'মাস' },
-            { value: 'all', label: 'সব' },
-          ]}
-        />
+        <PeriodFilter state={pf} />
 
         <div className="flex items-center gap-2">
           <SimpleSelect
