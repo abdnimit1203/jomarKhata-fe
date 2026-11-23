@@ -4,6 +4,29 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### S12 (core) pulled forward: installable PWA + offline app shell, 2026-11-23
+Owner needed to demo installing on a phone and using it offline today.
+
+**Added**
+- `app/manifest.ts` → `/manifest.webmanifest`: name জমারখাতা, standalone, portrait, theme `#4664E0`, background `#F5F7FE`, icons 192, 512 and maskable 512.
+- `public/icons/*`: **temporary placeholder icons** (blue gradient "জ"). They'll be replaced by the owner's final logo with the same file names.
+- `public/sw.js`, the service worker for the offline app shell:
+  - **Pages:** network-first, with a cached fallback when offline.
+  - **Hashed `/_next/static` assets and icons:** cache-first.
+  - **Only same-origin GET requests are handled. It never touches IndexedDB or business data.** Old caches are removed on activate.
+  - The first page load sends its resource list so the app works offline after **one** visit.
+- `components/pwa/ServiceWorkerRegister.tsx`: registers the worker in **production builds only**, so dev keeps hot reload.
+- `app/layout.tsx`: application name, Apple web-app meta, icons.
+- `tests/pwa.test.ts` (6): manifest fields and icon files, service-worker rules (same-origin GET only, no IndexedDB/API caching, navigate fallback, cache cleanup), production-only registration.
+
+**Verified end-to-end** (production build, headless Edge at 360px, `localhost`):
+- The manifest is linked and the service worker activates; 15 entries cached after the first visit.
+- **Offline reload renders the dashboard.** All 5 bottom-nav tabs work offline.
+- **A sale recorded offline (৳777) is saved and still there after an offline reload.** Cash moved 16,540 → 17,317.
+- No page errors.
+
+**Not yet done (rest of S12):** a custom install-prompt UI, an "update available" prompt, and a **real Android phone test over HTTPS (Vercel Preview)**.
+
 ### S1 revision 3: Blue redesign from the owner's reference (D24), 2026-11-23
 **Changed (visual only; no accounting, schema or service-behaviour change)**
 - **Theme:** Royal Blue `#4664E0` on a light lavender canvas `#F5F7FE`, a blue gradient (`#4C6BE6 → #3F5BD9 → #3448BE`), and soft blue-tinted card shadows. **The amber and emerald accents were removed.** New `success` green for money in. `themeColor` is blue.

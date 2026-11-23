@@ -41,14 +41,14 @@ function contrast(a: string, b: string): number {
 }
 
 describe('tokens only — no raw colours in components', () => {
-  it('no hex colour literals outside app/globals.css (except the literal browser themeColor)', () => {
+  it('no hex colour literals outside app/globals.css (except literal browser/manifest theme colours)', () => {
     const offenders: string[] = [];
     for (const f of UI_FILES) {
       if (f.replace(/\\/g, '/') === 'app/globals.css') continue;
       read(f)
         .split('\n')
         .forEach((line, i) => {
-          if (/#[0-9A-Fa-f]{6}\b/.test(line) && !/themeColor:/.test(line)) offenders.push(`${f}:${i + 1}`);
+          if (/#[0-9A-Fa-f]{6}\b/.test(line) && !/themeColor:|theme_color:|background_color:/.test(line)) offenders.push(`${f}:${i + 1}`);
         });
     }
     expect(offenders).toEqual([]);

@@ -18,7 +18,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 | S9 | Sync queue & connection status | ⏸ |
 | S10 | Account interfaces & access policy | ⏸ |
 | S11 | ~~Optional PIN lock~~ | ❌ Removed by owner decision |
-| S12 | Android PWA | ⏸ |
+| S12 | Android PWA | 🟡 **Core done early** (manifest, offline service worker, verified offline in a browser). Pending: install-prompt UI, update prompt, real-phone test on Vercel Preview |
 | S13 | Performance, real-device testing, MVP acceptance | ⏸ |
 
 ## What works today
@@ -30,7 +30,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 ## Quality gates
 | Check | Command | S0 | S1 |
 |---|---|---|---|
-| Tests | `npm test` | 49 / 49 | **90 / 90** (5 files) |
+| Tests | `npm test` | 49 / 49 | **96 / 96** (6 files) |
 | TypeScript | `npm run typecheck` | 0 errors | **0 errors** |
 | Production build | `npm run build` | — | **✓ compiled, 3/3 static pages** |
 | Mobile render check (360px, Edge via puppeteer) | manual | — | Welcome and Dashboard render with **0px horizontal overflow** |
