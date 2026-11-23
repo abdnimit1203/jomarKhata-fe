@@ -4,6 +4,37 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### S10: account screens, access policy, backend contract, 2026-11-23
+UI now, backend later. AP-7 is designed only.
+
+**Added**
+- **Sign-in screen** (`AuthScreen`), opened from the welcome screen's "লগইন করুন":
+  - Google first, plus a Bangladeshi mobile number with validation (Bengali digits, +88, spaces OK)
+  - **with no backend, every attempt shows the honest "এখনও চালু হয়নি" message; no session and no OTP screen**
+- **`AuthProvider` interface** (`lib/auth.ts`):
+  - `noBackendAuthProvider` refuses every sign-in
+  - the context exposes `auth: { status: 'local' }`, and no code path sets `authenticated`
+  - also `normalizeBdMobile` and `formatAccountId` (JK-1234-5678, D29)
+- **Access policy** (`lib/access-policy.ts`, D4):
+  - after expiry: 7-day grace (full access with a banner), then **read-only**
+  - **read-only blocks every write action in the context**, while view, search and backup export keep working
+  - it never shows "active" past a known expiry, and **turning the phone clock back can't undo a server-seen expiry**
+  - local mode has no subscription and is never restricted (D16)
+  - a development-only override (`localStorage.jk_dev_access`) exists to test it
+- **The `/preview` page is development only** (404 in production): OTP entry, logout guard (blocked while changes are pending; sync now / backup / cancel), and the claim flow (never auto-merges). Everything sits under a "প্রিভিউ — আসল যাচাই নয়" banner.
+- **`docs/BACKEND_CONTRACT.md`:** the hand-off to `jomarKhata-be`. It covers:
+  - Firebase-token auth and the server-generated account ID
+  - tenant derived from the token, plus per-account local DB naming (AP-7 design)
+  - `POST /sync/push`, idempotent by `opId`, plus the conflict rules and `GET /sync/pull` by cursor
+  - claim and logout rules
+  - `GET /subscription` with configurable trial and prices
+- `tests/accounts.test.ts` (12).
+
+**Verified e2e:**
+- welcome → login screen; Google refuses honestly; an invalid mobile is rejected; a valid mobile still says not available, with no OTP screen
+- read-only override: banner shown, saving blocked with the message, form stays open
+- `/preview` renders in dev
+
 ### S9: outbox v2, sync engine (fake transport only), সিঙ্ক অবস্থা, 2026-11-23
 AP-4 approved under D32.
 

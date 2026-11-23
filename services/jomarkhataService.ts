@@ -10,6 +10,7 @@ import {
 import { buildSeedDataset } from '@/db/seedData';
 import { BACKUP_TABLES, buildBackupFile, parseBackup, type BackupData, type BackupPreview } from '@/lib/backup';
 import { JOMARKHATA_DB_VERSION } from '@/db/jomarkhataDb';
+import type { CachedSubscription } from '@/lib/access-policy';
 import { computePartyRunningTimeline } from '@/services/financeCalculator';
 import { formatTaka, generateId } from '@/lib/format';
 import type {
@@ -556,6 +557,11 @@ export const jomarkhataService = {
     if (ops.some((o) => o.status === 'needs_review')) return 'needs_review';
     if (ops.length > 0 && ops.every((o) => o.status === 'synced')) return 'synced';
     return 'local';
+  },
+
+  /** Last server-verified subscription (backend phase). Local mode has none → never restricted. */
+  async getCachedSubscription(): Promise<CachedSubscription | null> {
+    return (await getMeta<CachedSubscription>(getRealDb(), 'subscription')) ?? null;
   },
 
   async getLastBackupAt(): Promise<string | null> {

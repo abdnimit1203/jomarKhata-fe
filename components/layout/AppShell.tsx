@@ -102,6 +102,7 @@ export function AppShell() {
     phase,
     mode,
     actions,
+    access,
   } = useJomarkhata();
   const [setupOpen, setSetupOpen] = useState(false);
   const pending = data?.pendingSyncCount ?? 0;
@@ -283,6 +284,18 @@ export function AppShell() {
 
           {/* Main Scrollable Viewport */}
           <main className="flex-1 px-4 pt-4 pb-24 lg:px-8 lg:pt-6 lg:pb-10">
+            {access.level !== 'full' && !isLoading && (
+              <div
+                role="status"
+                className={`mx-auto mb-4 max-w-6xl rounded-2xl px-4 py-3 text-sm font-semibold ${
+                  access.level === 'grace' ? 'bg-warning-soft text-warning-ink' : 'bg-danger-soft text-danger'
+                }`}
+              >
+                {access.level === 'grace'
+                  ? `সাবস্ক্রিপশনের মেয়াদ শেষ। আরও ${formatBanglaNumber(access.graceDaysLeft ?? 0)} দিন সব কাজ চলবে — এর মধ্যে নবায়ন করুন।`
+                  : 'সাবস্ক্রিপশনের মেয়াদ শেষ। আপনার সব হিসাব দেখা ও ব্যাকআপ নেওয়া যাবে, কিন্তু নতুন কিছু লেখা যাবে না।'}
+              </div>
+            )}
             {mode === 'demo' && !isLoading && (
               <div
                 role="status"

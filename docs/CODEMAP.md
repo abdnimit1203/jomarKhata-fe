@@ -84,6 +84,12 @@ A compact map of the project for anyone (human or tool) starting work. Kept up t
 | `pwa.test.ts` | Manifest, SW rules, icon/logo assets |
 | `landing.test.ts` | Routing split, honest-claims guard |
 
+## Accounts & access (S10)
+- **`lib/auth.ts`:** the `AuthProvider` interface. Today it's `noBackendAuthProvider` (refuses honestly). The context's `auth` is always `local`.
+- **`lib/access-policy.ts`:** `decideAccess(cachedSub)` gives full / grace / read_only. Context actions that change records throw `READ_ONLY_MESSAGE` when read-only.
+- **`/preview`** (development only) shows the OTP, logout-guard and claim-flow designs.
+- **[docs/BACKEND_CONTRACT.md](BACKEND_CONTRACT.md)** is everything the backend must implement.
+
 ## Workflow
 - Work on the **`dev`** branch; pushes there don't deploy (`vercel.json`).
 - Merge to **`main`** only when a phone check is needed; Vercel deploys `main`.

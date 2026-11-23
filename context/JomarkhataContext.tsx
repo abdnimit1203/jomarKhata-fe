@@ -3,6 +3,13 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { SheetGuardContext } from '@/lib/sheet-guard';
 import { toFriendlyError } from '@/lib/errors';
+import { decideAccess, type AccessDecision, type CachedSubscription } from '@/lib/access-policy';
+import { LOCAL_AUTH, type AuthState } from '@/lib/auth';
+
+/** Actions that change records. Blocked when access is read-only (view + export always work). */
+const WRITE_ACTION = /^(create|edit|void|record|update|adjust|set|restore|clear)/;
+export const READ_ONLY_MESSAGE = 'সাবস্ক্রিপশনের মেয়াদ শেষ — এখন শুধু হিসাব দেখা ও ব্যাকআপ নেওয়া যাবে।';
+const DAY_MS = 24 * 60 * 60 * 1000;
 import type { BackupPreview } from '@/lib/backup';
 import {
   jomarkhataService,
@@ -70,6 +77,10 @@ interface JomarkhataContextValue {
   mode: DbMode;
   /** navigator.storage.persist() result: true = the browser won't evict data under storage pressure. */
   storagePersisted: boolean | null;
+  /** S10: always `local` until a real auth provider exists (no fake login). */
+  auth: AuthState;
+  /** S10 access policy (7-day grace → read-only). Local mode is always full. */
+  access: AccessDecision;
   error: string | null;
   currentBalances: CurrentBalancesSummary;
   activeRoute: AppRoute;
@@ -212,6 +223,32 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
   const [phase, setPhase] = useState<StartupPhase>('welcome');
   const [mode, setMode] = useState<DbMode>('real');
   const [storagePersisted, setStoragePersisted] = useState<boolean | null>(null);
+  const [access, setAccess] = useState<AccessDecision>(() => decideAccess(null));
+  const accessRef = useRef(access);
+  accessRef.current = access;
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      let sub: CachedSubscription | null = null;
+      try {
+        sub = await jomarkhataService.getCachedSubscription();
+      } catch {
+        sub = null;
+      }
+      // Development-only override to test the banners and the read-only guard (never in production).
+      if (process.env.NODE_ENV === 'development') {
+        const o = window.localStorage.getItem('jk_dev_access');
+        if (o === 'grace' || o === 'read_only') {
+          const days = o === 'grace' ? 2 : 10;
+          sub = { status: 'expired', expiresAt: new Date(Date.now() - days * DAY_MS).toISOString(), serverTime: new Date().toISOString() };
+        }
+      }
+      if (alive) setAccess(decideAccess(sub));
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [phase]);
   useEffect(() => {
     // Ask the browser to keep IndexedDB even when the phone is low on space (plan 7.1).
     const st = typeof navigator !== 'undefined' ? navigator.storage : undefined;
@@ -575,6 +612,7 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
     const out: Record<string, unknown> = {};
     for (const [k, fn] of Object.entries(actions)) {
       out[k] = async (...args: unknown[]) => {
+        if (!accessRef.current.canWrite && WRITE_ACTION.test(k)) throw new Error(READ_ONLY_MESSAGE);
         try {
           return await (fn as (...a: unknown[]) => Promise<unknown>)(...args);
         } catch (err) {
@@ -610,8 +648,11 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
       refresh,
       actions: safeActions,
       storagePersisted,
+      auth: LOCAL_AUTH,
+      access,
     }),
     [
+      access,
       storagePersisted,
       safeActions,
       phase,

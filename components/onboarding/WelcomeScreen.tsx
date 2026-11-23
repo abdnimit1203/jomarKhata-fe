@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ArrowRight, Info } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { WelcomeIllustration } from './WelcomeIllustration';
 import { RestoreFlow } from '@/components/settings/RestoreFlow';
+import { AuthScreen } from './AuthScreen';
 
 interface WelcomeScreenProps {
   /** Start the owner's own khata (opens the shop setup form). */
@@ -22,8 +23,9 @@ interface WelcomeScreenProps {
  * the backend exists; until then the khata is local to this phone.)
  */
 export function WelcomeScreen({ onStart, onDemo }: WelcomeScreenProps) {
-  const [showLoginNote, setShowLoginNote] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
   const [showRestore, setShowRestore] = useState(false);
+  if (showAuth) return <AuthScreen onBack={() => setShowAuth(false)} />;
 
   return (
     <div className="min-h-dvh bg-gradient-to-b from-secondary via-canvas to-canvas">
@@ -72,22 +74,13 @@ export function WelcomeScreen({ onStart, onDemo }: WelcomeScreenProps) {
           অ্যাকাউন্ট আছে?{' '}
           <button
             type="button"
-            onClick={() => setShowLoginNote((v) => !v)}
-            aria-expanded={showLoginNote}
+            onClick={() => setShowAuth(true)}
             className="font-bold text-primary-ink underline-offset-4 hover:underline"
           >
             লগইন করুন
           </button>
         </p>
 
-        {showLoginNote && (
-          <div role="status" className="mt-3 flex items-start gap-2.5 rounded-2xl bg-warning-soft p-3.5 text-sm font-medium text-warning-ink">
-            <Info className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>
-              অ্যাকাউন্ট ও লগইন এখনও চালু হয়নি। আপাতত আপনার হিসাব এই ফোনেই সংরক্ষিত থাকবে; অ্যাকাউন্ট চালু হলে এই হিসাব আপনার অ্যাকাউন্টে যুক্ত করা যাবে।
-            </span>
-          </div>
-        )}
 
         {/* New phone / reinstalled app: bring the khata back from a backup file (S8). */}
         <p className="mt-3 text-center text-sm font-medium text-ink-muted">
