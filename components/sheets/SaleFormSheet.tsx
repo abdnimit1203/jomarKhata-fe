@@ -6,7 +6,8 @@ import { ModalSheet } from '@/components/ui/ModalSheet';
 import { NumericInput } from '@/components/ui/NumericInput';
 import { PaymentChannelPicker } from '@/components/ui/PaymentChannelPicker';
 import { useJomarkhata } from '@/context/JomarkhataContext';
-import { formatBanglaNumber, formatTaka, parseNumericInput } from '@/lib/format';
+import { dateInputToIso, formatBanglaNumber, formatTaka, parseNumericInput, toDateInputValue } from '@/lib/format';
+import { DateInput } from '@/components/ui/DateInput';
 import type { EntryMode, PaymentChannel, SaleLineItem, SaleRecord } from '@/types/domain';
 import { PartyPicker } from '@/components/ui/PartyPicker';
 import { SegmentedControl } from '@/components/ui/segmented';
@@ -60,6 +61,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
   );
   const [partyId, setPartyId] = useState<string>(() => editSale?.partyId ?? '');
   const [note, setNote] = useState(() => editSale?.note ?? '');
+  const [dateValue, setDateValue] = useState(() => toDateInputValue(editSale?.date ?? new Date().toISOString()));
 
 
   const [formError, setFormError] = useState<string | null>(null);
@@ -93,6 +95,11 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
   const dueAmount = Math.max(0, total - paidAmount);
 
   const handleToggleProduct = (productId: string, delta: number) => {
+    setRawEdits((r) => {
+      const next = { ...r };
+      delete next[`q:${productId}`];
+      return next;
+    });
     const product = data?.products.find((p) => p.id === productId);
     if (!product) return;
 
@@ -128,12 +135,41 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
     });
   };
 
+  // Raw text per cart field, so decimals like "1." / "0.5" can be typed before they parse.
+  const [rawEdits, setRawEdits] = useState<Record<string, string>>({});
+  /** Typed quantity / edited unit price for a chosen product (S6). */
+  const updateItem = (productId: string | null | undefined, patch: { qty?: number; unitPrice?: number }) => {
+    setSelectedItems((prev) =>
+      prev.map((i) => {
+        if (i.productId !== productId) return i;
+        const qty = patch.qty ?? i.qty;
+        const unitPrice = patch.unitPrice ?? i.unitPrice;
+        return { ...i, qty, unitPrice, lineTotal: Math.round(qty * unitPrice) };
+      })
+    );
+  };
+
+  // Non-blocking over-stock warning (AP-9 / D33: selling is allowed, stock may go negative).
+  const overStock = selectedItems
+    .map((i) => {
+      const prod = data?.products.find((p) => p.id === i.productId);
+      if (!prod) return null;
+      const alreadyInThisSale = editSale?.items.find((x) => x.productId === i.productId)?.qty ?? 0;
+      const available = prod.stockQty + alreadyInThisSale;
+      return i.qty > available ? { name: i.name, available, unit: prod.unit } : null;
+    })
+    .filter((x): x is { name: string; available: number; unit: string } => x !== null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
     if (total <= 0) {
       setFormError('বিক্রির মোট টাকা শূন্যের বেশি হতে হবে।');
+      return;
+    }
+    if (mode === 'product' && selectedItems.some((i) => !(i.qty > 0))) {
+      setFormError('প্রতিটি পণ্যের পরিমাণ শূন্যের বেশি দিন।');
       return;
     }
 
@@ -176,6 +212,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
         paidAmount,
         paymentMethod,
         note: note.trim() || undefined,
+        date: dateInputToIso(dateValue, editSale?.date),
       };
       if (editSale) {
         await actions.editSale(editSale.id, payload);
@@ -385,6 +422,59 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
           </div>
         )}
 
+        {mode === 'product' && selectedItems.length > 0 && (
+          <div className="space-y-2 rounded-2xl border border-border bg-white p-3">
+            <p className="text-sm font-semibold text-ink-muted">বাছাই করা পণ্য — পরিমাণ ও দাম বদলানো যায়</p>
+            {selectedItems.map((item) => (
+              <div key={item.productId ?? item.name} className="grid grid-cols-12 items-end gap-2">
+                <p className="col-span-12 truncate text-sm font-semibold text-ink">{item.name}</p>
+                <label className="col-span-4 text-xs text-ink-muted">
+                  পরিমাণ
+                  <NumericInput
+                    value={rawEdits[`q:${item.productId}`] ?? String(item.qty)}
+                    onChange={(raw, n) => {
+                      setRawEdits((r) => ({ ...r, [`q:${item.productId}`]: raw }));
+                      updateItem(item.productId, { qty: n });
+                    }}
+                    suffix={item.unit ?? ''}
+                  />
+                </label>
+                <label className="col-span-4 text-xs text-ink-muted">
+                  দাম (প্রতি)
+                  <NumericInput
+                    value={rawEdits[`p:${item.productId}`] ?? String(item.unitPrice)}
+                    onChange={(raw, n) => {
+                      setRawEdits((r) => ({ ...r, [`p:${item.productId}`]: raw }));
+                      updateItem(item.productId, { unitPrice: n });
+                    }}
+                  />
+                </label>
+                <p className="col-span-4 pb-3 text-right text-sm font-bold tabular-nums text-ink">{formatTaka(item.lineTotal)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {overStock.length > 0 && (
+          <div role="status" className="rounded-2xl bg-warning-soft p-3 text-sm font-semibold text-warning-ink">
+            {overStock.map((o) => (
+              <p key={o.name}>
+                ⚠ {o.name}: স্টকে আছে {formatBanglaNumber(o.available)} {o.unit}। তবুও বিক্রি করা যাবে — স্টক মাইনাসে দেখাবে, পরে কেনা লিখলে ঠিক হয়ে যাবে।
+              </p>
+            ))}
+          </div>
+        )}
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-ink-muted">ছাড় (ঐচ্ছিক)</label>
+          <NumericInput value={discountRaw} onChange={(raw) => setDiscountRaw(raw)} placeholder="০" />
+          {discount > 0 && (
+            <p className="mt-1 text-sm font-semibold text-ink-muted tabular-nums">
+              মোট {formatTaka(subtotal)} − ছাড় {formatTaka(discount)} = {formatTaka(total)}
+            </p>
+          )}
+        </div>
+
         <div className="space-y-3 rounded-2xl border border-border bg-white p-4">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold text-ink-muted">টাকা আদায়</span>
@@ -406,23 +496,10 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
           </div>
 
           {!isFullyPaid && (
-            <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <label className="mb-1 block text-xs text-ink-muted">এখন জমা নিলেন</label>
-                <NumericInput
-                  value={paidRaw}
-                  onChange={(raw) => setPaidRaw(raw)}
-                  placeholder="০"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-ink-muted">ছাড় (ঐচ্ছিক)</label>
-                <NumericInput
-                  value={discountRaw}
-                  onChange={(raw) => setDiscountRaw(raw)}
-                  placeholder="০"
-                />
-              </div>
+            <div>
+              <label className="mb-1 block text-xs text-ink-muted">এখন জমা নিলেন</label>
+              <NumericInput value={paidRaw} onChange={(raw) => setPaidRaw(raw)} placeholder="০" />
+              <p className="mt-1 text-sm font-semibold text-danger tabular-nums">বাকি থাকবে {formatTaka(dueAmount)}</p>
             </div>
           )}
 
@@ -456,6 +533,11 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
               বাকি টাকা ({formatTaka(dueAmount)}) অজানা ক্রেতার নামে রাখা যাবে না। অনুগ্রহ করে কাস্টমার নির্বাচন করুন।
             </p>
           )}
+        </div>
+
+        <div>
+          <span className="mb-1.5 block text-sm font-semibold text-ink-muted">তারিখ</span>
+          <DateInput value={dateValue} onChange={setDateValue} aria-label="বিক্রির তারিখ" />
         </div>
 
         <div>

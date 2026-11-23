@@ -12,7 +12,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 | S3 | First run, local mode, business profile (+ wiring the welcome screen) | ✅ Done: welcome → shop setup (empty khata), separate demo DB, legacy choice (D15), Dexie v2 appMeta (AP-1/2/3) |
 | S4 | Dashboard & cash summary | ✅ Done: compact hero with পাবো/দিবো, বেচা/কেনা above the fold at 360×640 (measured), duplicate grid removed |
 | S5 | Customers, suppliers & Due Book | ✅ Done: due list/search/filter, party detail with call + তাগাদা (WhatsApp/SMS/copy), role-aware form with preview + date, shared PartyPicker |
-| S6 | Sales, purchases, expenses | ⏸ |
+| S6 | Sales, purchases, expenses | ✅ Done: date on all forms, discount on paid sales, typed qty/price, over-stock warning |
 | S7 | Corrections & history | ⏸ |
 | S8 | Backup, restore & data safety | ⏸ |
 | S9 | Sync queue & connection status | ⏸ |
@@ -30,7 +30,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 ## Quality gates
 | Check | Command | S0 | S1 |
 |---|---|---|---|
-| Tests | `npm test` | 49 / 49 | **143 / 143** (11 files) |
+| Tests | `npm test` | 49 / 49 | **152 / 152** (12 files) |
 | TypeScript | `npm run typecheck` | 0 errors | **0 errors** |
 | Production build | `npm run build` | — | **✓ compiled, 3/3 static pages** |
 | Mobile render check (360px, Edge via puppeteer) | manual | — | Welcome and Dashboard render with **0px horizontal overflow** |

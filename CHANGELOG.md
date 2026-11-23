@@ -4,6 +4,22 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### S6: sale, purchase and expense forms, 2026-11-23
+**Added / changed**
+- **A date field on every entry form** (sale, purchase, expense, due), shown as `dd/MM/yyyy` with the left calendar icon.
+  - Defaults to today. Backdated entries keep their day.
+  - Editing without changing the day keeps the original timestamp (`dateInputToIso` in `lib/format.ts`).
+- **Sale:**
+  - **discount is available on fully paid sales too**, with a "মোট − ছাড় = …" line
+  - partial payment shows "বাকি থাকবে ৳X"
+  - **product mode lets you type the quantity (decimals like 2.5 kg) and edit the unit price** per chosen item
+  - **a non-blocking over-stock warning** (D33)
+- **Purchase:** typed quantity and editable purchase price in product mode, plus the date. There's no discount, because the purchase service has none; a service change wasn't wanted for it.
+- `tests/forms.test.ts` (9): date helper, form wiring, discount on a paid sale (real service: no due, cash = total), backdated sale/purchase/expense counted on their day, decimal quantity.
+
+**Verified e2e:** a product sale of 999 against stock 18 shows the warning and still saves; discount works on a paid sale; the date field is present.
+- **This also reproduced AP-9 in the browser:** stock went 18 → **0** instead of −981. Fixed in the next commit.
+
 ### S5: simpler Due Book, role-aware due form, searchable party picker, 2026-11-23
 **Added / changed**
 - **Due list:**

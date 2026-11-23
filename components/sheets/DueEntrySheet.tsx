@@ -9,7 +9,7 @@ import { PartyPicker, balanceText } from '@/components/ui/PartyPicker';
 import { SegmentedControl } from '@/components/ui/segmented';
 import { DateInput } from '@/components/ui/DateInput';
 import { useJomarkhata } from '@/context/JomarkhataContext';
-import { formatTaka, parseNumericInput, toDateInputValue } from '@/lib/format';
+import { dateInputToIso, formatTaka, parseNumericInput, toDateInputValue } from '@/lib/format';
 import type { DueTransaction, PaymentChannel, PartyRole } from '@/types/domain';
 import type { RecordDueEntryInput } from '@/services/jomarkhataService';
 import { fromEntryType, toEntryType, type DueFlow } from '@/lib/dues';
@@ -29,14 +29,6 @@ function entryTypeOfDue(d: DueTransaction): EntryType {
   if (d.source === 'customer_collection') return 'customer_collection';
   if (d.source === 'supplier_payment') return 'supplier_payment';
   return d.direction === 'given' ? 'manual_due_given' : 'manual_due_received';
-}
-
-/** Chosen calendar day + the current time of day (keeps same-day ordering natural). */
-function dateValueToIso(value: string): string | undefined {
-  if (!value || value === toDateInputValue(new Date().toISOString())) return undefined;
-  const [y, m, d] = value.split('-').map(Number);
-  const now = new Date();
-  return new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds()).toISOString();
 }
 
 interface DueEntrySheetProps {
@@ -98,13 +90,13 @@ export function DueEntrySheet({ open, initialPartyId, defaultEntryType, editDue,
     if (amount <= 0) return setFormError('টাকার পরিমাণ লিখুন।');
     setIsSubmitting(true);
     try {
-      const date = dateValueToIso(dateValue);
+      const date = dateInputToIso(dateValue, editDue?.date);
       if (editDue) {
         await actions.editDueEntry(editDue.id, {
           amount,
           paymentMethod: withMoney ? paymentMethod : undefined,
           note: note.trim() || undefined,
-          date: date ?? (dateValue === toDateInputValue(editDue.date) ? editDue.date : new Date().toISOString()),
+          date,
         });
       } else {
         await actions.recordDueEntry({

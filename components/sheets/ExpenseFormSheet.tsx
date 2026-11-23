@@ -6,7 +6,8 @@ import { ModalSheet } from '@/components/ui/ModalSheet';
 import { NumericInput } from '@/components/ui/NumericInput';
 import { PaymentChannelPicker } from '@/components/ui/PaymentChannelPicker';
 import { useJomarkhata } from '@/context/JomarkhataContext';
-import { EXPENSE_CATEGORIES, parseNumericInput } from '@/lib/format';
+import { EXPENSE_CATEGORIES, dateInputToIso, parseNumericInput, toDateInputValue } from '@/lib/format';
+import { DateInput } from '@/components/ui/DateInput';
 import type { ExpenseRecord, PaymentChannel } from '@/types/domain';
 
 interface ExpenseFormSheetProps {
@@ -24,6 +25,7 @@ export function ExpenseFormSheet({ open, editExpense, onClose }: ExpenseFormShee
     () => editExpense?.paymentMethod ?? 'cash'
   );
   const [note, setNote] = useState(() => editExpense?.note ?? '');
+  const [dateValue, setDateValue] = useState(() => toDateInputValue(editExpense?.date ?? new Date().toISOString()));
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -45,6 +47,7 @@ export function ExpenseFormSheet({ open, editExpense, onClose }: ExpenseFormShee
         amount,
         paymentMethod,
         note: note.trim() || undefined,
+        date: dateInputToIso(dateValue, editExpense?.date),
       };
       if (editExpense) {
         await actions.editExpense(editExpense.id, payload);
@@ -123,6 +126,11 @@ export function ExpenseFormSheet({ open, editExpense, onClose }: ExpenseFormShee
           value={paymentMethod}
           onChange={setPaymentMethod}
         />
+
+        <div>
+          <span className="mb-1.5 block text-sm font-semibold text-ink-muted">তারিখ</span>
+          <DateInput value={dateValue} onChange={setDateValue} aria-label="খরচের তারিখ" />
+        </div>
 
         <div>
           <label className="mb-1 block text-xs text-ink-muted">বিবরণ / নোট (ঐচ্ছিক)</label>
