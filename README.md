@@ -13,21 +13,24 @@ A mobile-first, offline-first bookkeeping app for small and medium retail shops 
 | Area | What you can do |
 |---|---|
 | **Dashboard** | Cash in hand, bKash / Nagad / bank balances, total receivable (পাবো) and payable (দিবো), today/month summary, quick actions, recent transactions, a hide-balance toggle |
-| **বেচা (sales)** | Quick sale (amount only) or a product sale with stock deduction; cash, digital or credit (বাকি); edit and void with reason |
+| **বেচা (sales)** | Quick sale or product sale (typed quantity and price, discount, any date); cash, digital or credit (বাকি); selling beyond stock warns but is allowed; edit (with optional reason) and void |
 | **কেনা (purchases)** | Purchase from suppliers with stock increase; paid or on credit; edit and void |
-| **বাকি (dues)** | Customer and supplier ledgers, collect dues, pay suppliers, due reminder date, per-party history |
+| **বাকি (dues)** | Search by name or mobile, party ledger with পাবো/দিবো, call and **তাগাদা** (WhatsApp/SMS), দিচ্ছি/নিচ্ছি form with a balance preview and date |
 | **খরচ (expenses)** | Expenses by category and payment channel; edit and void |
 | **ক্যাশ বক্স** | Money in/out per channel: ক্যাশ · বিকাশ · নগদ · ব্যাংক |
 | **স্টক** | Products, stock quantity, manual stock adjustment with history |
 | **লেনদেন** | One unified ledger of every transaction with detail view |
 | **রিপোর্ট** | Profit and loss, last 7 days sales vs expenses, expense categories, current balances |
-| **সেটিংস** | Shop profile, opening balances, JSON backup export, demo data reset |
+| **সেটিংস** | Shop profile, opening balances, **backup** (checksum, optional password), **restore** (validated, all-or-nothing), clear khata (typed confirmation), demo khata |
+| **First run** | Welcome → shop setup (empty khata) or a separate demo khata; restore from a backup on a new phone |
+| **History** | Every change kept: before → after, with reason; voids never delete |
+| **সিঙ্ক অবস্থা** | Online/offline pill; every record honestly shows "ফোনে সংরক্ষিত" until the cloud exists |
 | **Landing page** | Public page at `/` (features, install steps, FAQ). The app itself is at `/app` |
-| **Installable app** | Installs from Chrome ("Install app"), opens and works with **no internet** after the first visit |
+| **Installable app** | Install card (Android) or Add to Home Screen steps (iPhone); works with **no internet** after the first visit; "নতুন আপডেট আছে" prompt |
 
 Dates are shown as `dd/MM/yyyy` with Bengali digits. Money is shown in Taka (৳).
 
-**Not built yet:** login (Firebase), cloud backup/sync, multi-device, subscription, landing page. See [DEVELOPMENT_STATUS.md](DEVELOPMENT_STATUS.md).
+**Not built yet (backend phase):** real login (Firebase), cloud sync, multi-device, subscription enforcement. The frontend side is ready behind interfaces; see [docs/BACKEND_CONTRACT.md](docs/BACKEND_CONTRACT.md). MVP status: [docs/MVP_ACCEPTANCE.md](docs/MVP_ACCEPTANCE.md).
 
 ## Stack
 - Next.js 16 (App Router), React 19, TypeScript
