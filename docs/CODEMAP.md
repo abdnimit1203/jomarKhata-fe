@@ -80,6 +80,7 @@ A compact map of the project for anyone (human or tool) starting work. Kept up t
 - **Feature colour families:** green = sale/money-in, blue = purchase, orange = dues, red = expense/money-out, teal = supplier payment, indigo = stock, purple = parties, sky = reports, gold = cash, slate = settings.
 
 ## Tests (`npm test`; also `npm run typecheck` and `npx next build`)
+- On Windows, use `npm test`, not bare `npx vitest`. `scripts/test.mjs` fixes the drive-letter case that breaks Vitest 5.
 | File | Covers |
 |---|---|
 | `service.*.test.ts`, `financeCalculator.test.ts` | Accounting behaviour and invariants, running the real Dexie on fake-indexeddb |

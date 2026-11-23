@@ -66,9 +66,7 @@ Measured on the production build in headless Edge at 360px **with 4× CPU thrott
 
 ## 5. Decisions waiting for the owner
 1. **AP-8** incremental loading, for very large khatas. Recommended later, not needed for launch.
-2. **npm audit:**
-   - remove the unused `firebase-tools` dev dependency
-   - upgrade `vitest` 3 → 5 (dev only; production has 0 vulnerabilities)
+2. ~~**npm audit**~~ ✅ Done (2026-11-23): `firebase-tools` removed, vitest upgraded to 5.1.1, `npm audit` = 0.
 3. **Name check:** "জমারখাতা / Jomarkhata" is close to "JomaKhata" (an Indian product). Run a trademark check before a public launch.
 4. **Landing page content:** WhatsApp support number, privacy and terms text, pricing wording.
 5. **Login testing approach** before the backend exists (D26): a dev-only test mode, or Firebase in the frontend.

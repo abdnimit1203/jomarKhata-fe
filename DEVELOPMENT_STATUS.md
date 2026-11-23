@@ -48,7 +48,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 | Edits and voids queue only the parent record, not the changed money movement, due, stock or running-balance rows | S9 (AP-4) |
 | Invoice/bill numbers use `count + 1001` (will collide across devices) | AP-5 (backend phase) |
 
-## Dependency audit review (2026-11-22, read-only; nothing upgraded)
+## Dependency audit review (2026-11-22; resolved 2026-11-23: `firebase-tools` removed, vitest 5.1.1, `npm audit` = 0)
 `npm audit`: 23 advisories (3 critical, 8 high, 12 moderate). **`npm audit --omit=dev`: 0.** Nothing that ships to users is affected.
 
 | Severity | Package (path) | Advisory (summary) | Real exposure | Recommendation (needs owner approval) |

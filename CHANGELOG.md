@@ -4,6 +4,13 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### Dev dependencies: npm audit cleared, 2026-11-23
+- **Removed `firebase-tools`:** an unused leftover dev dependency (no `firebase.json`; the app deploys to Vercel). Removing it cleared `tar`, `basic-ftp`, `path-to-regexp`, `csv-parse`, `glob`/`minimatch` and the rest of its tree.
+- **Upgraded `vitest` 3.2 → 5.1.1** (with `@types/node` ^20 → ^22, which vitest 5 needs as a peer). This cleared `tinypool` (critical) and `@vitest/mocker`.
+- **`npm audit`: 0 vulnerabilities** (was 23). Production was already at 0.
+- **`npm test` now runs through `scripts/test.mjs`.** On Windows, a lower-case drive letter in the working directory (`d:\…`) makes Vitest 5 load its runner twice, and every file fails with `reading 'config'`. The wrapper starts Vitest from `D:\…` instead. Use `npm test`, not bare `npx vitest`, on Windows.
+- 231 / 231 tests pass, and `tsc` is clean.
+
 ### On-page SEO + developer credit, 2026-11-23
 - **Install requirements were already in place:** manifest plus 192, 512, maskable, apple-touch and favicon icons. Now covered by a test.
 - **Metadata** (`lib/seo.ts`, `app/layout.tsx`):
