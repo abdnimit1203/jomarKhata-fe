@@ -29,7 +29,7 @@ describe('bottom bar: হোম · পাওনা-দেনা · [+] · লে
   it('"+" opens the quick-add sheet with the 5 everyday entries', () => {
     expect(shell).toMatch(/openSheet\(\{ type: 'quick_add' \}\)/);
     const sheets = read('components/layout/NavSheets.tsx');
-    for (const l of ['বিক্রি', 'কেনা', 'বাকি আদায়', 'দেনা শোধ', 'খরচ']) expect(sheets).toContain(`label: '${l}'`);
+    for (const l of ['বিক্রি', 'কেনা', 'বাকি আদায়', 'বাকি শোধ', 'খরচ']) expect(sheets).toContain(`label: '${l}'`);
   });
 });
 

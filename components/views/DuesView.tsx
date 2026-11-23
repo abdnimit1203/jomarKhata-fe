@@ -299,11 +299,11 @@ export function DuesView() {
     <div className="mx-auto max-w-5xl space-y-3 pb-28 lg:pb-6">
       <section className="grid grid-cols-2 gap-2.5">
         <button type="button" onClick={() => setView('receivable')} className="rounded-2xl bg-tile-green-bg px-3.5 py-3 text-left">
-          <p className="text-xs font-semibold text-ink-muted">মোট {T.receivable} — আপনি পাবেন</p>
+          <p className="text-xs font-semibold text-ink-muted">মোট {T.receivable}</p>
           <p className="text-xl font-bold tabular-nums text-success">{formatTaka(currentBalances.totalReceivables)}</p>
         </button>
         <button type="button" onClick={() => setView('payable')} className="rounded-2xl bg-danger-soft px-3.5 py-3 text-left">
-          <p className="text-xs font-semibold text-ink-muted">মোট {T.payable} — আপনাকে দিতে হবে</p>
+          <p className="text-xs font-semibold text-ink-muted">মোট {T.payable}</p>
           <p className="text-xl font-bold tabular-nums text-danger">{formatTaka(currentBalances.totalPayables)}</p>
         </button>
       </section>
@@ -388,7 +388,7 @@ export function DuesView() {
         <EmptyState
           icon={<Users className="h-6 w-6" />}
           title={parties.length === 0 ? 'এখনও কোনো কাস্টমার বা সাপ্লায়ার নেই' : 'কাউকে পাওয়া যায়নি'}
-          description="কাস্টমার বা সাপ্লায়ার যোগ করে পাওনা-দেনার হিসাব শুরু করুন।"
+          description="কাস্টমার বা সাপ্লায়ার যোগ করে বাকির হিসাব শুরু করুন।"
           actionLabel="+ নতুন পার্টি যোগ করুন"
           onAction={() => openSheet({ type: 'party', defaultRole: 'customer' })}
         />
@@ -405,12 +405,21 @@ export function DuesView() {
               <span className="flex min-w-0 flex-1 items-center gap-3 p-3">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-base font-semibold text-ink">{party.name}</span>
+                  {party.phone && <span className="block truncate text-xs tabular-nums text-ink-muted">{party.phone}</span>}
                   <span className="block truncate text-xs text-ink-muted">
                     {party.role === 'customer' ? 'কাস্টমার' : 'সাপ্লায়ার'}
                     {party.lastTransactionAt ? ` · শেষ লেনদেন ${formatBanglaDate(party.lastTransactionAt)}` : ''}
                   </span>
                 </span>
-                <span className={`shrink-0 text-right text-sm font-bold tabular-nums ${balanceTone(party.balance)}`}>{balanceText(party.balance)}</span>
+                {/* word above the amount, so the name/phone/date column keeps its width */}
+                {party.balance === 0 ? (
+                  <span className="w-16 shrink-0 text-right text-xs leading-4 font-semibold text-ink-muted">{balanceText(0)}</span>
+                ) : (
+                  <span className={`shrink-0 text-right tabular-nums ${balanceTone(party.balance)}`}>
+                    <span className="block text-xs font-semibold">{party.balance > 0 ? T.receivable : T.payable}</span>
+                    <span className="block text-base font-bold">{formatTaka(Math.abs(party.balance))}</span>
+                  </span>
+                )}
               </span>
             </button>
           ))}

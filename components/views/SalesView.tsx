@@ -17,6 +17,8 @@ import { PeriodFilter, usePeriodFilter } from '@/components/ui/PeriodFilter';
 
 export function SalesView() {
   const { data, openSheet } = useJomarkhata();
+  // phone under the party name in rows (owner request)
+  const phoneOf = useMemo(() => new Map((data?.parties ?? []).map((p) => [p.id, p.phone])), [data?.parties]);
   const listDates = useMemo(() => (data?.sales ?? []).map((r) => r.date), [data?.sales]);
   const pf = usePeriodFilter(listDates); // presets + any month/year
   const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'due' | 'voided'>('all');
@@ -163,10 +165,14 @@ export function SalesView() {
                     </p>
                     <span className="text-xs text-ink-muted">· {sale.invoiceNo}</span>
                   </div>
+                  {sale.partyId && phoneOf.get(sale.partyId) && (
+                    <p className="truncate text-xs tabular-nums text-ink-muted">{phoneOf.get(sale.partyId)}</p>
+                  )}
                   <p className="mt-0.5 truncate text-xs text-ink-muted">
                     {sale.mode === 'quick' ? 'সহজ বিক্রি' : `${formatBanglaNumber(sale.items.length)}টি পণ্য`}
-                    {sale.description ? ` · ${sale.description}` : ''} · {formatBanglaDateTime(sale.date)}
+                    {sale.description ? ` · ${sale.description}` : ''}
                   </p>
+                  <p className="text-xs leading-4 text-ink-subtle">{formatBanglaDateTime(sale.date)}</p>
                 </div>
 
                 <div className="shrink-0 text-right">

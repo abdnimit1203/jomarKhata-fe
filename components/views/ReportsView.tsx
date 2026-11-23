@@ -72,8 +72,8 @@ export function ReportsView() {
       ['বিকাশ (বর্তমান)', String(currentBalances.channelBalances.bkash)],
       ['নগদ (বর্তমান)', String(currentBalances.channelBalances.nagad)],
       ['ব্যাংক (বর্তমান)', String(currentBalances.channelBalances.bank)],
-      ['বর্তমান মোট পাওনা', String(currentBalances.totalReceivables)],
-      ['বর্তমান মোট দেনা', String(currentBalances.totalPayables)],
+      ['বর্তমান মোট বাকি পাবেন', String(currentBalances.totalReceivables)],
+      ['বর্তমান মোট বাকি দেবেন', String(currentBalances.totalPayables)],
       ['নির্বাচিত সময়ে মোট বিক্রি', String(flows.salesRevenue)],
       ['নির্বাচিত সময়ে মোট আদায়', String(flows.totalCollected)],
       ['নির্বাচিত সময়ে মোট খরচ', String(flows.expensesTotal)],
@@ -376,13 +376,13 @@ export function ReportsView() {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-ink-muted">মোট পাওনা (কাস্টমার)</span>
+                <span className="text-ink-muted">মোট বাকি পাবেন (কাস্টমার)</span>
                 <span className="font-bold tabular-nums text-danger">
                   {formatTaka(currentBalances.totalReceivables)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-ink-muted">মোট দেনা (সাপ্লায়ার)</span>
+                <span className="text-ink-muted">মোট বাকি দেবেন (সাপ্লায়ার)</span>
                 <span className="font-bold tabular-nums text-primary-ink">
                   {formatTaka(currentBalances.totalPayables)}
                 </span>

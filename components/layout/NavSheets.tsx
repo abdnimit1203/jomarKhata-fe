@@ -15,14 +15,14 @@ const QUICK_ACTIONS: Array<{ label: string; hint: string; icon: AppIconName; ton
   { label: 'কেনা', hint: 'মাল কেনা', icon: 'purchase', tone: 'blue', sheet: { type: 'purchase' } },
   {
     label: 'বাকি আদায়',
-    hint: 'পাওনা টাকা পেলাম',
+    hint: 'বাকির টাকা পেলাম',
     icon: 'due-collect',
     tone: 'orange',
     sheet: { type: 'due', defaultEntryType: 'customer_collection' },
   },
   {
-    label: 'দেনা শোধ',
-    hint: 'দেনার টাকা দিলাম',
+    label: 'বাকি শোধ',
+    hint: 'বাকির টাকা দিলাম',
     icon: 'supplier-pay',
     tone: 'teal',
     sheet: { type: 'due', defaultEntryType: 'supplier_payment' },

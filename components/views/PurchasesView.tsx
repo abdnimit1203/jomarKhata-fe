@@ -16,6 +16,8 @@ import { PeriodFilter, usePeriodFilter } from '@/components/ui/PeriodFilter';
 
 export function PurchasesView() {
   const { data, openSheet } = useJomarkhata();
+  // phone under the party name in rows (owner request)
+  const phoneOf = useMemo(() => new Map((data?.parties ?? []).map((p) => [p.id, p.phone])), [data?.parties]);
   const listDates = useMemo(() => (data?.purchases ?? []).map((r) => r.date), [data?.purchases]);
   const pf = usePeriodFilter(listDates); // presets + any month/year
   const [showVoided, setShowVoided] = useState(false);
@@ -149,10 +151,14 @@ export function PurchasesView() {
                     <p className="truncate text-sm font-semibold text-ink">{p.partyName}</p>
                     <span className="text-xs text-ink-muted">· {p.billNo}</span>
                   </div>
+                  {p.partyId && phoneOf.get(p.partyId) && (
+                    <p className="truncate text-xs tabular-nums text-ink-muted">{phoneOf.get(p.partyId)}</p>
+                  )}
                   <p className="mt-0.5 truncate text-xs text-ink-muted">
                     {p.mode === 'quick' ? 'সহজ ক্রয়' : `${formatBanglaNumber(p.items.length)}টি পণ্য`}
-                    {p.description ? ` · ${p.description}` : ''} · {formatBanglaDateTime(p.date)}
+                    {p.description ? ` · ${p.description}` : ''}
                   </p>
+                  <p className="text-xs leading-4 text-ink-subtle">{formatBanglaDateTime(p.date)}</p>
                 </div>
 
                 <div className="shrink-0 text-right">
@@ -168,7 +174,7 @@ export function PurchasesView() {
                       <span className="font-semibold text-danger">বাতিলকৃত</span>
                     ) : p.dueAmount > 0 ? (
                       <span className="font-semibold text-warning-ink">
-                        দেনা {formatTaka(p.dueAmount)}
+                        বাকি {formatTaka(p.dueAmount)}
                       </span>
                     ) : (
                       <span className="font-medium text-primary-ink">

@@ -73,8 +73,8 @@ describe('party search (Bengali digits, phone or name)', () => {
 
 describe('labels and তাগাদা', () => {
   it('balance always carries our own word: পাওনা / দেনা', () => {
-    expect(balanceText(500)).toMatch(/^পাওনা /);
-    expect(balanceText(-500)).toMatch(/^দেনা /);
+    expect(balanceText(500)).toMatch(/^বাকি পাবেন /);
+    expect(balanceText(-500)).toMatch(/^বাকি দেবেন /);
     expect(balanceText(0)).toBe('হিসাব মিটে গেছে');
   });
 

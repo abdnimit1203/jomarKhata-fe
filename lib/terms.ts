@@ -1,13 +1,14 @@
 /**
  * Our own wording, in ONE place. Jomarkhata must not read like other khata apps (owner request,
- * 2026-11-23): the screens use "পাওনা / দেনা" and plain sentences, not another product's labels.
+ * 2026-11-23). Owner, 2026-11-24: "বাকি" is the word shopkeepers understand and our brand, so every
+ * due label is built on বাকি (বাকি পাবেন / বাকি দেবেন / বাকি আদায় / বাকি শোধ).
  * Change a word here and it changes everywhere.
  */
 export const T = {
   /** They owe me (balance > 0). */
-  receivable: 'পাওনা',
+  receivable: 'বাকি পাবেন',
   /** I owe them (balance < 0). */
-  payable: 'দেনা',
+  payable: 'বাকি দেবেন',
   settled: 'হিসাব মিটে গেছে',
   dueBook: 'বাকি',
   newDueEntry: 'লেনদেন লিখুন',
@@ -17,7 +18,7 @@ export const T = {
   purchaseBook: 'কেনার হিসাব',
   expenseBook: 'খরচের হিসাব',
   collect: 'বাকি আদায়',
-  payOff: 'দেনা শোধ',
+  payOff: 'বাকি শোধ',
   remind: 'মনে করান',
   collectionDay: 'আদায়ের দিন',
 } as const;

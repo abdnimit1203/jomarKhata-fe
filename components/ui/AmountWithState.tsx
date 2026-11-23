@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils';
 export type FinancialState = 'receivable' | 'payable' | 'settled' | 'money_in' | 'money_out' | 'expense';
 
 const STATE: Record<FinancialState, { word: string; className: string; sign?: string }> = {
-  receivable: { word: 'পাওনা', className: 'text-success' },
-  payable: { word: 'দেনা', className: 'text-danger' },
+  receivable: { word: 'বাকি পাবেন', className: 'text-success' },
+  payable: { word: 'বাকি দেবেন', className: 'text-danger' },
   settled: { word: 'বাকি নেই', className: 'text-ink-muted' },
   money_in: { word: 'জমা', className: 'text-success', sign: '+' },
   money_out: { word: 'পরিশোধ', className: 'text-ink', sign: '−' },
