@@ -4,6 +4,35 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### S2: app shell & navigation, 2026-11-23
+**Added**
+- **Bottom bar (D2):** হোম · বাকি · **[+]** · লেনদেন · আরও.
+  - **"+"** is a raised blue button that opens a quick-add sheet: বেচা, কেনা, বাকি আদায়, পরিশোধ, খরচ.
+  - **"আরও"** opens a menu with every other screen. With the tabs, every screen is reachable in at most 2 taps.
+- **Top bar:** home shows the greeting. Other screens show a back button and the screen title (the party name inside a party ledger). An **online/offline pill** (`hooks/use-online.ts`) shows on every screen; tapping it says plainly that everything is saved on this phone and the cloud isn't on yet.
+- **Android back button:** screens, party detail and sheets push history entries.
+  - Back closes a sheet first, then leaves the party, then returns to the previous screen.
+  - From home, back exits the app as usual.
+  - Opening a screen from the আরও menu replaces the sheet's entry, so there are no dead back presses.
+- **Unsaved-form guard:** typing in any sheet marks it unsaved (a native `input` listener in `ModalSheet`).
+  - Back, ✕ or tapping outside then asks: "লেখা তথ্য বাদ দেবেন?"
+  - After a successful save the guard clears, so there's no prompt.
+- `components/layout/navigation.ts` (titles + আরও items), `NavSheets.tsx` (quick-add + আরও), `lib/sheet-guard.ts`.
+- `tests/navigation.test.ts` (8).
+
+**Fixed while building**
+- **Next.js App Router reloads the page on popstate when a history entry lacks its `__NA` marker.** Every entry now keeps Next's keys (`pushEntry` / `replaceEntry`), and the first entry is tagged after Next writes it. A test checks that no other history writes exist.
+
+**Verified** (headless Edge at 360px, with a reload detector):
+- tab → back → home
+- আরও → স্টক → back → home
+- typed sale → back → prompt → cancel keeps the form → confirm closes it
+- an untouched form closes without asking
+- saving closes the form without a prompt
+- **no page reload in the whole run**
+
+**Not changed:** service, accounting, Dexie.
+
 ### L1: landing page, app moves to /app, 2026-11-23
 Owner decision D34: landing at `/`, app at `/app`.
 

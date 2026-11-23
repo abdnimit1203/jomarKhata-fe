@@ -2,10 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import {
+  ArrowLeft,
   BarChart3,
   BookOpen,
   BookText,
   Home,
+  MoreHorizontal,
   Package,
   Plus,
   Receipt,
@@ -14,6 +16,11 @@ import {
   ShoppingCart,
   Wallet,
 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useOnline } from '@/hooks/use-online';
+import { formatBanglaNumber } from '@/lib/format';
+import { MORE_ROUTES, ROUTE_TITLES } from './navigation';
+import { MoreSheet, QuickAddSheet } from './NavSheets';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { DashboardSkeleton, ToastContainer } from '@/components/ui/StateBlocks';
 import { SaleFormSheet } from '@/components/sheets/SaleFormSheet';
@@ -50,13 +57,25 @@ const DESKTOP_NAV: Array<{ id: AppRoute; label: string; icon: React.ComponentTyp
   { id: 'settings', label: 'বিজনেস সেটিংস', icon: Settings },
 ];
 
-const MOBILE_TABS: Array<{ id: AppRoute; label: string; icon: React.ComponentType<{ className?: string }> }> = [
-  { id: 'dashboard', label: 'হোম', icon: Home },
-  { id: 'dues', label: 'বাকি', icon: BookOpen },
-  { id: 'ledger', label: 'লেনদেন', icon: BookText },
-  { id: 'stock', label: 'স্টক', icon: Package },
-  { id: 'reports', label: 'রিপোর্ট', icon: BarChart3 },
-];
+/** Online/offline pill (S2). It shows connectivity only. It never claims cloud backup. */
+function ConnectionPill({ pending, onInfo }: { pending: number; onInfo: () => void }) {
+  const online = useOnline();
+  return (
+    <button
+      type="button"
+      onClick={onInfo}
+      aria-label={online ? 'অনলাইন — বিস্তারিত' : 'অফলাইন — বিস্তারিত'}
+      className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white/20 px-2.5 text-xs font-semibold text-on-primary"
+    >
+      <span
+        aria-hidden="true"
+        className={`h-2.5 w-2.5 rounded-full ring-2 ring-white/60 ${online ? 'bg-success' : 'bg-surface-muted'}`}
+      />
+      {online ? 'অনলাইন' : 'অফলাইন'}
+      {pending > 0 && <span className="sr-only">, {formatBanglaNumber(pending)}টি পরিবর্তন ফোনে সংরক্ষিত</span>}
+    </button>
+  );
+}
 
 export function AppShell() {
   const {
@@ -71,7 +90,20 @@ export function AppShell() {
     closeSheet,
     dismissToast,
     refresh,
+    selectedPartyId,
+    goBack,
+    discardPrompt,
+    cancelDiscard,
+    forceCloseSheet,
+    showToast,
   } = useJomarkhata();
+  const pending = data?.pendingSyncCount ?? 0;
+  const isHome = activeRoute === 'dashboard';
+  const showConnectionInfo = () =>
+    showToast(
+      `সব হিসাব এই ফোনে সংরক্ষিত${pending > 0 ? ` · ${formatBanglaNumber(pending)}টি পরিবর্তন ক্লাউডে পাঠানো বাকি (ক্লাউড এখনও চালু হয়নি)` : ''}।`,
+      'info'
+    );
 
   // S1 design preview only: `?preview=welcome` shows the not-logged-in first page in development.
   // Real first-run / account wiring arrives in S3 (AP-1..AP-3). Never active in production builds.
@@ -176,30 +208,49 @@ export function AppShell() {
 
         {/* Main Content Area */}
         <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
-          {/* Colourful sticky top bar (S1 rev 3, reference style). Back button + online/offline pill arrive in S2. */}
+          {/* Colourful sticky top bar. Home: greeting. Other screens: back + title. Always: online/offline pill. */}
           <header className="sticky top-0 z-30 overflow-hidden bg-primary-gradient text-on-primary shadow-hero lg:rounded-none">
             {/* soft decorative shapes, like the reference card waves */}
             <span aria-hidden="true" className="pointer-events-none absolute -top-10 right-10 h-28 w-28 rounded-full bg-white/10" />
             <span aria-hidden="true" className="pointer-events-none absolute -bottom-12 right-[-1.5rem] h-28 w-28 rounded-full bg-white/10" />
             <div className="relative flex h-16 items-center justify-between gap-3 px-4 lg:px-8">
-              <div className="flex min-w-0 items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/brand/logo-mark.png"
-                  alt=""
-                  width={40}
-                  height={40}
-                  className="h-10 w-10 shrink-0 rounded-[0.7rem] ring-2 ring-white/80 lg:hidden"
-                />
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-medium text-on-primary">আসসালামু আলাইকুম,</p>
-                  <p className="truncate text-base font-bold text-on-primary">
-                    {data?.businessProfile.shopName || 'জমারখাতা'}
-                  </p>
+              {isHome ? (
+                <div className="flex min-w-0 items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/brand/logo-mark.png"
+                    alt=""
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 shrink-0 rounded-[0.7rem] ring-2 ring-white/80 lg:hidden"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium text-on-primary">আসসালামু আলাইকুম,</p>
+                    <p className="truncate text-base font-bold text-on-primary">
+                      {data?.businessProfile.shopName || 'জমারখাতা'}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex min-w-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={goBack}
+                    aria-label="পিছনে যান"
+                    className="-ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 text-on-primary transition-colors hover:bg-white/30"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </button>
+                  <h1 className="truncate text-lg font-bold text-on-primary">
+                    {activeRoute === 'dues' && selectedPartyId
+                      ? data?.parties.find((p) => p.id === selectedPartyId)?.name ?? ROUTE_TITLES.dues
+                      : ROUTE_TITLES[activeRoute]}
+                  </h1>
+                </div>
+              )}
 
               <div className="flex shrink-0 items-center gap-2">
+                <ConnectionPill pending={pending} onInfo={showConnectionInfo} />
                 <button
                   type="button"
                   onClick={() => openSheet({ type: 'expense' })}
@@ -208,14 +259,16 @@ export function AppShell() {
                   <Receipt className="h-4 w-4" />
                   <span>সহজ খরচ</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('settings')}
-                  aria-label="সেটিংস"
-                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-on-primary transition-colors hover:bg-white/30"
-                >
-                  <Settings className="h-5 w-5" />
-                </button>
+                {isHome && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('settings')}
+                    aria-label="সেটিংস"
+                    className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-on-primary transition-colors hover:bg-white/30"
+                  >
+                    <Settings className="h-5 w-5" />
+                  </button>
+                )}
               </div>
             </div>
           </header>
@@ -243,32 +296,58 @@ export function AppShell() {
         </div>
       </div>
 
-      {/* Mobile Fixed 5-Tab Bottom Bar (< lg) — Reference Image 1 Clean Emerald Active Tabs */}
+      {/* Mobile bottom bar (S2, D2): হোম · বাকি · [+] · লেনদেন · আরও */}
       <nav
         aria-label="মোবাইল নেভিগেশন"
         className="fixed right-0 bottom-0 left-0 z-40 border-t border-border bg-white/95 backdrop-blur-md lg:hidden"
       >
         <div className="grid h-16 grid-cols-5 items-center pb-safe">
-          {MOBILE_TABS.map((tab) => {
+          {([
+            { id: 'dashboard', label: 'হোম', icon: Home, active: activeRoute === 'dashboard', onClick: () => navigate('dashboard') },
+            { id: 'dues', label: 'বাকি', icon: BookOpen, active: activeRoute === 'dues', onClick: () => navigate('dues') },
+            { id: 'add', label: 'নতুন', icon: Plus, active: false, onClick: () => openSheet({ type: 'quick_add' }) },
+            { id: 'ledger', label: 'লেনদেন', icon: BookText, active: activeRoute === 'ledger', onClick: () => navigate('ledger') },
+            {
+              id: 'more',
+              label: 'আরও',
+              icon: MoreHorizontal,
+              active: MORE_ROUTES.includes(activeRoute),
+              onClick: () => openSheet({ type: 'more' }),
+            },
+          ] as const).map((tab) => {
             const Icon = tab.icon;
-            const active = activeRoute === tab.id;
+            if (tab.id === 'add') {
+              return (
+                <div key={tab.id} className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={tab.onClick}
+                    aria-label="নতুন লেনদেন যোগ করুন"
+                    className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-primary-gradient text-on-primary shadow-hero ring-4 ring-white transition-transform active:scale-95"
+                  >
+                    <Plus className="h-7 w-7" strokeWidth={2.5} />
+                  </button>
+                </div>
+              );
+            }
             return (
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => navigate(tab.id)}
+                onClick={tab.onClick}
+                aria-current={tab.active ? 'page' : undefined}
                 className={`flex min-h-[48px] flex-col items-center justify-center gap-0.5 transition-colors ${
-                  active ? 'text-primary-ink' : 'text-ink-subtle'
+                  tab.active ? 'text-primary-ink' : 'text-ink-subtle'
                 }`}
               >
                 <span
                   className={`flex h-7 w-11 items-center justify-center rounded-full transition-colors ${
-                    active ? 'bg-secondary' : ''
+                    tab.active ? 'bg-secondary' : ''
                   }`}
                 >
                   <Icon className="h-5 w-5" />
                 </span>
-                <span className={`text-xs leading-tight ${active ? 'font-bold' : 'font-medium'}`}>
+                <span className={`text-xs leading-tight ${tab.active ? 'font-bold' : 'font-medium'}`}>
                   {tab.label}
                 </span>
               </button>
@@ -337,6 +416,19 @@ export function AppShell() {
           onClose={closeSheet}
         />
       )}
+      {activeSheet.type === 'quick_add' && <QuickAddSheet onClose={closeSheet} />}
+      {activeSheet.type === 'more' && <MoreSheet onClose={closeSheet} />}
+
+      <ConfirmDialog
+        open={discardPrompt}
+        title="লেখা তথ্য বাদ দেবেন?"
+        description="এই ফর্মে যা লিখেছেন তা সংরক্ষণ হয়নি। বন্ধ করলে মুছে যাবে।"
+        confirmLabel="হ্যাঁ, বন্ধ করুন"
+        cancelLabel="ফর্মে ফিরে যান"
+        onCancel={cancelDiscard}
+        onConfirm={forceCloseSheet}
+      />
+
       {activeSheet.type === 'transaction_detail' && (
         <TransactionDetailSheet
           key={`${activeSheet.sourceType}-${activeSheet.sourceId}`}

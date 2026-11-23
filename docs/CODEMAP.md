@@ -15,6 +15,11 @@ A compact map of the project for anyone (human or tool) starting work. Kept up t
 | `/manifest.webmanifest` | `app/manifest.ts` | The PWA manifest. `start_url /app`, `id /`. |
 | `/sw.js` | `public/sw.js` | Offline app shell. **Bump `VERSION` when any file in `/icons` or `/brand` changes.** |
 
+## Navigation (S2)
+- **Mobile bottom bar:** হোম · বাকি · [+] · লেনদেন · আরও. "+" opens the `quick_add` sheet and "আরও" opens the `more` sheet (`components/layout/NavSheets.tsx`). Titles and আরও items live in `components/layout/navigation.ts`.
+- **Back button:** `navigate`, `setSelectedPartyId` and `openSheet` push history entries; `popstate` in the context restores them. **Always write history through `pushEntry` / `replaceEntry`**, which keep Next's `__NA` key. Without it, Next reloads the page on back.
+- **Unsaved-input guard:** `ModalSheet` marks the sheet dirty on input. Use `closeSheet()` (asks first) or `forceCloseSheet()`. A successful action calls `refresh()`, which clears dirty.
+
 ## Data flow (the one rule)
 **UI → `useJomarkhata()` (`context/JomarkhataContext.tsx`) → `jomarkhataService` (`services/jomarkhataService.ts`) → Dexie (`db/jomarkhataDb.ts`).**
 - **UI never writes to Dexie directly.**

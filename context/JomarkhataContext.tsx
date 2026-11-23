@@ -1,6 +1,7 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { SheetGuardContext } from '@/lib/sheet-guard';
 import {
   jomarkhataService,
   type AppDataSnapshot,
@@ -43,6 +44,8 @@ export type ActiveSheet =
   | { type: 'product'; editProduct?: Product | null }
   | { type: 'stock_adjust'; product: Product }
   | { type: 'party'; defaultRole?: PartyRole; editParty?: Party | null }
+  | { type: 'quick_add' }
+  | { type: 'more' }
   | {
       type: 'transaction_detail';
       sourceType: 'sale' | 'purchase' | 'due_transaction' | 'expense';
@@ -61,7 +64,14 @@ interface JomarkhataContextValue {
   navigate: (route: AppRoute, options?: { partyId?: string | null }) => void;
   setSelectedPartyId: (partyId: string | null) => void;
   openSheet: (sheet: ActiveSheet) => void;
+  /** Close the open sheet; asks first when the form has unsaved input. */
   closeSheet: () => void;
+  /** Close without asking (used by the discard confirmation). */
+  forceCloseSheet: () => void;
+  discardPrompt: boolean;
+  cancelDiscard: () => void;
+  /** Go back one step (sheet, then party, then previous screen), like the Android back button. */
+  goBack: () => void;
   showToast: (text: string, type?: ToastMessage['type']) => void;
   dismissToast: (id: string) => void;
   refresh: () => Promise<void>;
@@ -130,6 +140,31 @@ interface JomarkhataContextValue {
 
 const JomarkhataContext = createContext<JomarkhataContextValue | null>(null);
 
+interface HistoryEntry {
+  jk?: boolean;
+  /** The first entry of the session: back from here leaves the app. */
+  root?: boolean;
+  route?: AppRoute;
+  partyId?: string | null;
+  sheet?: boolean;
+}
+
+/**
+ * Next.js's App Router reloads the page on popstate when an entry lacks its `__NA` marker, so
+ * every entry we write keeps Next's own keys (copied from the current entry).
+ */
+function withNextState(entry: HistoryEntry): HistoryEntry & Record<string, unknown> {
+  const cur = (window.history.state ?? {}) as Record<string, unknown>;
+  const keep: Record<string, unknown> = {};
+  for (const k of ['__NA', '__PRIVATE_NEXTJS_INTERNALS_TREE']) if (k in cur) keep[k] = cur[k];
+  return { ...keep, ...entry };
+}
+const pushEntry = (entry: HistoryEntry) => window.history.pushState(withNextState(entry), '');
+const replaceEntry = (entry: HistoryEntry) => window.history.replaceState(withNextState(entry), '');
+
+const currentEntry = (): HistoryEntry =>
+  (typeof window !== 'undefined' ? (window.history.state as HistoryEntry | null) : null) ?? {};
+
 const EMPTY_BALANCES: CurrentBalancesSummary = {
   channelBalances: { cash: 0, bkash: 0, nagad: 0, bank: 0 },
   cashInHand: 0,
@@ -148,9 +183,58 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeRoute, setActiveRoute] = useState<AppRoute>('dashboard');
-  const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
+  const [selectedPartyId, setSelectedPartyIdState] = useState<string | null>(null);
   const [activeSheet, setActiveSheet] = useState<ActiveSheet>({ type: 'none' });
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [discardPrompt, setDiscardPrompt] = useState(false);
+
+  // ---- S2: history / Android back integration ----
+  // Screens and sheets are React state, not URLs. Each screen change or opened sheet pushes one
+  // history entry (tagged `jk`), so the hardware back button closes the sheet, leaves the party,
+  // then returns to the previous screen.
+  const sheetDirtyRef = useRef(false);
+  const activeSheetRef = useRef<ActiveSheet>({ type: 'none' });
+  const screenRef = useRef<{ route: AppRoute; partyId: string | null }>({ route: 'dashboard', partyId: null });
+  useEffect(() => {
+    activeSheetRef.current = activeSheet;
+    screenRef.current = { route: activeRoute, partyId: selectedPartyId };
+  });
+
+  useEffect(() => {
+    // Wait one tick so Next.js has written its own history entry first, then tag it.
+    const tagRoot = window.setTimeout(
+      () => replaceEntry({ jk: true, root: true, route: 'dashboard', partyId: null, sheet: false }),
+      0
+    );
+    const onPop = (e: PopStateEvent) => {
+      const st = (e.state ?? {}) as HistoryEntry;
+      if (activeSheetRef.current.type !== 'none' && !st.sheet) {
+        if (sheetDirtyRef.current) {
+          // Keep the sheet: put its entry back and ask first.
+          pushEntry({ jk: true, ...screenRef.current, sheet: true });
+          setDiscardPrompt(true);
+          return;
+        }
+        activeSheetRef.current = { type: 'none' };
+        setActiveSheet({ type: 'none' });
+      }
+      if (st.jk) {
+        screenRef.current = { route: st.route ?? 'dashboard', partyId: st.partyId ?? null };
+        setActiveRoute(st.route ?? 'dashboard');
+        setSelectedPartyIdState(st.partyId ?? null);
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.clearTimeout(tagRoot);
+      window.removeEventListener('popstate', onPop);
+    };
+  }, []);
+
+  const markDirty = useCallback(() => {
+    if (activeSheetRef.current.type !== 'none') sheetDirtyRef.current = true;
+  }, []);
+  const sheetGuard = useMemo(() => ({ markDirty }), [markDirty]);
 
   const showToast = useCallback((text: string, type: ToastMessage['type'] = 'success') => {
     const id = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -169,6 +253,8 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
       const snap = await jomarkhataService.loadAllData();
       setData(snap);
       setError(null);
+      // Every successful action reloads data, so the open form's input has been saved.
+      sheetDirtyRef.current = false;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ডেটা লোড করতে সমস্যা হয়েছে।');
     }
@@ -197,19 +283,66 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   const navigate = useCallback((route: AppRoute, options?: { partyId?: string | null }) => {
+    const partyId = options && 'partyId' in options ? options.partyId ?? null : null;
+    const same = screenRef.current.route === route && screenRef.current.partyId === partyId;
+    const entry: HistoryEntry = { jk: true, route, partyId, sheet: false };
+    // Navigating from inside a sheet (e.g. the আরও menu) replaces the sheet's entry.
+    if (currentEntry().sheet) replaceEntry(entry);
+    else if (!same) pushEntry(entry);
+    sheetDirtyRef.current = false;
+    activeSheetRef.current = { type: 'none' };
+    screenRef.current = { route, partyId };
+    setActiveSheet({ type: 'none' });
     setActiveRoute(route);
-    if (options && 'partyId' in options) {
-      setSelectedPartyId(options.partyId ?? null);
-    } else if (route !== 'dues') {
-      setSelectedPartyId(null);
-    }
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    setSelectedPartyIdState(partyId);
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, []);
+
+  const setSelectedPartyId = useCallback((partyId: string | null) => {
+    if (partyId) {
+      pushEntry({ jk: true, route: screenRef.current.route, partyId, sheet: false });
+      screenRef.current = { ...screenRef.current, partyId };
+      setSelectedPartyIdState(partyId);
+    } else if (currentEntry().partyId) {
+      window.history.back(); // popstate restores the list
+    } else {
+      setSelectedPartyIdState(null);
     }
   }, []);
 
-  const openSheet = useCallback((sheet: ActiveSheet) => setActiveSheet(sheet), []);
-  const closeSheet = useCallback(() => setActiveSheet({ type: 'none' }), []);
+  const openSheet = useCallback((sheet: ActiveSheet) => {
+    if (activeSheetRef.current.type === 'none') {
+      pushEntry({ jk: true, ...screenRef.current, sheet: true });
+    }
+    sheetDirtyRef.current = false;
+    activeSheetRef.current = sheet;
+    setActiveSheet(sheet);
+  }, []);
+
+  const forceCloseSheet = useCallback(() => {
+    sheetDirtyRef.current = false;
+    setDiscardPrompt(false);
+    if (currentEntry().sheet) {
+      window.history.back(); // popstate closes it
+    } else {
+      activeSheetRef.current = { type: 'none' };
+      setActiveSheet({ type: 'none' });
+    }
+  }, []);
+
+  const closeSheet = useCallback(() => {
+    if (sheetDirtyRef.current) setDiscardPrompt(true);
+    else forceCloseSheet();
+  }, [forceCloseSheet]);
+
+  const cancelDiscard = useCallback(() => setDiscardPrompt(false), []);
+
+  const goBack = useCallback(() => {
+    const entry = currentEntry();
+    const atHome = screenRef.current.route === 'dashboard' && !screenRef.current.partyId;
+    if (entry.jk && !atHome && !entry.root) window.history.back();
+    else navigate('dashboard');
+  }, [navigate]);
 
   const currentBalances = useMemo(() => {
     if (!data) return EMPTY_BALANCES;
@@ -338,7 +471,7 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
       resetDemoData: async () => {
         const fresh = await jomarkhataService.resetDemoData();
         setData(fresh);
-        setSelectedPartyId(null);
+        setSelectedPartyIdState(null);
         setActiveRoute('dashboard');
         showToast('ডেমো ডেটা পুনরায় রিসেট করা হয়েছে।', 'info');
       },
@@ -363,12 +496,21 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
       setSelectedPartyId,
       openSheet,
       closeSheet,
+      forceCloseSheet,
+      discardPrompt,
+      cancelDiscard,
+      goBack,
       showToast,
       dismissToast,
       refresh,
       actions,
     }),
     [
+      forceCloseSheet,
+      discardPrompt,
+      cancelDiscard,
+      goBack,
+      setSelectedPartyId,
       data,
       isLoading,
       error,
@@ -387,7 +529,11 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
     ]
   );
 
-  return <JomarkhataContext.Provider value={value}>{children}</JomarkhataContext.Provider>;
+  return (
+    <JomarkhataContext.Provider value={value}>
+      <SheetGuardContext.Provider value={sheetGuard}>{children}</SheetGuardContext.Provider>
+    </JomarkhataContext.Provider>
+  );
 }
 
 export function useJomarkhata() {
