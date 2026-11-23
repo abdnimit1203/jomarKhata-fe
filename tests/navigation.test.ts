@@ -41,7 +41,9 @@ describe('top bar', () => {
 
   it('online/offline pill reflects connectivity and never claims cloud backup', () => {
     expect(read('hooks/use-online.ts')).toMatch(/navigator\.onLine/);
-    expect(shell).toMatch(/ক্লাউড এখনও চালু হয়নি/);
+    // Since S9 the pill opens the সিঙ্ক অবস্থা sheet, which carries the honest wording.
+    const sheet = read('components/layout/SyncStatusSheet.tsx');
+    expect(sheet).toMatch(/ক্লাউড ব্যাকআপ এখনও চালু হয়নি/);
     expect(shell).not.toMatch(/ক্লাউডে সংরক্ষিত/);
   });
 });

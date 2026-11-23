@@ -21,6 +21,7 @@ import { useOnline } from '@/hooks/use-online';
 import { formatBanglaNumber } from '@/lib/format';
 import { MORE_ROUTES, ROUTE_TITLES } from './navigation';
 import { MoreSheet, QuickAddSheet } from './NavSheets';
+import { SyncStatusSheet } from './SyncStatusSheet';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { DashboardSkeleton, ToastContainer } from '@/components/ui/StateBlocks';
 import { SaleFormSheet } from '@/components/sheets/SaleFormSheet';
@@ -105,11 +106,8 @@ export function AppShell() {
   const [setupOpen, setSetupOpen] = useState(false);
   const pending = data?.pendingSyncCount ?? 0;
   const isHome = activeRoute === 'dashboard';
-  const showConnectionInfo = () =>
-    showToast(
-      `সব হিসাব এই ফোনে সংরক্ষিত${pending > 0 ? ` · ${formatBanglaNumber(pending)}টি পরিবর্তন ক্লাউডে পাঠানো বাকি (ক্লাউড এখনও চালু হয়নি)` : ''}।`,
-      'info'
-    );
+  // The pill opens the সিঙ্ক অবস্থা sheet (S9). Wording stays honest: the cloud isn't on yet.
+  const showConnectionInfo = () => openSheet({ type: 'sync_status' });
 
   // S3 first run: welcome → shop setup (empty khata), or the D15 choice for an older build's data.
   if (!isLoading && !error && phase === 'welcome') {
@@ -443,6 +441,7 @@ export function AppShell() {
       )}
       {activeSheet.type === 'quick_add' && <QuickAddSheet onClose={closeSheet} />}
       {activeSheet.type === 'more' && <MoreSheet onClose={closeSheet} />}
+      {activeSheet.type === 'sync_status' && <SyncStatusSheet onClose={closeSheet} />}
 
       <ConfirmDialog
         open={discardPrompt}

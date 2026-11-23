@@ -28,6 +28,7 @@ import type {
   Product,
   PurchaseRecord,
   SaleRecord,
+  SyncQueueItem,
 } from '@/types/domain';
 
 export interface ToastMessage {
@@ -52,6 +53,7 @@ export type ActiveSheet =
   | { type: 'stock_adjust'; product: Product }
   | { type: 'party'; defaultRole?: PartyRole; editParty?: Party | null }
   | { type: 'quick_add' }
+  | { type: 'sync_status' }
   | { type: 'more' }
   | {
       type: 'transaction_detail';
@@ -153,6 +155,8 @@ interface JomarkhataContextValue {
     restoreBackup: (text: string, password?: string) => Promise<void>;
     clearKhata: () => Promise<void>;
     getLastBackupAt: () => Promise<string | null>;
+    getSyncStatus: () => Promise<{ counts: Record<string, number>; items: SyncQueueItem[] }>;
+    getRecordSyncState: (entityId: string) => Promise<'local' | 'synced' | 'needs_review'>;
     getSafetyCopy: () => Promise<{ reason: string; createdAt: string; json: string } | null>;
     createShop: (input: NewShopInput) => Promise<void>;
     keepLegacyAsMine: () => Promise<void>;
@@ -561,6 +565,8 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
         showToast('খাতা খালি করা হয়েছে। আগের হিসাবের একটি কপি এই ফোনে রাখা আছে।', 'info');
       },
       getLastBackupAt: () => jomarkhataService.getLastBackupAt(),
+      getSyncStatus: () => jomarkhataService.getSyncStatus(),
+      getRecordSyncState: (entityId: string) => jomarkhataService.getRecordSyncState(entityId),
       getSafetyCopy: () => jomarkhataService.getSafetyCopy(),
     }),
     [refresh, showToast, applyStartup]

@@ -15,7 +15,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 | S6 | Sales, purchases, expenses | ✅ Done: date on all forms, discount on paid sales, typed qty/price, over-stock warning |
 | S7 | Corrections & history | ✅ Done: before → after history, optional edit reason (AP-6), plain wording, void error toast, return to detail after edit |
 | S8 | Backup, restore & data safety | ✅ Done: backup v2 (checksum, optional password), validated atomic restore with safety copy, v1 compatible, guarded clear, reminder, storage.persist, friendly quota errors (AP-10/11) |
-| S9 | Sync queue & connection status | ⏸ |
+| S9 | Sync queue & connection status | ✅ Done: outbox v2 (Dexie v3, in-place upgrade), linked void ops, sync engine + runner behind a transport (fake only), সিঙ্ক অবস্থা sheet, per-record badge (AP-4) |
 | S10 | Account interfaces & access policy | ⏸ |
 | S11 | ~~Optional PIN lock~~ | ❌ Removed by owner decision |
 | S12 | Android PWA | 🟡 **Core done early** (manifest, offline service worker, verified offline in a browser). Pending: install-prompt UI, update prompt, real-phone test on Vercel Preview |
@@ -30,7 +30,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 ## Quality gates
 | Check | Command | S0 | S1 |
 |---|---|---|---|
-| Tests | `npm test` | 49 / 49 | **183 / 183** (16 files) |
+| Tests | `npm test` | 49 / 49 | **194 / 194** (18 files) |
 | TypeScript | `npm run typecheck` | 0 errors | **0 errors** |
 | Production build | `npm run build` | — | **✓ compiled, 3/3 static pages** |
 | Mobile render check (360px, Edge via puppeteer) | manual | — | Welcome and Dashboard render with **0px horizontal overflow** |

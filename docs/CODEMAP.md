@@ -22,12 +22,18 @@ A compact map of the project for anyone (human or tool) starting work. Kept up t
 
 ## Startup & databases (S3)
 - **Two IndexedDB databases:** `jomarkhata_db` (the real khata, plus `appMeta`) and `jomarkhata_demo` (demo only). `db/jomarkhataDb.ts` provides `getJomarkhataDb()`, which returns the active one, plus `getRealDb()`, `getDemoDb()` and `setActiveDbMode()`.
-- **Schema is v2** (v1 tables + `appMeta`). Locked by tests.
+- **Schema is v3** (v1 tables + `appMeta` + outbox indexes). Locked by tests.
 - **`jomarkhataService.bootstrap()` is read-only** and returns a phase:
   - `welcome` (no shop) → `WelcomeScreen` → `ShopSetupScreen` → `createShop`
   - `legacy_choice` (an older build's data, no `workspace` meta) → `LegacyChoiceScreen` → `keepLegacyAsMine` or `moveLegacyToDemo`
   - `ready`
 - **Demo:** `enterDemo` / `exitDemo`; `resetDemoData` works only in demo mode.
+
+## Sync (S9)
+- **Every mutation appends an outbox item** (`syncQueue`, v2 fields: `opId`, `status`, `retryCount`, `lastError`, `baseRevision`, `tenantId`). Voids also queue their linked rows.
+- **`lib/sync/engine.ts`** runs a `SyncTransport`. It marks an item synced only on ack, never deletes, and sets conflicts to `needs_review`.
+- **`lib/sync/runner.ts`** decides when to run (triggers plus a lock). `getSyncTransport()` returns `null` today, so nothing is ever sent.
+- **Backend phase:** implement an HTTP `SyncTransport` (POST the batch; respond per `opId`; treat a repeated `opId` as a no-op) and start the runner after login.
 
 ## Data flow (the one rule)
 **UI → `useJomarkhata()` (`context/JomarkhataContext.tsx`) → `jomarkhataService` (`services/jomarkhataService.ts`) → Dexie (`db/jomarkhataDb.ts`).**

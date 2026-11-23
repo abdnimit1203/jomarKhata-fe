@@ -22,7 +22,7 @@ describe('backup file v2', () => {
   it('has metadata, counts and a checksum that matches the data', async () => {
     const { file, before } = await shopWithBackup();
     const b = JSON.parse(file);
-    expect(b).toMatchObject({ format: 'jomarkhata-backup', formatVersion: 2, dbVersion: 2, shopName: 'টেস্ট স্টোর' });
+    expect(b).toMatchObject({ format: 'jomarkhata-backup', formatVersion: 2, dbVersion: 3, shopName: 'টেস্ট স্টোর' });
     expect(b.counts.sales).toBe(before.sales.length);
     expect(b.counts.syncQueue).toBe(before.syncQueue.length);
     expect(await sha256Hex(JSON.stringify(b.data))).toBe(b.checksum);

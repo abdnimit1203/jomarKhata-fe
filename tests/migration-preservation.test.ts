@@ -45,23 +45,28 @@ const BUSINESS_TABLES = [
 
 /** v2 (S3, AP-3): v1 plus the `appMeta` table. Every v1 table and index is unchanged. */
 const V2_SCHEMA: Record<string, string> = { ...V1_SCHEMA, appMeta: 'key' };
+/** v3 (S9, AP-4): outbox v2 adds two syncQueue indexes (status, opId). Nothing removed. */
+const V3_SCHEMA: Record<string, string> = {
+  ...V2_SCHEMA,
+  syncQueue: 'id, entityType, entityId, operation, syncStatus, queuedAt, status, opId',
+};
 
 describe('schema lock (any change must be a deliberate, additive migration)', () => {
-  it('database name is unchanged; version is 2 (AP-3)', async () => {
+  it('database name is unchanged; version is 3 (AP-3 appMeta, AP-4 outbox v2)', async () => {
     const app = await bootApp();
     expect(app.dbModule.JOMARKHATA_DB_NAME).toBe('jomarkhata_db');
-    expect(app.dbModule.JOMARKHATA_DB_VERSION).toBe(2);
+    expect(app.dbModule.JOMARKHATA_DB_VERSION).toBe(3);
     await app.db.open();
-    expect(app.db.verno).toBe(2);
+    expect(app.db.verno).toBe(3);
   });
 
-  it('tables, primary keys and indexes = v1 schema + appMeta (nothing removed or re-indexed)', async () => {
+  it('tables, primary keys and indexes = v1 schema + appMeta + outbox indexes (nothing removed)', async () => {
     const app = await bootApp();
     await app.db.open();
     const actual = Object.fromEntries(
       app.db.tables.map((t) => [t.name, [t.schema.primKey.src, ...t.schema.indexes.map((i) => i.src)].join(', ')])
     );
-    expect(actual).toEqual(V2_SCHEMA);
+    expect(actual).toEqual(V3_SCHEMA);
   });
 });
 
@@ -129,13 +134,14 @@ describe('existing installs: data written by an older build of the app', () => {
 
     // 2. The current app opens the same storage.
     const app = await bootApp(factory);
-    const start = await app.service.bootstrap(); // upgrades v1 -> v2 on open
-    expect(app.db.verno).toBe(2);
+    const start = await app.service.bootstrap(); // upgrades v1 -> v3 on open
+    expect(app.db.verno).toBe(3);
     expect(start.phase).toBe('legacy_choice'); // D15: the owner decides; nothing changed yet
     expect(start.snapshot?.businessProfile.shopName).toBe('পুরোনো দোকান');
     for (const t of app.db.tables) {
       const rows = await t.toArray();
       if (t.name === 'appMeta') expect(rows).toEqual([]);
+      else if (t.name === 'syncQueue') rows.forEach((r, i) => expect(r).toMatchObject(legacyDump.syncQueue[i] as object));
       else expect(rows, t.name).toEqual(legacyDump[t.name]);
     }
 
@@ -167,41 +173,35 @@ describe('first run after S3 (AP-1/AP-2): no auto-seed; demo is a separate datab
   });
 });
 
-describe('future additive migration pattern (harness for AP-4 as v3; the app schema itself is NOT changed)', () => {
-  it('opening v2 data with a v3 schema that adds outbox fields preserves every existing record', async () => {
-    const app = await bootEmptyShop();
-    await buildRealisticShop(app);
-    const before = await dumpAllTables(app);
-    const factory = app.factory;
-    closeApp(app);
+describe('outbox v2 upgrade (AP-4, shipped as Dexie v3)', () => {
+  it('a v2 database written by the previous build upgrades in place: every record kept, outbox items gain v2 fields', async () => {
+    const factory = new IDBFactory();
+    // 1. The previous build (v2) wrote a shop with outbox items that have no v2 fields.
+    const old = new Dexie('jomarkhata_db', { indexedDB: factory, IDBKeyRange });
+    old.version(1).stores(V1_SCHEMA);
+    old.version(2).stores({ appMeta: 'key' });
+    await old.open();
+    const now = new Date().toISOString();
+    await old.table('businessProfile').put({ id: 'default', shopName: 'পুরোনো', ownerName: '', phone: '', address: '', businessType: '', openingBalances: { cash: 0, bkash: 0, nagad: 0, bank: 0 }, defaultLowStockThreshold: 5, createdAt: now, updatedAt: now });
+    await old.table('syncQueue').bulkPut([
+      { id: 'q1', entityType: 'party', entityId: 'p1', operation: 'upsert', payload: JSON.stringify({ id: 'p1', revision: 3 }), queuedAt: now, syncStatus: 'pending' },
+      { id: 'q2', entityType: 'sale', entityId: 's1', operation: 'void', payload: '{}', queuedAt: now, syncStatus: 'pending' },
+    ]);
+    const before = await old.table('syncQueue').toArray();
+    old.close();
 
-    // Test-only candidate v2 — mirrors the planned AP-3 (appMeta table) and AP-4 (outbox status/retry fields).
-    const v2 = new Dexie('jomarkhata_db', { indexedDB: factory, IDBKeyRange });
-    v2.version(1).stores(V1_SCHEMA);
-    v2.version(2).stores({ appMeta: 'key' }); // the shipped v2 (S3)
-    v2.version(3)
-      .stores({ syncQueue: 'id, entityType, entityId, operation, syncStatus, queuedAt, status' })
-      .upgrade(async (tx) => {
-        await tx.table('syncQueue').toCollection().modify((item: Record<string, unknown>) => {
-          item.status = 'pending';
-          item.retryCount = 0;
-          item.lastError = null;
-        });
-      });
-    await v2.open();
-    expect(v2.verno).toBe(3);
-
-    for (const t of BUSINESS_TABLES) {
-      expect(await v2.table(t).toArray(), t).toEqual(before[t]);
-    }
-    const queue = (await v2.table('syncQueue').toArray()).sort((a, b) => a.id.localeCompare(b.id));
-    expect(queue).toHaveLength(before.syncQueue.length);
-    queue.forEach((item, i) => {
-      expect(item).toMatchObject(before.syncQueue[i] as object); // all original fields kept
-      expect(item).toMatchObject({ status: 'pending', retryCount: 0 });
+    // 2. The current app opens it.
+    const app = await bootApp(factory);
+    await app.db.open();
+    expect(app.db.verno).toBe(3);
+    const items = (await app.db.syncQueue.toArray()).sort((x, y) => x.id.localeCompare(y.id));
+    expect(items).toHaveLength(2);
+    items.forEach((item, i) => {
+      expect(item).toMatchObject(before[i] as object); // all original fields kept
+      expect(item).toMatchObject({ status: 'pending', retryCount: 0, opId: item.id, tenantId: null, lastError: null });
     });
-    expect(await v2.table('appMeta').count()).toBe(0);
-    v2.close();
+    expect(items[0].baseRevision).toBe(3); // taken from the payload
+    expect((await app.service.loadAllData()).pendingSyncCount).toBe(2);
   });
 });
 
@@ -220,7 +220,7 @@ describe('backup export (v2 since S8)', () => {
   });
 });
 
-describe('sync outbox behaviour today (input for S9 / AP-4)', () => {
+describe('sync outbox behaviour (S9 / AP-4)', () => {
   it('normal operations only ever append to the outbox; nothing is removed', async () => {
     const app = await bootEmptyShop();
     let last = 0;
@@ -237,13 +237,22 @@ describe('sync outbox behaviour today (input for S9 / AP-4)', () => {
     expect(items.every((i) => i.syncStatus === 'pending')).toBe(true);
   });
 
-  it('KNOWN GAP (AP-4): voiding a sale queues only the sale; its linked money movement / due changes have no own outbox op', async () => {
+  it('AP-4 fixed: voiding a sale also queues its linked money movement, due, party and stock reversal', async () => {
     const app = await bootEmptyShop();
     const { sale } = await buildRealisticShop(app);
     await app.service.voidSale(sale.id, 'test');
     const ops = await app.db.syncQueue.toArray();
     expect(ops.filter((o) => o.entityId === sale.id && o.operation === 'void')).toHaveLength(1);
-    const mmOps = ops.filter((o) => o.entityId === sale.moneyMovementId);
-    expect(mmOps.map((o) => o.operation)).toEqual(['upsert']); // only the original create; the void is not queued
+    if (sale.moneyMovementId) {
+      expect(ops.filter((o) => o.entityId === sale.moneyMovementId).map((o) => o.operation).sort()).toEqual(['upsert', 'void']);
+    }
+    if (sale.dueTransactionId) {
+      expect(ops.some((o) => o.entityId === sale.dueTransactionId && o.operation === 'void')).toBe(true);
+    }
+    const reversals = (await app.db.stockMovements.where('sourceId').equals(sale.id).toArray()).filter((m) => m.reason === 'void_reversal');
+    for (const r of reversals) expect(ops.some((o) => o.entityId === r.id && o.entityType === 'stock_movement')).toBe(true);
+    // every op carries the v2 fields and a unique idempotency key
+    expect(new Set(ops.map((o) => o.opId)).size).toBe(ops.length);
+    expect(ops.every((o) => o.status === 'pending' && o.retryCount === 0)).toBe(true);
   });
 });

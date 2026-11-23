@@ -3,6 +3,7 @@ import {
   getDemoDb,
   getJomarkhataDb,
   getRealDb,
+  normalizeOutboxItem,
   setActiveDbMode,
   type JomarkhataDB,
 } from '@/db/jomarkhataDb';
@@ -179,15 +180,63 @@ async function enqueueSyncMutation(
   operation: 'upsert' | 'void',
   payload: unknown
 ): Promise<void> {
+  const id = generateId();
+  const rev = (payload as { revision?: unknown } | null)?.revision;
   await db.syncQueue.add({
-    id: generateId(),
+    id,
     entityType,
     entityId,
     operation,
     payload: JSON.stringify(payload),
     queuedAt: new Date().toISOString(),
     syncStatus: 'pending',
+    opId: id,
+    tenantId: null,
+    baseRevision: typeof rev === 'number' ? rev : null,
+    status: 'pending',
+    retryCount: 0,
+    lastAttemptAt: null,
+    lastError: null,
   });
+}
+
+/**
+ * AP-4: a void also changes linked rows (money movement, due, stock reversal, product, party).
+ * Each of those gets its own outbox op, so the server can replay the void exactly.
+ */
+async function queueLinkedVoidChanges(
+  db: JomarkhataDB,
+  link: {
+    moneyMovementId?: string | null;
+    dueTransactionId?: string | null;
+    partyId?: string | null;
+    sourceId: string;
+    at: string;
+    /** Only sales/purchases reverse stock (and their transactions include the stock tables). */
+    stock?: boolean;
+  }
+): Promise<void> {
+  if (link.moneyMovementId) {
+    const mm = await db.moneyMovements.get(link.moneyMovementId);
+    if (mm) await enqueueSyncMutation(db, 'money_movement', mm.id, 'void', mm);
+  }
+  if (link.dueTransactionId) {
+    const due = await db.dueTransactions.get(link.dueTransactionId);
+    if (due) await enqueueSyncMutation(db, 'due_transaction', due.id, 'void', due);
+  }
+  if (link.partyId) {
+    const party = await db.parties.get(link.partyId);
+    if (party) await enqueueSyncMutation(db, 'party', party.id, 'upsert', party);
+  }
+  if (!link.stock) return;
+  const reversals = (await db.stockMovements.where('sourceId').equals(link.sourceId).toArray()).filter(
+    (m) => m.reason === 'void_reversal' && m.createdAt === link.at
+  );
+  for (const sm of reversals) {
+    await enqueueSyncMutation(db, 'stock_movement', sm.id, 'upsert', sm);
+    const prod = await db.products.get(sm.productId);
+    if (prod) await enqueueSyncMutation(db, 'product', prod.id, 'upsert', prod);
+  }
 }
 
 /**
@@ -446,7 +495,7 @@ export const jomarkhataService = {
       db.expenses.orderBy('date').reverse().toArray(),
       db.stockMovements.orderBy('date').reverse().toArray(),
       db.auditLogs.orderBy('timestamp').reverse().toArray(),
-      db.syncQueue.where('syncStatus').equals('pending').count(),
+      db.syncQueue.where('status').noneOf(['synced']).count(),
     ]);
 
     if (!businessProfile) {
@@ -488,6 +537,27 @@ export const jomarkhataService = {
     return file;
   },
 
+  /** Outbox overview for the সিঙ্ক অবস্থা screen (read-only). */
+  async getSyncStatus(): Promise<{ counts: Record<string, number>; items: SyncQueueItem[] }> {
+    const db = getJomarkhataDb();
+    const all = await db.syncQueue.toArray();
+    const counts: Record<string, number> = { pending: 0, syncing: 0, synced: 0, failed: 0, needs_review: 0 };
+    for (const i of all) counts[i.status ?? 'pending'] = (counts[i.status ?? 'pending'] ?? 0) + 1;
+    const items = all
+      .filter((i) => i.status !== 'synced')
+      .sort((a, b) => b.queuedAt.localeCompare(a.queuedAt))
+      .slice(0, 50);
+    return { counts, items };
+  },
+
+  /** Cloud state of one record: today always "local" (no backend), later synced / needs review. */
+  async getRecordSyncState(entityId: string): Promise<'local' | 'synced' | 'needs_review'> {
+    const ops = await getJomarkhataDb().syncQueue.where('entityId').equals(entityId).toArray();
+    if (ops.some((o) => o.status === 'needs_review')) return 'needs_review';
+    if (ops.length > 0 && ops.every((o) => o.status === 'synced')) return 'synced';
+    return 'local';
+  },
+
   async getLastBackupAt(): Promise<string | null> {
     return (await getMeta<string>(getRealDb(), 'lastBackupAt')) ?? null;
   },
@@ -523,7 +593,10 @@ export const jomarkhataService = {
     await db.transaction('rw', [...shopTables(db), db.appMeta], async () => {
       for (const t of shopTables(db)) await t.clear();
       await db.businessProfile.put(data.businessProfile as unknown as BusinessProfile);
-      for (const t of BACKUP_TABLES) await db.table(t).bulkPut(data[t] as unknown[]);
+      for (const t of BACKUP_TABLES) {
+        const rows = data[t] as Array<Record<string, unknown>>;
+        await db.table(t).bulkPut(t === 'syncQueue' ? rows.map((r) => ({ ...r, ...normalizeOutboxItem(r) })) : rows);
+      }
       if (!(await getMeta(db, 'workspace'))) {
         const workspace: WorkspaceMeta = { workspaceId: generateId(), createdAt: new Date().toISOString(), origin: 'setup' };
         await setMeta(db, 'workspace', workspace);
@@ -1349,6 +1422,7 @@ export const jomarkhataService = {
           afterSnapshot: voided,
           reason: cleanReason,
         });
+        await queueLinkedVoidChanges(db, { moneyMovementId: existing.moneyMovementId, dueTransactionId: existing.dueTransactionId, partyId: existing.partyId, sourceId: saleId, at: now, stock: true });
         await enqueueSyncMutation(db, 'sale', saleId, 'void', voided);
       }
     );
@@ -1798,6 +1872,7 @@ export const jomarkhataService = {
           afterSnapshot: voided,
           reason: cleanReason,
         });
+        await queueLinkedVoidChanges(db, { moneyMovementId: existing.moneyMovementId, dueTransactionId: existing.dueTransactionId, partyId: existing.partyId, sourceId: purchaseId, at: now, stock: true });
         await enqueueSyncMutation(db, 'purchase', purchaseId, 'void', voided);
       }
     );
@@ -2030,6 +2105,7 @@ export const jomarkhataService = {
           afterSnapshot: voided,
           reason: cleanReason,
         });
+        await queueLinkedVoidChanges(db, { moneyMovementId: existing.moneyMovementId, partyId: existing.partyId, sourceId: dueId, at: now });
         await enqueueSyncMutation(db, 'due_transaction', dueId, 'void', voided);
       }
     );
@@ -2180,6 +2256,7 @@ export const jomarkhataService = {
         afterSnapshot: voided,
         reason: cleanReason,
       });
+      await queueLinkedVoidChanges(db, { moneyMovementId: existing.moneyMovementId, sourceId: expenseId, at: now });
       await enqueueSyncMutation(db, 'expense', expenseId, 'void', voided);
     });
   },

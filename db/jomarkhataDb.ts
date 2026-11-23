@@ -18,7 +18,7 @@ import type {
 export const JOMARKHATA_DB_NAME = 'jomarkhata_db';
 /** Demo data lives in its own database (AP-2), so it can never mix with or upload as real data. */
 export const JOMARKHATA_DEMO_DB_NAME = 'jomarkhata_demo';
-export const JOMARKHATA_DB_VERSION = 2;
+export const JOMARKHATA_DB_VERSION = 3;
 
 /**
  * Versioned Dexie + IndexedDB Database for জমারখাতা (Jomarkhata).
@@ -61,7 +61,39 @@ export class JomarkhataDB extends Dexie {
     // v2 (AP-3, additive): app metadata only. Every v1 table and index is unchanged.
     // Rule: future versions are additive too, `version(n).stores({...}).upgrade(...)`, never dropping data.
     this.version(2).stores({ appMeta: 'key' });
+
+    // v3 (AP-4, additive): outbox v2. Two new indexes; every existing item is upgraded in place
+    // (never dropped). Old items keep all their fields and gain status/opId/retry fields.
+    this.version(3)
+      .stores({ syncQueue: 'id, entityType, entityId, operation, syncStatus, queuedAt, status, opId' })
+      .upgrade(async (tx) => {
+        await tx
+          .table('syncQueue')
+          .toCollection()
+          .modify((item: Record<string, unknown>) => Object.assign(item, normalizeOutboxItem(item)));
+      });
   }
+}
+
+/** Fill outbox v2 fields on an older item (used by the v3 upgrade and by backup restore). */
+export function normalizeOutboxItem(item: Record<string, unknown>): Partial<SyncQueueItem> {
+  let baseRevision: number | null = null;
+  try {
+    const rev = (JSON.parse(String(item.payload ?? 'null')) as { revision?: unknown } | null)?.revision;
+    baseRevision = typeof rev === 'number' ? rev : null;
+  } catch {
+    baseRevision = null;
+  }
+  return {
+    opId: typeof item.opId === 'string' ? item.opId : String(item.id),
+    tenantId: (item.tenantId as string | null | undefined) ?? null,
+    baseRevision: (item.baseRevision as number | null | undefined) ?? baseRevision,
+    status: (item.status as SyncQueueItem['status'] | undefined) ?? 'pending',
+    retryCount: typeof item.retryCount === 'number' ? item.retryCount : 0,
+    lastAttemptAt: (item.lastAttemptAt as string | null | undefined) ?? null,
+    lastError: (item.lastError as string | null | undefined) ?? null,
+    syncStatus: 'pending',
+  };
 }
 
 let realDb: JomarkhataDB | null = null;

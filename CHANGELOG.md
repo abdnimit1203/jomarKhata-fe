@@ -4,6 +4,33 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### S9: outbox v2, sync engine (fake transport only), সিঙ্ক অবস্থা, 2026-11-23
+AP-4 approved under D32.
+
+**Added / changed**
+- **Dexie v3 (additive):** two new `syncQueue` indexes (`status`, `opId`).
+  - **Every existing outbox item is upgraded in place, never dropped.** Each item gets `opId` (idempotency key), `tenantId`, `baseRevision` (from the payload), `status`, `retryCount`, `lastAttemptAt` and `lastError`; all original fields are kept.
+  - Restoring an older backup normalises its outbox the same way.
+- **AP-4 gap fixed:** a void now also queues its linked changes (money movement void, due void, party, stock reversal, product), so a future server can replay it exactly.
+- **Sync engine** (`lib/sync/engine.ts`), behind a `SyncTransport` interface:
+  - **synced only when the server acknowledges it**
+  - unacknowledged or failed items get `lastError` and are retried with exponential backoff and jitter
+  - a conflict marks the item `needs_review`
+  - items stuck in "syncing" after an app kill are recovered
+  - **nothing is ever deleted**
+- **Runner** (`lib/sync/runner.ts`): triggers on start, `online`, the tab becoming visible, and an interval; single-tab via the Web Locks API.
+  - **`getSyncTransport()` returns null: there's no backend, so the app never starts it and nothing is sent.**
+- **সিঙ্ক অবস্থা sheet**, opened from the online/offline pill:
+  - "সব হিসাব এই ফোনে সংরক্ষিত" and "ক্লাউড ব্যাকআপ এখনও চালু হয়নি"
+  - counts (pending / failed / needs review) and recent changes
+- **Per-record badge** on every transaction detail: honestly **"ফোনে সংরক্ষিত"** until a server acknowledges it.
+- The pending count now counts every non-synced status.
+- Tests:
+  - `tests/sync.test.ts` (11), using a fake server that is idempotent by opId: happy path, timeout + backoff retry, **lost acks → resent but applied exactly once**, conflict → needs_review, crash recovery, batch size, offline queueing, backoff curve, no transport in the app, honest wording
+  - migration tests: real v2→v3 upgrade (fields kept, defaults added, baseRevision taken from the payload), schema lock v3, the AP-4 void test now asserts the fix
+
+**Verified e2e:** IndexedDB is v3 in the browser; the pill opens the sync sheet; the record badge shows ফোনে সংরক্ষিত; a legacy v1 database still upgrades and shows the choice screen.
+
 ### S8: backup, restore & data safety, 2026-11-23
 Approved under D32: AP-10 and AP-11.
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Ban, Clock, Edit3, ShieldCheck } from 'lucide-react';
 import { ModalSheet } from '@/components/ui/ModalSheet';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -30,6 +30,11 @@ export function TransactionDetailSheet({
   const self = { type: 'transaction_detail' as const, sourceType, sourceId };
   const [confirmVoidOpen, setConfirmVoidOpen] = useState(false);
   const [isVoiding, setIsVoiding] = useState(false);
+  // Per-record cloud state (S9, plan 7.7). Until the backend exists this is always "local".
+  const [syncState, setSyncState] = useState<'local' | 'synced' | 'needs_review'>('local');
+  useEffect(() => {
+    void actions.getRecordSyncState(sourceId).then(setSyncState);
+  }, [actions, sourceId, data]);
 
   const record = useMemo(() => {
     if (!data) return null;
@@ -143,6 +148,17 @@ export function TransactionDetailSheet({
         }
       >
         <div className="space-y-4">
+          <p
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
+              syncState === 'needs_review'
+                ? 'bg-warning-soft text-warning-ink'
+                : syncState === 'synced'
+                  ? 'bg-tile-sky-bg text-tile-sky-fg'
+                  : 'bg-tile-green-bg text-tile-green-fg'
+            }`}
+          >
+            {syncState === 'needs_review' ? 'যাচাই দরকার' : syncState === 'synced' ? 'ক্লাউডে সংরক্ষিত' : 'ফোনে সংরক্ষিত'}
+          </p>
           {isVoided && (
             <div className="rounded-2xl bg-danger-soft p-3.5 text-sm text-danger">
               <p className="font-semibold">এই লেনদেনটি বাতিল (Voided) করা হয়েছে</p>
