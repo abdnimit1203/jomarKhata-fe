@@ -14,7 +14,7 @@ const QUICK_ACTIONS: Array<{ label: string; hint: string; icon: AppIconName; ton
   { label: 'বিক্রি', hint: 'নতুন বিক্রি লিখুন', icon: 'sale', tone: 'green', sheet: { type: 'sale' } },
   { label: 'কেনা', hint: 'মাল কেনা', icon: 'purchase', tone: 'blue', sheet: { type: 'purchase' } },
   {
-    label: 'টাকা আদায়',
+    label: 'বাকি আদায়',
     hint: 'পাওনা টাকা পেলাম',
     icon: 'due-collect',
     tone: 'orange',

@@ -54,7 +54,7 @@ const DESKTOP_NAV: Array<{ id: AppRoute; label: string; icon: React.ComponentTyp
   { id: 'dashboard', label: 'হোম (ড্যাশবোর্ড)', icon: Home },
   { id: 'sales', label: 'বিক্রির হিসাব', icon: ShoppingBag },
   { id: 'purchases', label: 'কেনার হিসাব', icon: ShoppingCart },
-  { id: 'dues', label: 'পাওনা-দেনা', icon: BookOpen },
+  { id: 'dues', label: 'বাকি', icon: BookOpen },
   { id: 'ledger', label: 'সব লেনদেন (লেজার)', icon: BookText },
   { id: 'cash', label: 'দৈনিক ক্যাশ ও খরচ', icon: Wallet },
   { id: 'stock', label: 'স্টকের হিসাব', icon: Package },
@@ -94,7 +94,7 @@ function ConnectionDot() {
       {show && (
         <span
           role="status"
-          className="absolute top-full right-0 z-50 mt-1 rounded-xl bg-ink px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap text-white shadow-hero"
+          className="absolute top-1/2 right-full z-[100] mr-1 -translate-y-1/2 rounded-xl bg-ink px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap text-white shadow-hero"
         >
           {label}
         </span>
@@ -362,7 +362,7 @@ export function AppShell() {
         <div className="grid h-16 grid-cols-5 items-center pb-safe">
           {([
             { id: 'dashboard', label: 'হোম', icon: Home, active: activeRoute === 'dashboard', onClick: () => navigate('dashboard') },
-            { id: 'dues', label: 'পাওনা-দেনা', icon: BookOpen, active: activeRoute === 'dues', onClick: () => navigate('dues') },
+            { id: 'dues', label: 'বাকি', icon: BookOpen, active: activeRoute === 'dues', onClick: () => navigate('dues') },
             { id: 'add', label: 'নতুন', icon: Plus, active: false, onClick: () => openSheet({ type: 'quick_add' }) },
             { id: 'ledger', label: 'লেনদেন', icon: BookText, active: activeRoute === 'ledger', onClick: () => navigate('ledger') },
             {

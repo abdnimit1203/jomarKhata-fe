@@ -209,9 +209,8 @@ export function LedgerView() {
 
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
-                        <p className="mt-0.5 truncate text-xs text-ink-muted">
-                          {item.subtitle} · {formatBanglaTime(item.date)}
-                        </p>
+                        <p className="mt-0.5 truncate text-xs text-ink-muted">{item.subtitle}</p>
+                        <p className="text-xs leading-4 text-ink-subtle">{formatBanglaTime(item.date)}</p>
                       </div>
 
                       <div className="shrink-0 text-right">
