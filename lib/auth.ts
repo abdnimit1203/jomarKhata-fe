@@ -10,6 +10,15 @@ export interface AuthUser {
   email: string;
   displayName: string;
   phone?: string;
+  /** Unique, server-generated code this user shares with others (see lib/referral.ts). */
+  referralCode: string;
+  /** Server-reported referral results; the app never calculates commission itself. */
+  referralStats?: { referredUsers: number; commissionEarned: number; commissionRate?: number };
+}
+
+/** Sign-up extras. The referral code is optional and only used when a NEW account is created. */
+export interface SignUpOptions {
+  referralCode?: string;
 }
 
 export type AuthState = { status: 'local' } | { status: 'authenticated'; user: AuthUser };
@@ -23,9 +32,9 @@ export class AuthUnavailableError extends Error {
 
 export interface AuthProvider {
   readonly available: boolean;
-  signInWithGoogle(): Promise<AuthState>;
+  signInWithGoogle(options?: SignUpOptions): Promise<AuthState>;
   sendOtp(phone: string): Promise<{ requestId: string }>;
-  verifyOtp(requestId: string, code: string): Promise<AuthState>;
+  verifyOtp(requestId: string, code: string, options?: SignUpOptions): Promise<AuthState>;
   signOut(): Promise<void>;
 }
 

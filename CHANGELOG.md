@@ -4,6 +4,29 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### Profile: user ID + referral code (UI-NOW / BE-LATER), 2026-11-23
+- **Profile (settings) → "অ্যাকাউন্ট ও রেফারেল"** (`components/settings/AccountSection.tsx`):
+  - the user ID and the user's own referral code, **each with a copy button**
+  - the number of users who joined with the code and the total commission (from the server)
+  - a **WhatsApp share** button with a ready message and link
+  - **Before login exists, it explains and shows no ID or code.** Nothing is made up.
+- **Sign-up: optional "রেফারেল কোড" field** (`AuthScreen`):
+  - it's sent with Google and with OTP sign-up
+  - an empty field never blocks sign-up; a mistyped one asks to fix or clear it
+  - a shared link `/app?ref=CODE` pre-fills it
+- **`lib/referral.ts`:**
+  - code normalisation (case, spaces, Bengali digits)
+  - link and share text
+  - `REFERRAL_COMMISSION_RATE = 0.2`; the server's `commissionRate` wins when sent
+- **`lib/auth.ts`:** `AuthUser.referralCode`, `referralStats`, and `SignUpOptions { referralCode }` on `signInWithGoogle` / `verifyOtp`.
+- **`docs/BACKEND_CONTRACT.md` §8, Referral** (all server-side):
+  - unique codes; accepted only when a new account is created; no self-referral
+  - `referredBy` set once
+  - a 20% commission ledger on every subscription payment, reversed on refund
+  - the rate is super-admin configuration; `GET /me` returns the stats
+- **Dev `/preview`** shows the section with sample values. Production returns 404 there.
+- `tests/referral.test.ts` (8).
+
 ### Month + year on every date-filtered list, 2026-11-23
 - **New `components/ui/PeriodFilter.tsx`:** one shared filter (`usePeriodFilter` + `<PeriodFilter>`) with আজ · সপ্তাহ · মাস · **অন্য মাস** · সব. Choosing "অন্য মাস" opens the month + year picker (`MonthYearPicker`), so you can pick any month back to the oldest record.
 - **Used on** বিক্রি, কেনা, খরচ, Reports, and now **সব লেনদেন** (the ledger had no date filter before; it defaults to "সব", so nothing changes until you choose).

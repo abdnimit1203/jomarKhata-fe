@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation';
 import { ClaimFlowPreview, LogoutGuardPreview, OtpPreview } from '@/components/preview/AccountDesigns';
+import { AccountSection } from '@/components/settings/AccountSection';
+import { LOCAL_AUTH } from '@/lib/auth';
 
 /**
  * Development-only design previews for backend-phase account flows (S10).
@@ -13,6 +15,17 @@ export default function PreviewPage() {
       <OtpPreview />
       <LogoutGuardPreview />
       <ClaimFlowPreview />
+      {/* Profile → account & referral, with SAMPLE values (dev preview only; the server issues real ones) */}
+      <AccountSection
+        auth={{
+          status: 'authenticated',
+          user: {
+            accountId: 'JK-0000-0000', email: 'sample@example.com', displayName: 'নমুনা', referralCode: 'SAMPLE24',
+            referralStats: { referredUsers: 3, commissionEarned: 360 },
+          },
+        }}
+      />
+      <AccountSection auth={LOCAL_AUTH} />
     </main>
   );
 }

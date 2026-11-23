@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Database, FlaskConical, RotateCcw, Save, Store } from 'lucide-react';
 import { BackupSection } from '@/components/settings/BackupSection';
+import { AccountSection } from '@/components/settings/AccountSection';
 import { InstallCard } from '@/components/pwa/PwaPrompts';
 import { supportLink } from '@/lib/support';
 import { useJomarkhata } from '@/context/JomarkhataContext';
@@ -161,7 +162,7 @@ function SettingsProfileForm({ profile }: { profile: BusinessProfile }) {
 }
 
 export function SettingsView() {
-  const { data, actions, showToast, mode } = useJomarkhata();
+  const { data, actions, showToast, mode, auth } = useJomarkhata();
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
@@ -193,6 +194,8 @@ export function SettingsView() {
           <p className="mt-0.5 text-xs text-primary-ink">{data.businessProfile.businessType}</p>
         </div>
       </section>
+
+      <AccountSection auth={auth} />
 
       <SettingsProfileForm
         key={data.businessProfile.updatedAt}

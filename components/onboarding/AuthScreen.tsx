@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ArrowLeft, Info, Smartphone } from 'lucide-react';
+import { ArrowLeft, Gift, Info, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { noBackendAuthProvider, normalizeBdMobile, type AuthProvider } from '@/lib/auth';
+import { normalizeReferralCode, referralFromSearch } from '@/lib/referral';
 
 /**
  * Sign in / sign up (S10, UI-NOW / BE-LATER). Google first; Bangladeshi mobile OTP as the second
@@ -14,6 +15,21 @@ export function AuthScreen({ onBack, provider = noBackendAuthProvider }: { onBac
   const [message, setMessage] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Optional referral code (only used when a new account is created). `?ref=CODE` pre-fills it.
+  const [referral, setReferral] = useState(() => (typeof window !== 'undefined' ? referralFromSearch(window.location.search) ?? '' : ''));
+  const [referralError, setReferralError] = useState<string | null>(null);
+
+  /** undefined = none given; null = given but invalid (blocks sign-up until fixed or cleared). */
+  const referralOption = (): { referralCode?: string } | null => {
+    if (!referral.trim()) return {};
+    const code = normalizeReferralCode(referral);
+    if (!code) {
+      setReferralError('রেফারেল কোডটি ঠিক নেই। না থাকলে ঘরটি খালি রাখুন।');
+      return null;
+    }
+    setReferralError(null);
+    return { referralCode: code };
+  };
 
   const attempt = async (fn: () => Promise<unknown>) => {
     setBusy(true);
@@ -31,6 +47,7 @@ export function AuthScreen({ onBack, provider = noBackendAuthProvider }: { onBac
     const normalized = normalizeBdMobile(phone);
     if (!normalized) return setPhoneError('সঠিক মোবাইল নম্বর লিখুন (যেমন 01712345678)।');
     setPhoneError(null);
+    if (!referralOption()) return; // the code goes with verifyOtp when the OTP step exists
     void attempt(() => provider.sendOtp(normalized));
   };
 
@@ -56,7 +73,29 @@ export function AuthScreen({ onBack, provider = noBackendAuthProvider }: { onBac
         )}
 
         <div className="mt-5 space-y-4 rounded-3xl bg-white p-5 shadow-card">
-          <Button variant="secondary" size="xl" fullWidth disabled={busy} onClick={() => attempt(() => provider.signInWithGoogle())}>
+          <div>
+            <label htmlFor="auth-referral" className="mb-1.5 block text-sm font-semibold text-ink-muted">
+              রেফারেল কোড <span className="font-normal text-ink-subtle">(ঐচ্ছিক)</span>
+            </label>
+            <div className="relative">
+              <Gift className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
+              <input
+                id="auth-referral"
+                autoCapitalize="characters"
+                autoComplete="off"
+                value={referral}
+                onChange={(e) => setReferral(e.target.value)}
+                placeholder="কেউ কোড দিয়ে থাকলে লিখুন"
+                className="h-12 w-full rounded-2xl border border-border-strong bg-white pr-4 pl-11 font-mono text-base tracking-wider text-ink uppercase placeholder:font-sans placeholder:tracking-normal placeholder:normal-case focus:border-primary-ink focus:outline-none"
+              />
+            </div>
+            {referralError && <p className="mt-1 text-sm font-semibold text-danger">{referralError}</p>}
+          </div>
+
+          <Button variant="secondary" size="xl" fullWidth disabled={busy} onClick={() => {
+              const opt = referralOption();
+              if (opt) void attempt(() => provider.signInWithGoogle(opt));
+            }}>
             <span aria-hidden="true" className="text-lg font-extrabold">G</span> Google দিয়ে চালিয়ে যান
           </Button>
 
