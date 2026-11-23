@@ -7,7 +7,7 @@ export const ROUTE_TITLES: Record<AppRoute, string> = {
   dashboard: 'হোম',
   sales: 'বিক্রির হিসাব',
   purchases: 'কেনার হিসাব',
-  dues: 'পাওনা-দেনা',
+  dues: 'বাকি',
   ledger: 'সব লেনদেন',
   cash: 'ক্যাশ ও খরচ',
   stock: 'স্টক',

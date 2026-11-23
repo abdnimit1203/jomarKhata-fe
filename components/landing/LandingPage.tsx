@@ -41,7 +41,7 @@ const TRUST = [
 const FEATURES: Array<{ icon: AppIconName; tone: FeatureTone; title: string; text: string }> = [
   { icon: 'sale', tone: 'green', title: 'বিক্রির হিসাব', text: 'দ্রুত বিক্রি বা পণ্য ধরে বিক্রি, ক্যাশ বা বাকিতে।' },
   { icon: 'purchase', tone: 'blue', title: 'কেনার হিসাব', text: 'মহাজনের কাছ থেকে কেনা, স্টক নিজে থেকেই বাড়ে।' },
-  { icon: 'book-due', tone: 'orange', title: 'পাওনা-দেনা', text: 'কার কাছে কত পাওনা, কার কত দেনা — এক নজরে।' },
+  { icon: 'book-due', tone: 'orange', title: 'বাকির হিসাব', text: 'কার কাছে কত পাওনা, কার কত দেনা — এক নজরে।' },
   { icon: 'expense', tone: 'red', title: 'খরচের হিসাব', text: 'ভাড়া, বিল, বেতন — খাত ধরে খরচ লিখুন।' },
   { icon: 'cashbox', tone: 'gold', title: 'ক্যাশ বক্স', text: 'ক্যাশ, বিকাশ, নগদ, ব্যাংক — আলাদা আলাদা ব্যালেন্স।' },
   { icon: 'stock', tone: 'indigo', title: 'স্টক', text: 'কোন মাল কত আছে, কম পড়লে সতর্কতা।' },

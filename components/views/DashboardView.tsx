@@ -186,7 +186,7 @@ export function DashboardView() {
         <section className="grid grid-cols-4 gap-2.5 sm:gap-4">
           {[
             {
-              label: 'টাকা আদায়',
+              label: 'বাকি আদায়',
               icon: 'due-collect' as AppIconName,
               tone: 'orange' as FeatureTone,
               onClick: () => openSheet({ type: 'due', defaultEntryType: 'customer_collection' }),
@@ -283,7 +283,7 @@ export function DashboardView() {
             {[
               { label: 'বিক্রির হিসাব', icon: 'book-sales' as AppIconName, route: 'sales' as const, tone: 'green' as FeatureTone },
               { label: 'কেনার হিসাব', icon: 'book-purchase' as AppIconName, route: 'purchases' as const, tone: 'blue' as FeatureTone },
-              { label: 'পাওনা-দেনা', icon: 'book-due' as AppIconName, route: 'dues' as const, tone: 'orange' as FeatureTone },
+              { label: 'বাকি', icon: 'book-due' as AppIconName, route: 'dues' as const, tone: 'orange' as FeatureTone },
               { label: 'খরচের হিসাব', icon: 'book-expense' as AppIconName, route: 'cash' as const, tone: 'red' as FeatureTone },
             ].map((b) => (
               <button
@@ -371,9 +371,10 @@ export function DashboardView() {
 
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
-                      <p className="truncate text-xs text-ink-muted">
-                        {item.subtitle} · {getRelativeDateGroupLabel(item.date)},{' '}
-                        {formatBanglaTime(item.date)}
+                      <p className="truncate text-xs text-ink-muted">{item.subtitle}</p>
+                      {/* date on its own small line so a long subtitle never hides it */}
+                      <p className="text-xs leading-4 text-ink-subtle">
+                        {getRelativeDateGroupLabel(item.date)}, {formatBanglaTime(item.date)}
                       </p>
                     </div>
 
