@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BACKUP_REMINDER_DAYS, needsBackupReminder } from '@/lib/backup-reminder';
 import { backupFileName } from '@/components/settings/BackupSection';
+import { InstallCard } from '@/components/pwa/PwaPrompts';
 import { downloadTextFile } from '@/lib/format';
 import { ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { useJomarkhata } from '@/context/JomarkhataContext';
@@ -219,6 +220,8 @@ export function DashboardView() {
             </button>
           ))}
         </section>
+
+        <InstallCard />
 
         {/* 4. Today / month summary (compact 2x2) */}
         <section className="rounded-3xl bg-white p-4 shadow-card">

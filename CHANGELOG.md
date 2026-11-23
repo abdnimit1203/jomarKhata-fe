@@ -4,6 +4,24 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### S12 (rest): update prompt + install card, 2026-11-23
+**Added / changed**
+- **"নতুন আপডেট আছে" prompt:**
+  - The service worker (`jk-shell-v4`) **no longer activates itself on install**. A new version waits until the owner taps **"আপডেট করুন"**, then activates and the page reloads, so the version never switches in the middle of a form.
+  - A first install still activates immediately.
+  - Code: `lib/pwa.ts`, `ServiceWorkerRegister` (watches `waiting`/`updatefound`, reloads only after the owner asked), `UpdateBanner`.
+- **Install card** (`InstallCard`) on the dashboard (dismissible) and in settings:
+  - Android/desktop Chrome: our own **"ইনস্টল করুন"** button using the captured `beforeinstallprompt`
+  - iPhone Safari: Share → "Add to Home Screen" steps in Bangla
+  - hidden once the app is installed
+- Tests: `tests/pwa.test.ts` +3 (no auto-skipWaiting, update detection and reload-only-on-request, install prompt and iOS steps).
+
+**Verified on the production build** (headless Edge at 360px):
+- **the full e2e set passed:** offline (cache v4, 47 entries, offline reload and tabs, offline sale survives reload), navigation/back (no reloads), first run, Due Book, forms + AP-9, history, backup/restore, sync UI, and the fold at 360×640 (বেচা/কেনা end at 488 < 575)
+- **real update flow:** with v4 active, `sw.js` was changed on the server → the new worker **waited** (not auto-activated) → the banner showed → tapping "আপডেট করুন" reloaded the page under the new worker → data intact
+
+**Still needs a real phone:** the Android install, a cold start offline, and the iOS Add to Home Screen path. These are in the S13 checklist.
+
 ### S10: account screens, access policy, backend contract, 2026-11-23
 UI now, backend later. AP-7 is designed only.
 

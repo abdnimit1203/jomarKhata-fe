@@ -22,6 +22,7 @@ import { formatBanglaNumber } from '@/lib/format';
 import { MORE_ROUTES, ROUTE_TITLES } from './navigation';
 import { MoreSheet, QuickAddSheet } from './NavSheets';
 import { SyncStatusSheet } from './SyncStatusSheet';
+import { UpdateBanner } from '@/components/pwa/PwaPrompts';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { DashboardSkeleton, ToastContainer } from '@/components/ui/StateBlocks';
 import { SaleFormSheet } from '@/components/sheets/SaleFormSheet';
@@ -284,6 +285,7 @@ export function AppShell() {
 
           {/* Main Scrollable Viewport */}
           <main className="flex-1 px-4 pt-4 pb-24 lg:px-8 lg:pt-6 lg:pb-10">
+            <UpdateBanner />
             {access.level !== 'full' && !isLoading && (
               <div
                 role="status"

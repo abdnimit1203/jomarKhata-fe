@@ -18,7 +18,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 | S9 | Sync queue & connection status | ✅ Done: outbox v2 (Dexie v3, in-place upgrade), linked void ops, sync engine + runner behind a transport (fake only), সিঙ্ক অবস্থা sheet, per-record badge (AP-4) |
 | S10 | Account interfaces & access policy | ✅ Done: sign-in screen (honest, no session), AuthProvider interface, access policy (grace → read-only, clock-safe), dev-only /preview designs, docs/BACKEND_CONTRACT.md |
 | S11 | ~~Optional PIN lock~~ | ❌ Removed by owner decision |
-| S12 | Android PWA | 🟡 **Core done early** (manifest, offline service worker, verified offline in a browser). Pending: install-prompt UI, update prompt, real-phone test on Vercel Preview |
+| S12 | Android PWA | ✅ Done in code: manifest, offline shell (v4), update prompt (waits for owner), install card (Android prompt / iOS steps). Real-phone check is in the S13 checklist |
 | S13 | Performance, real-device testing, MVP acceptance | ⏸ |
 
 ## What works today
@@ -30,7 +30,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 ## Quality gates
 | Check | Command | S0 | S1 |
 |---|---|---|---|
-| Tests | `npm test` | 49 / 49 | **206 / 206** (19 files) |
+| Tests | `npm test` | 49 / 49 | **209 / 209** (20 files) |
 | TypeScript | `npm run typecheck` | 0 errors | **0 errors** |
 | Production build | `npm run build` | — | **✓ compiled, 3/3 static pages** |
 | Mobile render check (360px, Edge via puppeteer) | manual | — | Welcome and Dashboard render with **0px horizontal overflow** |

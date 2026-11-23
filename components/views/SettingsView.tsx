@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Database, FlaskConical, RotateCcw, Save, Store } from 'lucide-react';
 import { BackupSection } from '@/components/settings/BackupSection';
+import { InstallCard } from '@/components/pwa/PwaPrompts';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { NumericInput } from '@/components/ui/NumericInput';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -198,6 +199,8 @@ export function SettingsView() {
       />
 
       <BackupSection />
+
+      <InstallCard dismissible={false} />
 
       <section className="space-y-3.5 rounded-3xl bg-white p-5 shadow-card">
         <div className="flex items-start gap-3">

@@ -59,13 +59,36 @@ describe('service worker rules', () => {
   it('precaches every custom feature icon and the logo, so they show offline on any screen', () => {
     for (const name of APP_ICONS) expect(sw, name).toMatch(new RegExp(`'${name}'`));
     expect(sw).toMatch(/'\/brand\/logo-mark\.png'/);
-    expect(sw).not.toMatch(/jk-shell-v[12]'/); // v1 cached the placeholder icons cache-first; v3 adds /app
+    expect(sw).not.toMatch(/jk-shell-v[123]'/); // v1 placeholder icons; v3 /app; v4 update prompt
   });
 
   it('is registered only in production builds (dev keeps hot reload)', () => {
     const reg = fs.readFileSync(path.join(ROOT, 'components/pwa/ServiceWorkerRegister.tsx'), 'utf8');
     expect(reg).toMatch(/process\.env\.NODE_ENV !== 'production'/);
     expect(fs.readFileSync(path.join(ROOT, 'app/layout.tsx'), 'utf8')).toMatch(/<ServiceWorkerRegister \/>/);
+  });
+});
+
+describe('S12: update prompt and install prompt', () => {
+  const reg = fs.readFileSync(path.join(ROOT, 'components/pwa/ServiceWorkerRegister.tsx'), 'utf8');
+  it('an update waits for the owner: no automatic skipWaiting on install; SKIP_WAITING on request', () => {
+    const install = /addEventListener\('install'[\s\S]*?\}\);/.exec(swCode)![0];
+    expect(install).not.toMatch(/skipWaiting/);
+    expect(swCode).toMatch(/data\.type === 'SKIP_WAITING'[\s\S]{0,40}self\.skipWaiting\(\)/);
+  });
+  it('the page detects a waiting update, shows "নতুন আপডেট আছে" and reloads only after the owner taps update', () => {
+    expect(reg).toMatch(/registration\.waiting && navigator\.serviceWorker\.controller/);
+    expect(reg).toMatch(/updatefound/);
+    expect(reg).toMatch(/if \(shouldReloadOnControllerChange\(\)\) window\.location\.reload\(\)/);
+    const prompts = fs.readFileSync(path.join(ROOT, 'components/pwa/PwaPrompts.tsx'), 'utf8');
+    expect(prompts).toMatch(/নতুন আপডেট আছে/);
+    expect(prompts).toMatch(/onClick=\{applyUpdate\}/);
+  });
+  it('install: own button via beforeinstallprompt; iPhone gets Share → Add to Home Screen steps; hidden when installed', () => {
+    expect(reg).toMatch(/addEventListener\('beforeinstallprompt', captureInstallPrompt\)/);
+    const prompts = fs.readFileSync(path.join(ROOT, 'components/pwa/PwaPrompts.tsx'), 'utf8');
+    expect(prompts).toMatch(/Add to Home Screen/);
+    expect(prompts).toMatch(/isStandalone\(\)/);
   });
 });
 
