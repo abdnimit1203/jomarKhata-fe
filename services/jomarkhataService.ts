@@ -909,7 +909,8 @@ export const jomarkhataService = {
           if (item.productId) {
             const prod = await db.products.get(item.productId);
             if (prod) {
-              const nextQty = Math.max(0, prod.stockQty - item.qty);
+              // AP-9 (D33): no clamp. Stock may go negative so it always equals the sum of movements.
+              const nextQty = prod.stockQty - item.qty;
               await db.products.update(prod.id, { stockQty: nextQty, updatedAt: now });
               const sm: StockMovement = {
                 id: generateId(),
@@ -1038,7 +1039,7 @@ export const jomarkhataService = {
             const prod = await db.products.get(pid);
             if (prod) {
               await db.products.update(pid, {
-                stockQty: Math.max(0, prod.stockQty + stockDelta),
+                stockQty: prod.stockQty + stockDelta, // AP-9: no clamp
                 updatedAt: now,
               });
               const sm: StockMovement = {
@@ -1498,7 +1499,7 @@ export const jomarkhataService = {
             const prod = await db.products.get(pid);
             if (prod) {
               await db.products.update(pid, {
-                stockQty: Math.max(0, prod.stockQty + delta),
+                stockQty: prod.stockQty + delta, // AP-9: no clamp
                 updatedAt: now,
               });
               await db.stockMovements.add({
@@ -1693,7 +1694,7 @@ export const jomarkhataService = {
             const prod = await db.products.get(item.productId);
             if (prod) {
               await db.products.update(prod.id, {
-                stockQty: Math.max(0, prod.stockQty - item.qty),
+                stockQty: prod.stockQty - item.qty, // AP-9: no clamp
                 updatedAt: now,
               });
               await db.stockMovements.add({

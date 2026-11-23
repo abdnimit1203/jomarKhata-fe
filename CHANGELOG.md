@@ -4,6 +4,34 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### AP-9 fixed: no stock clamp, oversell allowed with a warning (D33), 2026-11-23
+**Release blocker D20 cleared.**
+
+**What was wrong**
+- Four service paths clamped `stockQty` at 0 while the stock movement recorded the full quantity, so product stock and its history disagreed:
+  - create sale
+  - edit sale
+  - edit purchase
+  - void purchase
+- Reproduced in the browser: selling 999 against stock 18 left stock at **0** instead of **−981**.
+
+**Fix (owner policy D33)**
+- Those 4 clamps are removed. Stock may go negative, and **`stockQty` always equals the sum of its stock movements.**
+- The sale form already warns before saving (S6). The stock screen shows negative stock in red: **"স্টক মাইনাস — কেনা লিখুন"**.
+- Unchanged:
+  - **opening stock** at product creation is still ≥ 0 (input validation)
+  - **manual stock adjustment** still floors at 0 but records the actual applied delta, so it stays consistent
+
+**Tests**
+- The characterisation test was replaced with 3 tests:
+  - oversell gives −3 with the movements matching
+  - a later purchase restores stock correctly
+  - a mixed sequence of sale edit, purchase, purchase void and sale void passes through negative stock and stays consistent
+- **The stock invariant in `assertLedgerInvariants` is now always on**, so every accounting test checks `stockQty == Σ movements`.
+- 154/154 tests pass.
+
+**Existing data:** products already clamped by the old code keep their stored value; nothing is rewritten. New activity is exact from now on.
+
 ### S6: sale, purchase and expense forms, 2026-11-23
 **Added / changed**
 - **A date field on every entry form** (sale, purchase, expense, due), shown as `dd/MM/yyyy` with the left calendar icon.

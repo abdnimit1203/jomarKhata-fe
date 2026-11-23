@@ -126,6 +126,7 @@ export function StockView() {
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {products.map((prod) => {
             const isLow = prod.stockQty <= prod.lowStockThreshold;
+            const isNegative = prod.stockQty < 0; // AP-9: sold more than recorded stock
             return (
               <div
                 key={prod.id}
@@ -142,12 +143,14 @@ export function StockView() {
                   <div className="shrink-0 text-right">
                     <p
                       className={`text-lg font-bold tabular-nums ${
-                        isLow ? 'text-warning-ink' : 'text-primary-ink'
+                        isNegative ? 'text-danger' : isLow ? 'text-warning-ink' : 'text-primary-ink'
                       }`}
                     >
                       {formatBanglaNumber(prod.stockQty)} {prod.unit}
                     </p>
-                    {isLow && (
+                    {isNegative ? (
+                      <p className="text-xs font-semibold text-danger">স্টক মাইনাস — কেনা লিখুন</p>
+                    ) : isLow && (
                       <p className="inline-flex items-center gap-1 text-xs font-semibold text-warning-ink">
                         <AlertTriangle className="h-3 w-3" />
                         <span>কম স্টক</span>

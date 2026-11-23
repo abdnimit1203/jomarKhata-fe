@@ -30,7 +30,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 ## Quality gates
 | Check | Command | S0 | S1 |
 |---|---|---|---|
-| Tests | `npm test` | 49 / 49 | **152 / 152** (12 files) |
+| Tests | `npm test` | 49 / 49 | **154 / 154** (12 files) |
 | TypeScript | `npm run typecheck` | 0 errors | **0 errors** |
 | Production build | `npm run build` | — | **✓ compiled, 3/3 static pages** |
 | Mobile render check (360px, Edge via puppeteer) | manual | — | Welcome and Dashboard render with **0px horizontal overflow** |
@@ -38,7 +38,7 @@ _Last updated: 2026-11-23 (after the S1 revision: amber main colour)_
 ## ⚠ Business-critical: release blocker
 | Issue | Rule |
 |---|---|
-| **AP-9: overselling corrupts stock.** `stockQty` is clamped at 0 while the stock movement records the full −qty, so the two diverge and a later void over-restores stock. | **Must be fixed (with owner approval of the change) before the sales feature is released to real users.** It's documented by a characterisation test in `tests/service.sales-purchases.test.ts`. |
+| ~~**AP-9: overselling corrupts stock.**~~ | ✅ **Fixed 2026-11-23 (D33):** no clamp, oversell allowed with a warning, `stockQty` always equals Σ movements (always-on test invariant). Release blocker cleared. |
 
 ## Other known issues (documented by tests, not yet fixed)
 | Issue | Plan item |
