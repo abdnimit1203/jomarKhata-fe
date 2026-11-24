@@ -7,6 +7,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
+import { setAdminLang, useAdminLang, useFmtDate, useNum, useTr } from './i18n';
 import { BadgeCheck, CreditCard, LayoutDashboard, LogOut, Menu, Receipt, Settings, Users } from 'lucide-react';
 import { authProvider } from '@/lib/auth-firebase';
 import { formatBanglaNumber, toBanglaDigits } from '@/lib/format';
@@ -39,8 +40,11 @@ export const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
 };
 
 export function Pill({ status }: { status: string }) {
+  const tr = useTr();
+  const fd = useFmtDate();
+  const num = useNum();
   const s = STATUS_LABEL[status] ?? { text: status, cls: 'bg-surface-muted text-ink' };
-  return <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-bold whitespace-nowrap ${s.cls}`}>{s.text}</span>;
+  return <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-bold whitespace-nowrap ${s.cls}`}>{tr(s.text)}</span>;
 }
 
 /** Shared table look for admin lists. */
@@ -49,6 +53,10 @@ export const TH = 'border-b border-border bg-canvas px-3 py-2.5 text-xs font-bol
 export const TD = 'border-b border-border px-3 py-2.5 align-top';
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
+  const tr = useTr();
+  const langNow = useAdminLang();
+  const fd = useFmtDate();
+  const num = useNum();
   const router = useRouter();
   const path = usePathname() ?? '';
   const [state, setState] = useState<'loading' | 'ok' | 'forbidden' | 'error'>('loading');
@@ -77,20 +85,21 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       .catch(() => {});
   }, [state, path]);
 
-  if (state === 'loading') return <p className="p-10 text-center text-ink-muted">লোড হচ্ছে…</p>;
-  if (state === 'forbidden') return <p className="p-10 text-center font-semibold text-danger">এই অ্যাকাউন্টের অ্যাডমিন অনুমতি নেই।</p>;
-  if (state === 'error') return <p className="p-10 text-center font-semibold text-danger">সার্ভারে যোগাযোগ করা যায়নি। ইন্টারনেট দেখে আবার চেষ্টা করুন।</p>;
+  if (state === 'loading') return <p className="p-10 text-center text-ink-muted">{tr("লোড হচ্ছে…")}</p>;
+  if (state === 'forbidden') return <p className="p-10 text-center font-semibold text-danger">{tr("এই অ্যাকাউন্টের অ্যাডমিন অনুমতি নেই।")}</p>;
+  if (state === 'error') return <p className="p-10 text-center font-semibold text-danger">{tr("সার্ভারে যোগাযোগ করা যায়নি। ইন্টারনেট দেখে আবার চেষ্টা করুন।")}</p>;
 
-  const title = MENU.find((m) => path.startsWith(m.href))?.label ?? 'অ্যাডমিন';
+  const title = tr(MENU.find((m) => path.startsWith(m.href))?.label ?? 'অ্যাডমিন');
+  const lang = langNow;
   const nav = (
     <nav className="flex h-full flex-col bg-admin-sidebar text-slate-200">
       <div className="flex items-center gap-2.5 px-5 py-5">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/logo-mark.png" alt="" width={34} height={34} className="h-9 w-9 rounded-lg" />
         <div>
-          <p className="text-base font-extrabold text-white">জমারখাতা</p>
+          <p className="text-base font-extrabold text-white">{tr("জমারখাতা")}</p>
           <p className="flex items-center gap-1 text-xs text-slate-400">
-            <BadgeCheck className="h-3.5 w-3.5 text-sky-400" /> সুপার অ্যাডমিন
+            <BadgeCheck className="h-3.5 w-3.5 text-sky-400" /> {tr("সুপার অ্যাডমিন")}
           </p>
         </div>
       </div>
@@ -106,9 +115,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold ${active ? 'bg-primary text-on-primary' : 'hover:bg-white/10'}`}
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                <span className="flex-1">{m.label}</span>
+                <span className="flex-1">{tr(m.label)}</span>
                 {m.badge && pending > 0 && (
-                  <span className="rounded-full bg-amber-400 px-2 py-0.5 text-xs font-extrabold text-slate-900">{formatBanglaNumber(pending)}</span>
+                  <span className="rounded-full bg-amber-400 px-2 py-0.5 text-xs font-extrabold text-slate-900">{num(pending)}</span>
                 )}
               </Link>
             </li>
@@ -123,8 +132,21 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         }}
         className="m-3 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-300 hover:bg-white/10"
       >
-        <LogOut className="h-4 w-4" /> লগআউট
+        <LogOut className="h-4 w-4" /> {tr("লগআউট")}
       </button>
+      {/* language: admin panel only */}
+      <div className="mx-3 mb-4 grid grid-cols-2 gap-1 rounded-xl bg-white/10 p-1 text-xs font-bold">
+        {(['bn', 'en'] as const).map((l) => (
+          <button
+            key={l}
+            type="button"
+            onClick={() => setAdminLang(l)}
+            className={`rounded-lg py-1.5 ${lang === l ? 'bg-white text-admin-sidebar' : 'text-slate-300'}`}
+          >
+            {l === 'bn' ? 'বাংলা' : 'English'}
+          </button>
+        ))}
+      </div>
     </nav>
   );
 
@@ -133,13 +155,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 lg:block">{nav}</aside>
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <button type="button" aria-label="মেনু বন্ধ" onClick={() => setOpen(false)} className="absolute inset-0 bg-black/50" />
+          <button type="button" aria-label={tr("মেনু বন্ধ")} onClick={() => setOpen(false)} className="absolute inset-0 bg-black/50" />
           <aside className="relative h-full w-72">{nav}</aside>
         </div>
       )}
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-white px-4">
-          <button type="button" aria-label="মেনু" onClick={() => setOpen(true)} className="rounded-lg p-1.5 lg:hidden">
+          <button type="button" aria-label={tr("মেনু")} onClick={() => setOpen(true)} className="rounded-lg p-1.5 lg:hidden">
             <Menu className="h-5 w-5" />
           </button>
           <h1 className="text-base font-bold text-ink">{title}</h1>

@@ -4,10 +4,11 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
+import { useFmtDate, useNum, useTr } from './i18n';
 import { BadgeCheck, CircleAlert, Clock, CreditCard, Users } from 'lucide-react';
-import { formatBanglaNumber } from '@/lib/format';
+import { DashboardCharts } from './DashboardCharts';
 import { adminFetch } from './adminApi';
-import { fmtDate, Pill, TABLE, TD, TH } from './AdminShell';
+import { Pill, TABLE, TD, TH } from './AdminShell';
 
 export interface AdminUserRow {
   accountId: string;
@@ -31,10 +32,15 @@ interface Stats {
   expired: number;
   blocked: number;
   endingSoon: AdminUserRow[];
+  signupsByDay: { day: string; users: number }[];
+  revenueByMonth: { month: string; taka: number; orders: number }[];
 }
 
 /** Users table (dashboard + users page). Row click opens the user. */
 export function UsersTable({ users, empty = 'কাউকে পাওয়া যায়নি।' }: { users: AdminUserRow[]; empty?: string }) {
+  const tr = useTr();
+  const fd = useFmtDate();
+  const num = useNum();
   const router = useRouter();
   if (users.length === 0) return <p className="px-4 py-8 text-center text-sm text-ink-muted">{empty}</p>;
   return (
@@ -42,12 +48,12 @@ export function UsersTable({ users, empty = 'কাউকে পাওয়া 
       <table className={TABLE}>
         <thead>
           <tr>
-            <th className={TH}>আইডি</th>
-            <th className={TH}>দোকান / নাম</th>
-            <th className={TH}>ইমেইল · ফোন</th>
-            <th className={TH}>অবস্থা</th>
-            <th className={TH}>মেয়াদ</th>
-            <th className={TH}>যোগ দিয়েছেন</th>
+            <th className={TH}>{tr("আইডি")}</th>
+            <th className={TH}>{tr("দোকান / নাম")}</th>
+            <th className={TH}>{tr("ইমেইল · ফোন")}</th>
+            <th className={TH}>{tr("অবস্থা")}</th>
+            <th className={TH}>{tr("মেয়াদ")}</th>
+            <th className={TH}>{tr("যোগ দিয়েছেন")}</th>
           </tr>
         </thead>
         <tbody>
@@ -56,8 +62,8 @@ export function UsersTable({ users, empty = 'কাউকে পাওয়া 
               <td className={`${TD} font-mono text-xs font-bold`}>{u.accountId}</td>
               <td className={TD}>
                 <span className="font-semibold">{u.shopName || u.displayName || '—'}</span>
-                {u.status === 'blocked' && <span className="ml-1 text-xs font-bold text-danger">(বন্ধ)</span>}
-                {u.role === 'super_admin' && <span className="ml-1 text-xs font-bold text-primary-ink">(অ্যাডমিন)</span>}
+                {u.status === 'blocked' && <span className="ml-1 text-xs font-bold text-danger">{tr("(বন্ধ)")}</span>}
+                {u.role === 'super_admin' && <span className="ml-1 text-xs font-bold text-primary-ink">{tr("(অ্যাডমিন)")}</span>}
               </td>
               <td className={`${TD} text-xs text-ink-muted`}>
                 {u.email}
@@ -67,10 +73,10 @@ export function UsersTable({ users, empty = 'কাউকে পাওয়া 
                 <Pill status={u.subscription.status} />
               </td>
               <td className={`${TD} text-xs`}>
-                {fmtDate(u.subscription.expiresAt)}
-                {u.subscription.status !== 'expired' && <div className="text-ink-muted">{formatBanglaNumber(u.subscription.daysLeft)} দিন বাকি</div>}
+                {fd(u.subscription.expiresAt)}
+                {u.subscription.status !== 'expired' && <div className="text-ink-muted">{num(u.subscription.daysLeft)} দিন বাকি</div>}
               </td>
-              <td className={`${TD} text-xs text-ink-muted`}>{fmtDate(u.createdAt)}</td>
+              <td className={`${TD} text-xs text-ink-muted`}>{fd(u.createdAt)}</td>
             </tr>
           ))}
         </tbody>
@@ -80,6 +86,9 @@ export function UsersTable({ users, empty = 'কাউকে পাওয়া 
 }
 
 export function AdminDashboard() {
+  const tr = useTr();
+  const fd = useFmtDate();
+  const num = useNum();
   const [s, setS] = useState<Stats | null>(null);
   const [pending, setPending] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -92,15 +101,15 @@ export function AdminDashboard() {
       .catch(() => {});
   }, []);
   if (err) return <p className="text-danger">{err}</p>;
-  if (!s) return <p className="text-ink-muted">লোড হচ্ছে…</p>;
+  if (!s) return <p className="text-ink-muted">{tr("লোড হচ্ছে…")}</p>;
 
   // each box its own colour, so the numbers are easy to tell apart at a glance
   const cards = [
-    { label: 'মোট ইউজার', value: s.total, href: '/admin/users', box: 'bg-tile-indigo-bg', tone: 'text-tile-indigo-fg', icon: Users },
-    { label: 'ট্রায়ালে', value: s.trial, href: '/admin/users?filter=trial', box: 'bg-tile-sky-bg', tone: 'text-tile-sky-fg', icon: Clock },
-    { label: 'পেইড', value: s.paid, href: '/admin/users?filter=paid', box: 'bg-tile-green-bg', tone: 'text-tile-green-fg', icon: BadgeCheck },
-    { label: 'মেয়াদ শেষ', value: s.expired, href: '/admin/users?filter=expired', box: 'bg-tile-red-bg', tone: 'text-tile-red-fg', icon: CircleAlert },
-    { label: 'নতুন পেমেন্ট রিকোয়েস্ট', value: pending ?? 0, href: '/admin/payments', box: 'bg-tile-gold-bg', tone: 'text-tile-gold-fg', icon: CreditCard },
+    { label: tr("মোট ইউজার"), value: s.total, href: '/admin/users', box: 'bg-tile-indigo-bg', tone: 'text-tile-indigo-fg', icon: Users },
+    { label: tr("ট্রায়ালে"), value: s.trial, href: '/admin/users?filter=trial', box: 'bg-tile-sky-bg', tone: 'text-tile-sky-fg', icon: Clock },
+    { label: tr("পেইড"), value: s.paid, href: '/admin/users?filter=paid', box: 'bg-tile-green-bg', tone: 'text-tile-green-fg', icon: BadgeCheck },
+    { label: tr("মেয়াদ শেষ"), value: s.expired, href: '/admin/users?filter=expired', box: 'bg-tile-red-bg', tone: 'text-tile-red-fg', icon: CircleAlert },
+    { label: tr("নতুন পেমেন্ট রিকোয়েস্ট"), value: pending ?? 0, href: '/admin/payments', box: 'bg-tile-gold-bg', tone: 'text-tile-gold-fg', icon: CreditCard },
   ];
   return (
     <div className="space-y-6">
@@ -111,12 +120,13 @@ export function AdminDashboard() {
               <p className={`text-xs font-bold ${c.tone}`}>{c.label}</p>
               <c.icon className={`h-5 w-5 ${c.tone}`} />
             </div>
-            <p className={`mt-2 text-3xl font-extrabold ${c.tone}`}>{formatBanglaNumber(c.value)}</p>
+            <p className={`mt-2 text-3xl font-extrabold ${c.tone}`}>{num(c.value)}</p>
           </Link>
         ))}
       </div>
+      <DashboardCharts s={s} />
       <section className="overflow-hidden rounded-2xl bg-white shadow-card">
-        <h2 className="border-b border-border bg-warning-soft px-4 py-3 text-sm font-bold text-warning-ink">৭ দিনের মধ্যে মেয়াদ শেষ হবে ({formatBanglaNumber(s.endingSoon.length)})</h2>
+        <h2 className="border-b border-border bg-warning-soft px-4 py-3 text-sm font-bold text-warning-ink">৭ দিনের মধ্যে মেয়াদ শেষ হবে ({num(s.endingSoon.length)})</h2>
         <UsersTable users={s.endingSoon} empty="সামনের ৭ দিনে কারো মেয়াদ শেষ হচ্ছে না।" />
       </section>
     </div>

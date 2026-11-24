@@ -5,11 +5,13 @@
  * /admin/orders    → সাবস্ক্রিপশন অর্ডার (approved payments, newest first).
  */
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useState } from 'react';
+import { useFmtDate, useNum, useTr } from './i18n';
 import { SegmentedControl } from '@/components/ui/segmented';
 import { formatBanglaNumber, formatTaka } from '@/lib/format';
 import { adminFetch } from './adminApi';
-import { fmtDate, Pill, TABLE, TD, TH } from './AdminShell';
+import { Pill, TABLE, TD, TH } from './AdminShell';
 
 interface PaymentRow {
   _id: string;
@@ -35,9 +37,14 @@ type Status = 'pending' | 'approved' | 'rejected' | 'all';
 const METHOD: Record<string, string> = { bkash: 'বিকাশ', nagad: 'নগদ', bank: 'ব্যাংক' };
 
 function PaymentsList({ fixed }: { fixed?: Status }) {
-  const [status, setStatus] = useState<Status>(fixed ?? 'pending');
-  const [q, setQ] = useState('');
-  const [query, setQuery] = useState('');
+  const tr = useTr();
+  const fd = useFmtDate();
+  const num = useNum();
+  // ?q=TRXID (from the Telegram link) opens the list already filtered to that payment
+  const initialQ = useSearchParams()?.get('q') ?? '';
+  const [status, setStatus] = useState<Status>(fixed ?? (initialQ ? 'all' : 'pending'));
+  const [q, setQ] = useState(initialQ);
+  const [query, setQuery] = useState(initialQ);
   const [res, setRes] = useState<{ total: number; requests: PaymentRow[] } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -80,25 +87,25 @@ function PaymentsList({ fixed }: { fixed?: Status }) {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="TrxID, আইডি, ইমেইল, দোকান বা নম্বর"
-            aria-label="পেমেন্ট খুঁজুন"
+            placeholder={tr("TrxID, আইডি, ইমেইল, দোকান বা নম্বর")}
+            aria-label={tr("পেমেন্ট খুঁজুন")}
             className="h-10 min-w-0 flex-1 rounded-xl border border-border-strong bg-white px-3.5 text-sm focus:border-primary-ink focus:outline-none"
           />
           <button type="submit" className="h-10 rounded-xl bg-primary px-4 text-sm font-bold text-on-primary">
-            খুঁজুন
+            {tr("খুঁজুন")}
           </button>
         </form>
         {!fixed && (
           <SegmentedControl
-            aria-label="কোন রিকোয়েস্ট"
+            aria-label={tr("কোন রিকোয়েস্ট")}
             variant="chips"
             value={status}
             onValueChange={(v) => setStatus(v as Status)}
             options={[
-              { value: 'pending', label: 'অপেক্ষায়' },
-              { value: 'approved', label: 'অনুমোদিত' },
-              { value: 'rejected', label: 'বাতিল' },
-              { value: 'all', label: 'সব' },
+              { value: 'pending', label: tr("অপেক্ষায়") },
+              { value: 'approved', label: tr("অনুমোদিত") },
+              { value: 'rejected', label: tr("বাতিল") },
+              { value: 'all', label: tr("সব") },
             ]}
           />
         )}
@@ -106,7 +113,7 @@ function PaymentsList({ fixed }: { fixed?: Status }) {
       {err && <p className="rounded-xl bg-danger-soft p-3 text-sm font-semibold text-danger">{err}</p>}
       {res && (
         <section className="overflow-hidden rounded-2xl bg-white shadow-card">
-          <p className="border-b border-border px-4 py-2.5 text-xs font-semibold text-ink-muted">মোট {formatBanglaNumber(res.total)}টি</p>
+          <p className="border-b border-border px-4 py-2.5 text-xs font-semibold text-ink-muted">মোট {num(res.total)}টি</p>
           {res.requests.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-ink-muted">{status === 'pending' ? 'নতুন কোনো রিকোয়েস্ট নেই।' : 'কিছু নেই।'}</p>
           ) : (
@@ -114,20 +121,20 @@ function PaymentsList({ fixed }: { fixed?: Status }) {
               <table className={TABLE}>
                 <thead>
                   <tr>
-                    <th className={TH}>তারিখ</th>
-                    <th className={TH}>দোকান / আইডি</th>
-                    <th className={TH}>প্ল্যান</th>
-                    <th className={TH}>টাকা</th>
-                    <th className={TH}>মাধ্যম · নম্বর</th>
+                    <th className={TH}>{tr("তারিখ")}</th>
+                    <th className={TH}>{tr("দোকান / আইডি")}</th>
+                    <th className={TH}>{tr("প্ল্যান")}</th>
+                    <th className={TH}>{tr("টাকা")}</th>
+                    <th className={TH}>{tr("মাধ্যম · নম্বর")}</th>
                     <th className={TH}>TrxID</th>
-                    <th className={TH}>অবস্থা</th>
+                    <th className={TH}>{tr("অবস্থা")}</th>
                     <th className={TH}></th>
                   </tr>
                 </thead>
                 <tbody>
                   {res.requests.map((p) => (
                     <tr key={p._id} className="hover:bg-canvas">
-                      <td className={`${TD} text-xs`}>{fmtDate(p.createdAt)}</td>
+                      <td className={`${TD} text-xs`}>{fd(p.createdAt)}</td>
                       <td className={TD}>
                         <Link href={`/admin/users/${p.accountId}`} className="font-semibold text-primary-ink hover:underline">
                           {p.shopName || p.email}
@@ -135,17 +142,17 @@ function PaymentsList({ fixed }: { fixed?: Status }) {
                         <div className="font-mono text-xs text-ink-muted">{p.accountId}</div>
                       </td>
                       <td className={`${TD} text-xs`}>
-                        {p.planLabel} ({formatBanglaNumber(p.days)} দিন)
+                        {p.planLabel} ({num(p.days)} দিন)
                       </td>
-                      <td className={`${TD} font-bold`}>{formatTaka(p.amount)}</td>
+                      <td className={`${TD} font-bold`}>{`৳ ${num(p.amount)}`}</td>
                       <td className={`${TD} text-xs`}>
-                        {METHOD[p.method]}
+                        {tr(METHOD[p.method])}
                         {p.payerNumber && <div className="text-ink-muted">{p.payerNumber}</div>}
                       </td>
                       <td className={`${TD} font-mono text-xs font-bold`}>{p.trxId}</td>
                       <td className={TD}>
                         <Pill status={p.status} />
-                        {p.status === 'approved' && p.expiresAtAfter && <div className="mt-1 text-xs text-ink-muted">{fmtDate(p.expiresAtAfter)} পর্যন্ত</div>}
+                        {p.status === 'approved' && p.expiresAtAfter && <div className="mt-1 text-xs text-ink-muted">{fd(p.expiresAtAfter)} পর্যন্ত</div>}
                         {p.status === 'rejected' && p.reason && <div className="mt-1 text-xs text-danger">{p.reason}</div>}
                       </td>
                       <td className={`${TD} whitespace-nowrap`}>
@@ -156,23 +163,23 @@ function PaymentsList({ fixed }: { fixed?: Status }) {
                                 autoFocus
                                 value={rejecting.reason}
                                 onChange={(e) => setRejecting({ id: p._id, reason: e.target.value })}
-                                placeholder="কারণ"
+                                placeholder={tr("কারণ")}
                                 className="h-8 w-32 rounded-lg border border-border-strong px-2 text-xs"
                               />
                               <button type="button" disabled={!rejecting.reason.trim() || busy === p._id} onClick={() => act(p._id, 'reject', rejecting.reason)} className="rounded-lg bg-danger px-2.5 text-xs font-bold text-white disabled:opacity-50">
-                                বাতিল
+                                {tr("বাতিল")}
                               </button>
                               <button type="button" onClick={() => setRejecting(null)} className="px-1 text-xs text-ink-muted">
-                                না
+                                {tr("না")}
                               </button>
                             </div>
                           ) : (
                             <div className="flex gap-1.5">
                               <button type="button" disabled={busy === p._id} onClick={() => act(p._id, 'approve')} className="rounded-lg bg-success px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50">
-                                অনুমোদন
+                                {tr("অনুমোদন")}
                               </button>
                               <button type="button" onClick={() => setRejecting({ id: p._id, reason: '' })} className="rounded-lg border border-danger-border px-3 py-1.5 text-xs font-bold text-danger">
-                                বাতিল
+                                {tr("বাতিল")}
                               </button>
                             </div>
                           ))}

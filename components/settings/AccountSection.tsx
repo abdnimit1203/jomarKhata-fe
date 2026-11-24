@@ -82,7 +82,7 @@ export function AccountSection({
 
   if (auth.status !== 'authenticated') {
     return (
-      <section className="space-y-2.5 rounded-3xl bg-white p-4 shadow-card" aria-label="অ্যাকাউন্ট ও রেফারেল">
+      <section className="space-y-2.5 rounded-3xl bg-tile-indigo-bg p-4 shadow-card" aria-label="অ্যাকাউন্ট ও রেফারেল">
         <h2 className="text-sm font-semibold text-ink">অ্যাকাউন্ট ও রেফারেল</h2>
         <p className="text-sm text-ink-muted">
           গেস্ট মোড — কোনো আইডি বা কোড এখনও নেই। লগইন করলে নিজের রেফারেল কোড পাবেন; সেই কোডে কেউ সাবস্ক্রিপশন নিলে আপনি ফ্রি মাস পাবেন।
@@ -105,7 +105,7 @@ export function AccountSection({
   const share = `https://wa.me/?text=${encodeURIComponent(referralShareText(user.referralCode, origin))}`;
   return (
     // Compact on purpose (owner): the shop settings are the focus; account and referral sit quietly below.
-    <section className="space-y-1 rounded-3xl bg-white p-4 shadow-card" aria-label="অ্যাকাউন্ট ও রেফারেল">
+    <section className="space-y-1 rounded-3xl bg-tile-indigo-bg p-4 shadow-card" aria-label="অ্যাকাউন্ট ও রেফারেল">
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-sm font-semibold text-ink">
           অ্যাকাউন্ট

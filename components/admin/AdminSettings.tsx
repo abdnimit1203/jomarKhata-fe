@@ -5,6 +5,7 @@
  * The shell (AdminShell) already checked super admin.
  */
 import React, { useEffect, useState } from 'react';
+import { useFmtDate, useNum, useTr } from './i18n';
 import { Plus, Trash2 } from 'lucide-react';
 import { adminFetch } from './adminApi';
 
@@ -37,6 +38,9 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 export function AdminSettings() {
+  const tr = useTr();
+  const fd = useFmtDate();
+  const num = useNum();
   const [s, setS] = useState<SettingsValue | null>(null);
   const [chatIds, setChatIds] = useState('');
   const [botReady, setBotReady] = useState(false);
@@ -55,7 +59,7 @@ export function AdminSettings() {
   }, []);
 
   if (err) return <p className="text-danger">{err}</p>;
-  if (!s) return <p className="text-ink-muted">লোড হচ্ছে…</p>;
+  if (!s) return <p className="text-ink-muted">{tr("লোড হচ্ছে…")}</p>;
 
   const setPlan = (i: number, patch: Partial<Plan>) => setS({ ...s, plans: s.plans.map((p, j) => (j === i ? { ...p, ...patch } : p)) });
 
@@ -79,61 +83,61 @@ export function AdminSettings() {
   return (
     <form onSubmit={save} className="max-w-3xl space-y-5">
       <section className={card}>
-        <h2 className="font-bold text-tile-indigo-fg">প্ল্যান ও দাম</h2>
+        <h2 className="font-bold text-tile-indigo-fg">{tr("প্ল্যান ও দাম")}</h2>
         <div className="space-y-2">
           {s.plans.map((p, i) => (
             <div key={i} className="grid grid-cols-[1fr_6rem_7rem_2.5rem] items-center gap-2">
-              <input className={input} value={p.label} onChange={(e) => setPlan(i, { label: e.target.value })} aria-label="প্ল্যানের নাম" placeholder="যেমন: ৬ মাস" />
-              <input className={input} type="number" min={1} value={p.days} onChange={(e) => setPlan(i, { days: Number(e.target.value) })} aria-label="দিন" />
-              <input className={input} type="number" min={0} value={p.price} onChange={(e) => setPlan(i, { price: Number(e.target.value) })} aria-label="দাম (টাকা)" />
-              <button type="button" aria-label="মুছুন" disabled={s.plans.length <= 1} onClick={() => setS({ ...s, plans: s.plans.filter((_, j) => j !== i) })} className="flex h-10 items-center justify-center rounded-xl text-danger disabled:opacity-30">
+              <input className={input} value={p.label} onChange={(e) => setPlan(i, { label: e.target.value })} aria-label={tr("প্ল্যানের নাম")} placeholder={tr("যেমন: ৬ মাস")} />
+              <input className={input} type="number" min={1} value={p.days} onChange={(e) => setPlan(i, { days: Number(e.target.value) })} aria-label={tr("দিন")} />
+              <input className={input} type="number" min={0} value={p.price} onChange={(e) => setPlan(i, { price: Number(e.target.value) })} aria-label={tr("দাম (টাকা)")} />
+              <button type="button" aria-label={tr("মুছুন")} disabled={s.plans.length <= 1} onClick={() => setS({ ...s, plans: s.plans.filter((_, j) => j !== i) })} className="flex h-10 items-center justify-center rounded-xl text-danger disabled:opacity-30">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
           ))}
-          <p className="text-xs text-ink-muted">নাম · দিন · দাম (টাকা)। অ্যাপের ‘নবায়ন’ পাতায় এগুলোই দেখাবে।</p>
+          <p className="text-xs text-ink-muted">{tr("নাম · দিন · দাম (টাকা)। অ্যাপের ‘নবায়ন’ পাতায় এগুলোই দেখাবে।")}</p>
           <button type="button" onClick={() => setS({ ...s, plans: [...s.plans, { key: `p${Date.now().toString(36)}`, label: '', days: 30, price: 0 }] })} className="flex items-center gap-1 text-sm font-bold text-primary-ink">
-            <Plus className="h-4 w-4" /> প্ল্যান যোগ করুন
+            <Plus className="h-4 w-4" /> {tr("প্ল্যান যোগ করুন")}
           </button>
         </div>
       </section>
 
       <section className={card}>
-        <h2 className="font-bold text-tile-green-fg">পেমেন্টের নম্বর ও সাহায্য</h2>
+        <h2 className="font-bold text-tile-green-fg">{tr("পেমেন্টের নম্বর ও সাহায্য")}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="বিকাশ নম্বর">
+          <Field label={tr("বিকাশ নম্বর")}>
             <input className={input} value={s.paymentNumbers.bkash} onChange={(e) => setS({ ...s, paymentNumbers: { ...s.paymentNumbers, bkash: e.target.value } })} />
           </Field>
-          <Field label="নগদ নম্বর">
+          <Field label={tr("নগদ নম্বর")}>
             <input className={input} value={s.paymentNumbers.nagad} onChange={(e) => setS({ ...s, paymentNumbers: { ...s.paymentNumbers, nagad: e.target.value } })} />
           </Field>
-          <Field label="ব্যাংক অ্যাকাউন্ট">
+          <Field label={tr("ব্যাংক অ্যাকাউন্ট")}>
             <input className={input} value={s.paymentNumbers.bank} onChange={(e) => setS({ ...s, paymentNumbers: { ...s.paymentNumbers, bank: e.target.value } })} />
           </Field>
-          <Field label="WhatsApp হেল্পলাইন" hint='অ্যাপের "সাহায্য দরকার?" বাটনে যাবে।'>
+          <Field label={tr("WhatsApp হেল্পলাইন")} hint='অ্যাপের "সাহায্য দরকার?" বাটনে যাবে।'>
             <input className={input} value={s.supportWhatsApp} onChange={(e) => setS({ ...s, supportWhatsApp: e.target.value })} placeholder="01XXXXXXXXX" />
           </Field>
         </div>
       </section>
 
       <section className={card}>
-        <h2 className="font-bold text-tile-sky-fg">ট্রায়াল ও রেফারেল</h2>
+        <h2 className="font-bold text-tile-sky-fg">{tr("ট্রায়াল ও রেফারেল")}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="ফ্রি ট্রায়াল (দিন)" hint="শুধু নতুন অ্যাকাউন্টে খাটবে।">
+          <Field label={tr("ফ্রি ট্রায়াল (দিন)")} hint={tr("শুধু নতুন অ্যাকাউন্টে খাটবে।")}>
             <input type="number" min={0} max={365} className={input} value={s.trialDays} onChange={(e) => setS({ ...s, trialDays: Number(e.target.value) })} />
           </Field>
-          <Field label="রেফারেল কমিশন (%)" hint="বদলালে শুধু পরের পেমেন্টে খাটবে।">
+          <Field label={tr("রেফারেল কমিশন (%)")} hint={tr("বদলালে শুধু পরের পেমেন্টে খাটবে।")}>
             <input type="number" min={0} max={100} className={input} value={Math.round(s.referralRate * 100)} onChange={(e) => setS({ ...s, referralRate: Number(e.target.value) / 100 })} />
           </Field>
         </div>
       </section>
 
       <section className={card}>
-        <h2 className="font-bold text-tile-gold-fg">টেলিগ্রাম অ্যালার্ট</h2>
+        <h2 className="font-bold text-tile-gold-fg">{tr("টেলিগ্রাম অ্যালার্ট")}</h2>
         <p className={`text-sm font-semibold ${botReady ? 'text-success' : 'text-danger'}`}>
           {botReady ? 'বট চালু আছে (token সার্ভারের .env-এ)।' : 'বট token সেট করা নেই (সার্ভারের .env-এ TELEGRAM_BOT_TOKEN দিন)।'}
         </p>
-        <Field label="কাকে মেসেজ যাবে (chat ID, কমা দিয়ে একাধিক)" hint="@userinfobot থেকে নিজের ID নিন। বটকে একবার /start পাঠাতে হবে।">
+        <Field label={tr("কাকে মেসেজ যাবে (chat ID, কমা দিয়ে একাধিক)")} hint={tr("@userinfobot থেকে নিজের ID নিন। বটকে একবার /start পাঠাতে হবে।")}>
           <input className={input} value={chatIds} onChange={(e) => setChatIds(e.target.value)} placeholder="123456789" />
         </Field>
       </section>

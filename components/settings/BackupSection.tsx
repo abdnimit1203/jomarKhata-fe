@@ -107,7 +107,7 @@ export function BackupSection({ part = 'main' }: { part?: 'main' | 'danger' }) {
   }
 
   return (
-    <section className="space-y-4 rounded-3xl bg-white p-5 shadow-card">
+    <section className="space-y-4 rounded-3xl bg-tile-green-bg p-5 shadow-card">
       <div className="flex items-start gap-3">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-primary-ink">
           <DatabaseBackup className="h-5 w-5" />

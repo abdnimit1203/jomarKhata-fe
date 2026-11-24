@@ -117,7 +117,7 @@ function SettingsProfileForm({ profile }: { profile: BusinessProfile }) {
         </div>
       </section>
 
-      <section className="space-y-3.5 rounded-3xl bg-white p-5 shadow-card">
+      <section className="space-y-3.5 rounded-3xl bg-tile-sky-bg p-5 shadow-card">
         <div>
           <h2 className="text-sm font-semibold text-ink">শুরুতে কত টাকা ছিল</h2>
           <p className="text-xs text-ink-muted">
@@ -216,7 +216,7 @@ export function SettingsView() {
       />
 
       {/* greeting on the home screen and in messages (shopkeepers of every faith) */}
-      <section className="space-y-2.5 rounded-3xl bg-white p-5 shadow-card">
+      <section className="space-y-2.5 rounded-3xl bg-tile-purple-bg p-5 shadow-card">
         <h2 className="text-sm font-semibold text-ink">হোমে সম্ভাষণ</h2>
         <SegmentedControl
           aria-label="সম্ভাষণ"
@@ -266,7 +266,7 @@ export function SettingsView() {
         </a>
       )}
 
-      <section className="space-y-3.5 rounded-3xl bg-white p-5 shadow-card">
+      <section className="space-y-3.5 rounded-3xl bg-tile-slate-bg p-5 shadow-card">
         <div className="flex items-start gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-primary-ink">
             <Database className="h-5 w-5" />
