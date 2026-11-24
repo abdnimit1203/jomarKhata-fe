@@ -83,6 +83,7 @@ A compact map of the project for anyone (human or tool) starting work. Kept up t
 - **Honesty:** no fake login, sync, cloud or prices. Anything a backend would do says so plainly.
 - **Feature colour families:** green = sale/money-in, blue = purchase, orange = dues, red = expense/money-out, teal = supplier payment, indigo = stock, purple = parties, sky = reports, gold = cash, slate = settings.
 
+- **Login:** `lib/auth-firebase.ts` (Firebase via dynamic import → `POST /auth/session` on jomarKhata-be) and `lib/api.ts`. The session is cached in `appMeta.session` (`jomarkhataService.getSession/saveSession`). Context exposes `auth`, `completeSignIn` and `signOut`. Guest / test mode = `auth.status === 'local'`. Backend: `../jomarKhata-be` (README there).
 - **First screens:** `WelcomeScreen` (one button → `AuthScreen`; banner `/brand/welcome-banner.webp`, precached in `public/sw.js`). `AuthScreen.onTryWithoutLogin` is TEMPORARY: it shows only while `provider.available` is false.
 - **First-run guide:** `components/onboarding/FirstRunGuide.tsx`. A step = a row in `STEPS` + a `data-guide="<id>"` on the element. Replay with `replayGuide()`.
 - **Version:** bump `package.json` "version" for every phone release (`lib/version.ts` reads it; shown in Settings, used on tutorial videos).

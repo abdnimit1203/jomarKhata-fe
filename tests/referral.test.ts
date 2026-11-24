@@ -70,7 +70,7 @@ describe('profile: account & referral section', () => {
   });
 
   it('is on the profile (settings) screen', () => {
-    expect(read('components/views/SettingsView.tsx')).toMatch(/<AccountSection auth=\{auth\} \/>/);
+    expect(read('components/views/SettingsView.tsx')).toContain('<AccountSection auth={auth}');
   });
 });
 

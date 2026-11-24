@@ -5,7 +5,8 @@ import { SheetGuardContext } from '@/lib/sheet-guard';
 import { toFriendlyError } from '@/lib/errors';
 import { timed } from '@/lib/perf';
 import { decideAccess, type AccessDecision, type CachedSubscription } from '@/lib/access-policy';
-import { LOCAL_AUTH, type AuthState } from '@/lib/auth';
+import { authFromSession, LOCAL_AUTH, type AuthState } from '@/lib/auth';
+import { authProvider, refreshSession } from '@/lib/auth-firebase';
 
 /** Actions that change records. Blocked when access is read-only (view + export always work). */
 const WRITE_ACTION = /^(create|edit|void|record|update|adjust|set|restore|clear)/;
@@ -78,8 +79,12 @@ interface JomarkhataContextValue {
   mode: DbMode;
   /** navigator.storage.persist() result: true = the browser won't evict data under storage pressure. */
   storagePersisted: boolean | null;
-  /** S10: always `local` until a real auth provider exists (no fake login). */
+  /** `local` = guest / test mode (this phone only); `authenticated` = real backend session. */
   auth: AuthState;
+  /** Call after a successful provider sign-in: caches the session on the phone. */
+  completeSignIn: (state: AuthState) => Promise<void>;
+  /** Firebase sign-out + forget the cached session. The khata on this phone is kept. */
+  signOut: () => Promise<void>;
   /** S10 access policy (7-day grace → read-only). Local mode is always full. */
   access: AccessDecision;
   error: string | null;
@@ -225,6 +230,33 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
   const [mode, setMode] = useState<DbMode>('real');
   const [storagePersisted, setStoragePersisted] = useState<boolean | null>(null);
   const [access, setAccess] = useState<AccessDecision>(() => decideAccess(null));
+  const [auth, setAuth] = useState<AuthState>(LOCAL_AUTH);
+  // Cached session first (works offline), then a quiet online refresh.
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const cached = await jomarkhataService.getSession().catch(() => null);
+      if (!alive || !cached) return;
+      setAuth(authFromSession(cached));
+      const fresh = await refreshSession();
+      if (!alive || !fresh || fresh.status !== 'authenticated') return;
+      await jomarkhataService.saveSession(fresh.user).catch(() => {});
+      setAuth(fresh);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const completeSignIn = useCallback(async (state: AuthState) => {
+    if (state.status !== 'authenticated') return;
+    await jomarkhataService.saveSession(state.user);
+    setAuth(state);
+  }, []);
+  const signOut = useCallback(async () => {
+    await authProvider.signOut().catch(() => {});
+    await jomarkhataService.saveSession(null);
+    setAuth(LOCAL_AUTH);
+  }, []);
   const accessRef = useRef(access);
   useEffect(() => {
     accessRef.current = access; // read by write guards outside render
@@ -251,7 +283,7 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
     return () => {
       alive = false;
     };
-  }, [phase]);
+  }, [phase, auth]);
   useEffect(() => {
     // Ask the browser to keep IndexedDB even when the phone is low on space (plan 7.1).
     const st = typeof navigator !== 'undefined' ? navigator.storage : undefined;
@@ -655,10 +687,15 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
       refresh,
       actions: safeActions,
       storagePersisted,
-      auth: LOCAL_AUTH,
+      auth,
+      completeSignIn,
+      signOut,
       access,
     }),
     [
+      auth,
+      completeSignIn,
+      signOut,
       access,
       storagePersisted,
       safeActions,

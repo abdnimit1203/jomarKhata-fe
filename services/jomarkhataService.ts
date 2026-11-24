@@ -13,6 +13,7 @@ import { mergeRows } from '@/lib/snapshot-merge';
 import { BACKUP_TABLES, buildBackupFile, parseBackup, type BackupData, type BackupPreview } from '@/lib/backup';
 import { JOMARKHATA_DB_VERSION } from '@/db/jomarkhataDb';
 import { timed } from '@/lib/perf';
+import type { AuthUser } from '@/lib/auth';
 import type { CachedSubscription } from '@/lib/access-policy';
 import { computePartyRunningTimeline } from '@/services/financeCalculator';
 import { formatTaka, generateId } from '@/lib/format';
@@ -625,6 +626,29 @@ export const jomarkhataService = {
   },
 
   /** Last server-verified subscription (backend phase). Local mode has none → never restricted. */
+  /** Signed-in account cached on this phone (so the app opens offline). null = guest / test mode. */
+  async getSession(): Promise<AuthUser | null> {
+    return (await getMeta<AuthUser>(getRealDb(), 'session')) ?? null;
+  },
+
+  /** Save (or clear) the session; also caches its subscription for the offline access policy. */
+  async saveSession(user: AuthUser | null): Promise<void> {
+    const db = getRealDb();
+    if (!user) {
+      await db.appMeta.bulkDelete(['session', 'subscription']);
+      return;
+    }
+    await setMeta(db, 'session', user);
+    if (user.subscription) {
+      const sub: CachedSubscription = {
+        status: user.subscription.status,
+        expiresAt: user.subscription.expiresAt,
+        serverTime: user.serverTime ?? new Date().toISOString(),
+      };
+      await setMeta(db, 'subscription', sub);
+    }
+  },
+
   async getCachedSubscription(): Promise<CachedSubscription | null> {
     return (await getMeta<CachedSubscription>(getRealDb(), 'subscription')) ?? null;
   },

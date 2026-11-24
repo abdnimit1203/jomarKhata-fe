@@ -4,10 +4,10 @@ import React, { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { RestoreFlow } from '@/components/settings/RestoreFlow';
 import { AuthScreen } from './AuthScreen';
+import { useJomarkhata } from '@/context/JomarkhataContext';
 
 interface WelcomeScreenProps {
-  /** Start the owner's own khata (opens the shop setup form). Reached only from the sign-in screen
-   *  while accounts don't exist yet (see AuthScreen `onTryWithoutLogin`). */
+  /** Open the shop setup form: after signing in, or in guest / test mode. */
   onStart: () => void;
 }
 
@@ -21,9 +21,20 @@ interface WelcomeScreenProps {
  * temporary "try without login" path; that path disappears by itself once a real provider is available.
  */
 export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
+  const { completeSignIn } = useJomarkhata();
   const [showAuth, setShowAuth] = useState(false);
   const [showRestore, setShowRestore] = useState(false);
-  if (showAuth) return <AuthScreen onBack={() => setShowAuth(false)} onTryWithoutLogin={onStart} />;
+  if (showAuth)
+    return (
+      <AuthScreen
+        onBack={() => setShowAuth(false)}
+        onGuest={onStart}
+        onSignedIn={async (state) => {
+          await completeSignIn(state);
+          onStart(); // signed in: set up the shop (name, owner, phone)
+        }}
+      />
+    );
 
   return (
     <div className="relative min-h-dvh overflow-hidden bg-gradient-to-b from-secondary via-canvas to-canvas">

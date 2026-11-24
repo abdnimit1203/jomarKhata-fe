@@ -42,7 +42,16 @@ function CopyRow({ label, value, icon }: { label: string; value: string; icon: R
   );
 }
 
-export function AccountSection({ auth }: { auth: AuthState }) {
+export function AccountSection({
+  auth,
+  onLogin,
+  onLogout,
+}: {
+  auth: AuthState;
+  /** Guest / test mode → open the sign-in screen. */
+  onLogin?: () => void;
+  onLogout?: () => void;
+}) {
   const rate = (auth.status === 'authenticated' && auth.user.referralStats?.commissionRate) || REFERRAL_COMMISSION_RATE;
   const percent = formatBanglaNumber(Math.round(rate * 100));
   const promoter = auth.status === 'authenticated' && auth.user.referralStats?.referrerType === 'promoter';
@@ -51,13 +60,22 @@ export function AccountSection({ auth }: { auth: AuthState }) {
     return (
       <section className="space-y-2.5 rounded-3xl bg-white p-5 shadow-card" aria-label="অ্যাকাউন্ট ও রেফারেল">
         <h2 className="text-sm font-semibold text-ink">অ্যাকাউন্ট ও রেফারেল</h2>
+        <p className="rounded-2xl bg-warning-soft p-3 text-xs font-semibold text-warning-ink">
+          আপনি গেস্ট / টেস্ট মোডে আছেন। হিসাব শুধু এই ফোনে, কোনো আইডি বা কোড এখনও নেই।
+        </p>
         <p className="text-sm text-ink-muted">
-          অ্যাকাউন্ট চালু হলে এখানে আপনার ইউজার আইডি আর নিজের রেফারেল কোড দেখাবে, কপি করার বাটনসহ। আপনার কোড দিয়ে কেউ
+          লগইন করলে এখানে আপনার ইউজার আইডি আর নিজের রেফারেল কোড দেখাবে, কপি করার বাটনসহ। আপনার কোড দিয়ে কেউ
           অ্যাকাউন্ট খুলে সাবস্ক্রিপশন নিলে আপনি ফ্রি মাস পাবেন।
         </p>
-        <p className="rounded-2xl bg-warning-soft p-3 text-xs font-semibold text-warning-ink">
-          অ্যাকাউন্ট এখনও চালু হয়নি, তাই কোনো আইডি বা কোড এখনও নেই।
-        </p>
+        {onLogin && (
+          <button
+            type="button"
+            onClick={onLogin}
+            className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-primary-gradient text-base font-bold text-on-primary shadow-sm"
+          >
+            লগইন / নতুন অ্যাকাউন্ট
+          </button>
+        )}
       </section>
     );
   }
@@ -104,6 +122,12 @@ export function AccountSection({ auth }: { auth: AuthState }) {
       >
         <Share2 className="h-4 w-4" /> WhatsApp-এ কোড পাঠান
       </a>
+      <p className="text-xs text-ink-muted">{user.email}</p>
+      {onLogout && (
+        <button type="button" onClick={onLogout} className="min-h-11 w-full rounded-2xl border border-border-strong text-sm font-bold text-ink">
+          লগআউট
+        </button>
+      )}
     </section>
   );
 }

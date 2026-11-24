@@ -6,6 +6,7 @@ import { replayGuide } from '@/components/onboarding/FirstRunGuide';
 import { appVersionLabel } from '@/lib/version';
 import { BackupSection } from '@/components/settings/BackupSection';
 import { AccountSection } from '@/components/settings/AccountSection';
+import { AuthScreen } from '@/components/onboarding/AuthScreen';
 import { InstallCard } from '@/components/pwa/PwaPrompts';
 import { supportLink } from '@/lib/support';
 import { useJomarkhata } from '@/context/JomarkhataContext';
@@ -164,7 +165,9 @@ function SettingsProfileForm({ profile }: { profile: BusinessProfile }) {
 }
 
 export function SettingsView() {
-  const { data, actions, showToast, mode, auth, navigate } = useJomarkhata();
+  const { data, actions, showToast, mode, auth, navigate, completeSignIn, signOut } = useJomarkhata();
+  const [showAuth, setShowAuth] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
   // the guide points at the home screen and bottom bar
   const goHome = () => navigate('dashboard');
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
@@ -199,7 +202,31 @@ export function SettingsView() {
         </div>
       </section>
 
-      <AccountSection auth={auth} />
+      <AccountSection auth={auth} onLogin={() => setShowAuth(true)} onLogout={() => setConfirmLogout(true)} />
+      {showAuth && (
+        <div className="fixed inset-0 z-[80] overflow-y-auto bg-canvas">
+          <AuthScreen
+            onBack={() => setShowAuth(false)}
+            onSignedIn={async (state) => {
+              await completeSignIn(state);
+              setShowAuth(false);
+              showToast('লগইন হয়েছে।');
+            }}
+          />
+        </div>
+      )}
+      <ConfirmDialog
+        open={confirmLogout}
+        title="লগআউট করবেন?"
+        description="এই ফোনের হিসাব মুছবে না। আবার লগইন করলে আগের মতো চলবে।"
+        confirmLabel="হ্যাঁ, লগআউট"
+        onCancel={() => setConfirmLogout(false)}
+        onConfirm={async () => {
+          await signOut();
+          setConfirmLogout(false);
+          showToast('লগআউট হয়েছে।', 'info');
+        }}
+      />
 
       <SettingsProfileForm
         key={data.businessProfile.updatedAt}

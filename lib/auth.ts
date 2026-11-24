@@ -1,8 +1,9 @@
 /**
- * Auth interface (S10, plan §7.2). NO FAKE AUTHENTICATION:
- * - The auth state has exactly two shapes. Only `local` is reachable today.
- * - `authenticated` can only be produced by a real provider adapter (Firebase in the backend phase),
- *   and none exists yet. `NoBackendAuthProvider` refuses every sign-in honestly.
+ * Auth interface. NO FAKE AUTHENTICATION:
+ * - Two shapes: `local` (guest / test mode: the khata stays on this phone only) and `authenticated`.
+ * - `authenticated` is produced ONLY from a real backend session (`authFromSession`), after Firebase
+ *   sign-in and `POST /auth/session` (lib/auth-firebase.ts), or from that session cached on the phone.
+ * - Without Firebase + API config, `noBackendAuthProvider` refuses every sign-in honestly.
  */
 export interface AuthUser {
   /** Server-generated, easy-to-read account ID for support, e.g. JK-4827-1935 (D29). Never a login credential. */
@@ -10,6 +11,10 @@ export interface AuthUser {
   email: string;
   displayName: string;
   phone?: string;
+  role?: 'user' | 'super_admin';
+  subscription?: { status: 'trial' | 'active' | 'expired'; plan?: string; expiresAt: string };
+  /** Server time when this record was fetched (clock-safe access policy). */
+  serverTime?: string;
   /** Unique, server-generated code this user shares with others (see lib/referral.ts). */
   referralCode: string;
   /** Server-reported referral results; the app never calculates commission itself. */
@@ -37,24 +42,34 @@ export class AuthUnavailableError extends Error {
   }
 }
 
+/** Accounts are email-based (owner rule): Google, or email + password. */
 export interface AuthProvider {
   readonly available: boolean;
   signInWithGoogle(options?: SignUpOptions): Promise<AuthState>;
-  sendOtp(phone: string): Promise<{ requestId: string }>;
-  verifyOtp(requestId: string, code: string, options?: SignUpOptions): Promise<AuthState>;
+  signInWithEmail(email: string, password: string): Promise<AuthState>;
+  signUpWithEmail(email: string, password: string, options?: SignUpOptions): Promise<AuthState>;
+  sendPasswordReset(email: string): Promise<void>;
   signOut(): Promise<void>;
 }
 
-/** Today's provider: there is no backend, so every sign-in is refused. */
+/** The only way to build an authenticated state: from the backend's user record. */
+export function authFromSession(user: AuthUser): AuthState {
+  return { status: 'authenticated', user };
+}
+
+/** Used when Firebase / API settings are missing: every sign-in is refused. */
 export const noBackendAuthProvider: AuthProvider = {
   available: false,
   async signInWithGoogle() {
     throw new AuthUnavailableError();
   },
-  async sendOtp() {
+  async signInWithEmail() {
     throw new AuthUnavailableError();
   },
-  async verifyOtp() {
+  async signUpWithEmail() {
+    throw new AuthUnavailableError();
+  },
+  async sendPasswordReset() {
     throw new AuthUnavailableError();
   },
   async signOut() {

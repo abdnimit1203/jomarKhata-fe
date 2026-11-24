@@ -4,6 +4,31 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### 0.3.0: real login + backend v1, 2026-11-24
+- **Backend repo `jomarKhata-be` (new; Express 5 + TypeScript + Mongoose; hosted off Vercel):**
+  - Firebase ID-token auth
+  - `POST /auth/session` creates the account on first login: unique account ID (`JK-1234-5678`), unique referral code, 30-day trial, optional referral link-up, Telegram alert
+  - `/me`, `/subscription`, `/config`, `/admin/me` (super admin by email)
+  - security: helmet, CORS allow-list, rate limit, blocked accounts refused
+  - **no passwords stored** (Firebase keeps them)
+  - 7 API tests with in-memory MongoDB
+- **App sign-in:**
+  - Google, or email + password (sign in / new account / forgot password)
+  - optional referral code at sign-up
+  - **"গেস্ট / টেস্ট মোড" is always offered:** the khata stays on this phone only and nothing is sent anywhere
+  - mobile OTP removed (accounts are email-based)
+- **The Firebase SDK is code-split:** it loads only on sign-in or a session refresh, never at app start (checked on the production build).
+- **Session handling:**
+  - the session is cached on the phone (`appMeta.session`), so the app opens signed-in **offline**
+  - when online it quietly refreshes `/me` (subscription, referral numbers)
+  - the session's subscription feeds the existing offline access policy
+- **Settings → অ্যাকাউন্ট ও রেফারেল:** guest mode shows "লগইন / নতুন অ্যাকাউন্ট"; when signed in it shows the user ID and referral code with copy buttons, and লগআউট (the khata on the phone is kept).
+- **Env:**
+  - `.env.example` lists `NEXT_PUBLIC_API_URL` and the 4 `NEXT_PUBLIC_FIREBASE_*` values
+  - `.env.local` is created empty (git-ignored)
+  - login turns on only when all are set
+- **Not yet:** cloud sync of khata data, payments, admin panel (next steps).
+
 ### 0.2.0: simple start for shopkeepers, 2026-11-24
 - **Welcome has one choice:**
   - a full-screen illustration (the owner's image, 760 KB → 74 KB WebP, cached by the service worker `jk-shell-v5` so it shows offline)
