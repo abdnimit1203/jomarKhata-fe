@@ -92,6 +92,9 @@
     background-color: var(--color-canvas);
     color: var(--color-ink);
     -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-primary) var(--color-canvas);
   }
 
   body {
@@ -106,6 +109,27 @@
     outline: 2px solid var(--color-primary-ink);
     outline-offset: 2px;
   }
+}
+
+/* Custom scrollbar matching brand theme */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-canvas);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 9999px;
+  border: 1px solid var(--color-canvas);
+  transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-hover);
 }
 
 .tabular-nums {
@@ -141,6 +165,20 @@
   border-radius: 9999px;
   background: var(--color-success);
   animation: jk-pulse 2.4s ease-out infinite;
+}
+
+/* Animated download icon (subtle bounce / drop to catch the eye) */
+@keyframes jk-download-drop {
+  0%, 100% {
+    transform: translateY(-1.5px);
+  }
+  50% {
+    transform: translateY(2px);
+  }
+}
+
+.animate-download-drop {
+  animation: jk-download-drop 1.3s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
