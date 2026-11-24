@@ -29,6 +29,11 @@ describe('routing: landing at /, app at /app', () => {
   it('the main calls to action open the app', () => {
     expect((landing.match(/href="\/app"/g) ?? []).length).toBeGreaterThanOrEqual(3);
   });
+
+  it('renders PWA install button in header and hero', () => {
+    expect(landing).toMatch(/<PwaInstallButton variant="header" \/>/);
+    expect(landing).toMatch(/<PwaInstallButton variant="hero" \/>/);
+  });
 });
 
 describe('honest claims only (plan §7.2, AGENTS rule 14)', () => {

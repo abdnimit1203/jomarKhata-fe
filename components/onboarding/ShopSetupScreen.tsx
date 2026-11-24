@@ -20,6 +20,7 @@ const inputClass =
  */
 export function ShopSetupScreen({ onBack }: { onBack: () => void }) {
   const { actions } = useJomarkhata();
+  const [showOther, setShowOther] = useState(false);
   const [shopName, setShopName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [phone, setPhone] = useState('');
@@ -135,13 +136,18 @@ export function ShopSetupScreen({ onBack }: { onBack: () => void }) {
               <h2 className="text-base font-bold text-ink">এখন হাতে কত টাকা আছে?</h2>
               <p className="text-sm text-ink-muted">না জানলে খালি রাখুন, পরে দেওয়া যাবে।</p>
             </div>
+            {/* Cash first; bKash / Nagad / bank only if the owner wants them (keeps the first screen short) */}
             <div className="grid grid-cols-2 gap-3">
               {(
                 [
                   ['ক্যাশ', cash, setCash],
-                  ['বিকাশ', bkash, setBkash],
-                  ['নগদ', nagad, setNagad],
-                  ['ব্যাংক', bank, setBank],
+                  ...(showOther
+                    ? ([
+                        ['বিকাশ', bkash, setBkash],
+                        ['নগদ', nagad, setNagad],
+                        ['ব্যাংক', bank, setBank],
+                      ] as const)
+                    : []),
                 ] as const
               ).map(([label, value, set]) => (
                 <div key={label}>
@@ -150,6 +156,11 @@ export function ShopSetupScreen({ onBack }: { onBack: () => void }) {
                 </div>
               ))}
             </div>
+            {!showOther && (
+              <button type="button" onClick={() => setShowOther(true)} className="min-h-11 text-sm font-bold text-primary-ink">
+                + বিকাশ, নগদ বা ব্যাংকে টাকা আছে?
+              </button>
+            )}
           </section>
 
           {error && (

@@ -4,6 +4,7 @@ import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { FeatureIcon, type FeatureTone } from '@/components/ui/FeatureIcon';
 import { WelcomeIllustration } from '@/components/onboarding/WelcomeIllustration';
 import { StandaloneRedirect } from './StandaloneRedirect';
+import { PwaInstallButton } from './PwaInstallButton';
 import { DEVELOPER, SITE_DESCRIPTION, siteUrl } from '@/lib/seo';
 
 /** schema.org SoftwareApplication with the developer as author (Google rich results). */
@@ -88,23 +89,27 @@ export function LandingPage() {
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-border bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link href="/" className="flex items-center gap-2.5 transition-transform duration-200 hover:scale-[1.02]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/brand/logo-mark.png" alt="" width={36} height={36} className="h-9 w-9" />
             <span className="text-lg font-extrabold text-primary-ink">জমারখাতা</span>
           </Link>
           <nav aria-label="পেজের অংশ" className="hidden items-center gap-6 text-sm font-semibold text-ink-muted md:flex">
-            <a href="#features" className="hover:text-ink">ফিচার</a>
-            <a href="#how" className="hover:text-ink">কীভাবে কাজ করে</a>
-            <a href="#install" className="hover:text-ink">ইনস্টল</a>
-            <a href="#faq" className="hover:text-ink">প্রশ্নোত্তর</a>
+            <a href="#features" className="transition-colors hover:text-ink">ফিচার</a>
+            <a href="#how" className="transition-colors hover:text-ink">কীভাবে কাজ করে</a>
+            <a href="#install" className="transition-colors hover:text-ink">ইনস্টল</a>
+            <a href="#faq" className="transition-colors hover:text-ink">প্রশ্নোত্তর</a>
           </nav>
-          <Link
-            href="/app"
-            className="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary-gradient px-4 text-sm font-bold text-on-primary shadow-sm"
-          >
-            অ্যাপ খুলুন
-          </Link>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <PwaInstallButton variant="header" />
+            <span aria-hidden="true" className="h-5 w-px bg-border-strong" />
+            <Link
+              href="/app"
+              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary-gradient px-4 text-sm font-bold text-on-primary shadow-sm transition-all duration-200 hover:scale-[1.03] active:scale-95"
+            >
+              অ্যাপ খুলুন
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -127,16 +132,11 @@ export function LandingPage() {
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/app"
-                  className="inline-flex min-h-13 items-center justify-center gap-2 rounded-full bg-primary-gradient px-6 text-base font-bold text-on-primary shadow-hero"
+                  className="inline-flex min-h-13 items-center justify-center gap-2 rounded-full bg-primary-gradient px-6 text-base font-bold text-on-primary shadow-hero transition-all duration-200 hover:scale-[1.02] active:scale-95"
                 >
                   এখনই শুরু করুন <ArrowRight className="h-5 w-5" />
                 </Link>
-                <a
-                  href="#install"
-                  className="inline-flex min-h-13 items-center justify-center gap-2 rounded-full border border-border-strong bg-white px-6 text-base font-bold text-ink"
-                >
-                  <Download className="h-5 w-5" /> ফোনে ইনস্টল করুন
-                </a>
+                <PwaInstallButton variant="hero" />
               </div>
               <ul className="mt-5 space-y-1.5 text-sm font-semibold text-ink-muted">
                 {['দুই ট্যাপে বিক্রি লেখা', 'পাওনা-দেনা সবসময় পরিষ্কার', 'ক্যাশ · বিকাশ · নগদ · ব্যাংক আলাদা'].map((t) => (
@@ -156,7 +156,7 @@ export function LandingPage() {
         <section aria-label="মূল সুবিধা" className="mx-auto max-w-6xl px-4">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {TRUST.map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-2.5 rounded-2xl bg-white p-3.5 shadow-card">
+              <div key={text} className="flex items-center gap-2.5 rounded-2xl bg-white p-3.5 shadow-card transition-all duration-200 hover:-translate-y-0.5">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary-ink">
                   <Icon className="h-5 w-5" />
                 </span>
@@ -172,7 +172,7 @@ export function LandingPage() {
           <p className="mt-2 text-base text-ink-muted">রঙ দেখেই চেনা যায় কোন বাটন কী কাজের।</p>
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map((f) => (
-              <div key={f.title} className="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-card">
+              <div key={f.title} className="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-card transition-all duration-200 hover:-translate-y-0.5">
                 <FeatureIcon tone={f.tone}>
                   <AppIcon name={f.icon} />
                 </FeatureIcon>
@@ -191,7 +191,7 @@ export function LandingPage() {
             <h2 className="text-2xl font-extrabold md:text-3xl">৩ ধাপে শুরু</h2>
             <ol className="mt-6 grid gap-3 md:grid-cols-3">
               {STEPS.map((s, i) => (
-                <li key={s.title} className="rounded-2xl bg-canvas p-5">
+                <li key={s.title} className="rounded-2xl bg-canvas p-5 transition-all duration-200 hover:-translate-y-0.5">
                   <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-gradient text-base font-extrabold text-on-primary">
                     {['১', '২', '৩'][i]}
                   </span>
@@ -210,7 +210,7 @@ export function LandingPage() {
         <section id="install" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-14">
           <h2 className="text-2xl font-extrabold md:text-3xl">ফোনে ইনস্টল করবেন যেভাবে</h2>
           <div className="mt-6 grid gap-3 md:grid-cols-2">
-            <div className="rounded-2xl bg-white p-5 shadow-card">
+            <div className="rounded-2xl bg-white p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5">
               <h3 className="text-lg font-bold">Android (Chrome)</h3>
               <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-ink-muted">
                 <li>Chrome-এ এই সাইট খুলে “অ্যাপ খুলুন” চাপুন।</li>
@@ -218,7 +218,7 @@ export function LandingPage() {
                 <li>হোম স্ক্রিনের জমারখাতা আইকন থেকে খুলুন।</li>
               </ol>
             </div>
-            <div className="rounded-2xl bg-white p-5 shadow-card">
+            <div className="rounded-2xl bg-white p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5">
               <h3 className="text-lg font-bold">iPhone (Safari)</h3>
               <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-ink-muted">
                 <li>Safari-তে এই সাইট খুলে “অ্যাপ খুলুন” চাপুন।</li>
@@ -235,16 +235,16 @@ export function LandingPage() {
             <h2 className="text-2xl font-extrabold md:text-3xl">প্রশ্নোত্তর</h2>
             <div className="mt-6 space-y-2.5">
               {FAQ.map((f) => (
-                <details key={f.q} className="group rounded-2xl bg-canvas p-4 open:shadow-card">
+                <details key={f.q} className="group rounded-2xl bg-canvas p-4 transition-all duration-200 open:bg-white open:shadow-card">
                   <summary className="cursor-pointer list-none text-base font-bold marker:hidden">
                     <span className="flex items-center justify-between gap-3">
                       {f.q}
-                      <span aria-hidden="true" className="text-primary-ink transition-transform group-open:rotate-45">
+                      <span aria-hidden="true" className="text-primary-ink transition-transform duration-200 group-open:rotate-45">
                         +
                       </span>
                     </span>
                   </summary>
-                  <p className="mt-2 text-sm text-ink-muted">{f.a}</p>
+                  <p className="mt-2 text-sm text-ink-muted leading-relaxed">{f.a}</p>
                 </details>
               ))}
             </div>
@@ -258,7 +258,7 @@ export function LandingPage() {
             <p className="mt-2 text-base text-on-primary">খাতা-কলমের ঝামেলা ছাড়া, ফোনেই।</p>
             <Link
               href="/app"
-              className="mt-5 inline-flex min-h-13 items-center gap-2 rounded-full bg-white px-7 text-base font-bold text-primary-ink"
+              className="mt-5 inline-flex min-h-13 items-center gap-2 rounded-full bg-white px-7 text-base font-bold text-primary-ink shadow-sm transition-all duration-200 hover:scale-[1.03] active:scale-95"
             >
               অ্যাপ খুলুন <ArrowRight className="h-5 w-5" />
             </Link>

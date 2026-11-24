@@ -10,13 +10,22 @@ import { normalizeReferralCode, referralFromSearch } from '@/lib/referral';
  * Sign in / sign up (S10, UI-NOW / BE-LATER). Google first; Bangladeshi mobile OTP as the second
  * option (D26). With no backend the provider refuses honestly: no session is ever created here.
  */
-export function AuthScreen({ onBack, provider = noBackendAuthProvider }: { onBack: () => void; provider?: AuthProvider }) {
+export function AuthScreen({
+  onBack,
+  onTryWithoutLogin,
+  provider = noBackendAuthProvider,
+}: {
+  onBack: () => void;
+  /** TEMPORARY (until the backend exists): start a local khata. Shown only while sign-in is unavailable. */
+  onTryWithoutLogin?: () => void;
+  provider?: AuthProvider;
+}) {
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // Optional referral code (only used when a new account is created). `?ref=CODE` pre-fills it.
-  const [referral, setReferral] = useState(() => (typeof window !== 'undefined' ? referralFromSearch(window.location.search) ?? '' : ''));
+  const [referral, setReferral] = useState(() => (typeof window !== 'undefined' ? referralFromSearch(window.location?.search ?? '') ?? '' : ''));
   const [referralError, setReferralError] = useState<string | null>(null);
 
   /** undefined = none given; null = given but invalid (blocks sign-up until fixed or cleared). */
@@ -70,6 +79,15 @@ export function AuthScreen({ onBack, provider = noBackendAuthProvider }: { onBac
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
             অ্যাকাউন্ট ও লগইন এখনও চালু হয়নি। আপাতত হিসাব এই ফোনেই থাকবে — নিয়মিত ব্যাকআপ ফাইল রাখুন।
           </p>
+        )}
+        {!provider.available && onTryWithoutLogin && (
+          <button
+            type="button"
+            onClick={onTryWithoutLogin}
+            className="mt-3 flex min-h-12 w-full items-center justify-center rounded-2xl border border-border-strong bg-white px-4 text-base font-bold text-ink"
+          >
+            আপাতত লগইন ছাড়া শুরু করুন
+          </button>
         )}
 
         <div className="mt-5 space-y-4 rounded-3xl bg-white p-5 shadow-card">

@@ -83,6 +83,10 @@ A compact map of the project for anyone (human or tool) starting work. Kept up t
 - **Honesty:** no fake login, sync, cloud or prices. Anything a backend would do says so plainly.
 - **Feature colour families:** green = sale/money-in, blue = purchase, orange = dues, red = expense/money-out, teal = supplier payment, indigo = stock, purple = parties, sky = reports, gold = cash, slate = settings.
 
+- **First screens:** `WelcomeScreen` (one button → `AuthScreen`; banner `/brand/welcome-banner.webp`, precached in `public/sw.js`). `AuthScreen.onTryWithoutLogin` is TEMPORARY: it shows only while `provider.available` is false.
+- **First-run guide:** `components/onboarding/FirstRunGuide.tsx`. A step = a row in `STEPS` + a `data-guide="<id>"` on the element. Replay with `replayGuide()`.
+- **Version:** bump `package.json` "version" for every phone release (`lib/version.ts` reads it; shown in Settings, used on tutorial videos).
+- **Future (not built): tutorial "দেখুন" links.** Plan: one registry `lib/tutorials.ts` (`{ feature: 'sale' | 'dues' | …, url, version }`) and one `<TutorialLink feature="…" />` that renders nothing offline or when no URL is set. Feature screens only add that one tag.
 - **Referral / user ID:** `components/settings/AccountSection.tsx` (profile) and `lib/referral.ts`. The values always come from the server (`AuthUser.referralCode`, `referralStats`), never from the app. Sign-up sends an optional `referralCode`. Contract: BACKEND_CONTRACT §8.
 - **Date filters:** any list filtered by date uses `usePeriodFilter` + `<PeriodFilter>` (`components/ui/PeriodFilter.tsx`), which includes any month + year. Don't add a new period selector.
 

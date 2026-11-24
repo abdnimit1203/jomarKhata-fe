@@ -100,7 +100,7 @@ export function DashboardView() {
             </div>
           )}
         {/* 1. Compact hero: cash in hand + পাওনা / দেনা (all-time balances) */}
-        <section className="relative overflow-hidden rounded-3xl bg-primary-gradient p-4 text-on-primary shadow-hero lg:p-6">
+        <section data-guide="hero" className="relative overflow-hidden rounded-3xl bg-primary-gradient p-4 text-on-primary shadow-hero lg:p-6">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full bg-white/10 blur-2xl"

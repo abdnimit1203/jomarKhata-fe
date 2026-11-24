@@ -46,6 +46,7 @@ import { StockView } from '@/components/views/StockView';
 import { ReportsView } from '@/components/views/ReportsView';
 import { SettingsView } from '@/components/views/SettingsView';
 import { WelcomeScreen } from '@/components/onboarding/WelcomeScreen';
+import { FirstRunGuide } from '@/components/onboarding/FirstRunGuide';
 import { ShopSetupScreen } from '@/components/onboarding/ShopSetupScreen';
 import { LegacyChoiceScreen } from '@/components/onboarding/LegacyChoiceScreen';
 import type { AppRoute } from '@/types/domain';
@@ -55,7 +56,7 @@ const DESKTOP_NAV: Array<{ id: AppRoute; label: string; icon: React.ComponentTyp
   { id: 'sales', label: 'বিক্রির হিসাব', icon: ShoppingBag },
   { id: 'purchases', label: 'কেনার হিসাব', icon: ShoppingCart },
   { id: 'dues', label: 'বাকি', icon: BookOpen },
-  { id: 'ledger', label: 'সব লেনদেন (লেজার)', icon: BookText },
+  { id: 'ledger', label: 'সব লেনদেন', icon: BookText },
   { id: 'cash', label: 'দৈনিক ক্যাশ ও খরচ', icon: Wallet },
   { id: 'stock', label: 'স্টকের হিসাব', icon: Package },
   { id: 'reports', label: 'ব্যবসার রিপোর্ট', icon: BarChart3 },
@@ -139,10 +140,7 @@ export function AppShell() {
         {setupOpen ? (
           <ShopSetupScreen onBack={() => setSetupOpen(false)} />
         ) : (
-          <WelcomeScreen
-            onStart={() => setSetupOpen(true)}
-            onDemo={() => void actions.enterDemo()}
-          />
+          <WelcomeScreen onStart={() => setSetupOpen(true)} />
         )}
       </>
     );
@@ -182,6 +180,8 @@ export function AppShell() {
   return (
     <div className="min-h-dvh bg-canvas text-ink">
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      {/* first-run guide: real khata, home screen, once per phone */}
+      <FirstRunGuide enabled={!isLoading && !error && phase === 'ready' && mode === 'real' && isHome} />
 
       <div className="flex min-h-dvh">
         {/* Desktop Left Sidebar (lg+) */}
@@ -381,6 +381,7 @@ export function AppShell() {
                     type="button"
                     onClick={tab.onClick}
                     aria-label="নতুন লেনদেন যোগ করুন"
+                    data-guide="add"
                     className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-primary-gradient text-on-primary shadow-hero ring-4 ring-white transition-transform active:scale-95"
                   >
                     <Plus className="h-7 w-7" strokeWidth={2.5} />
@@ -393,6 +394,7 @@ export function AppShell() {
                 key={tab.id}
                 type="button"
                 onClick={tab.onClick}
+                data-guide={tab.id}
                 aria-current={tab.active ? 'page' : undefined}
                 className={`flex min-h-[48px] flex-col items-center justify-center gap-0.5 transition-colors ${
                   tab.active ? 'text-primary-ink' : 'text-ink-subtle'

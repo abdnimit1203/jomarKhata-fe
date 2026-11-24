@@ -91,7 +91,7 @@ export function MoreSheet({ onClose }: { onClose: () => void }) {
           onClick={() => openSheet({ type: 'sync_status' })}
           className="flex min-h-12 items-center gap-3 rounded-2xl bg-surface-muted px-3.5 text-left text-sm font-semibold text-ink"
         >
-          <RefreshCw className="h-4 w-4 text-primary-ink" /> সিঙ্ক অবস্থা
+          <RefreshCw className="h-4 w-4 text-primary-ink" /> হিসাব কোথায় রাখা আছে
         </button>
         {help && (
           <a

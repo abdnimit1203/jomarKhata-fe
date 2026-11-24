@@ -63,6 +63,10 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
   const [note, setNote] = useState(() => editSale?.note ?? '');
   const [dateValue, setDateValue] = useState(() => toDateInputValue(editSale?.date ?? new Date().toISOString()));
   const [editReason, setEditReason] = useState('');
+  // optional details start folded; open when an edited sale already has any of them
+  const [showMore, setShowMore] = useState(
+    () => !!editSale && (editSale.discount > 0 || !!editSale.note || (editSale.mode === 'quick' && !!editSale.description))
+  );
 
 
   const [formError, setFormError] = useState<string | null>(null);
@@ -327,27 +331,7 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
               </div>
             )}
 
-            <div>
-              <label className="mb-1 block text-xs text-ink-muted">কী বিক্রি করলেন (ঐচ্ছিক)</label>
-              <input
-                type="text"
-                value={quickDescription}
-                onChange={(e) => setQuickDescription(e.target.value)}
-                placeholder="যেমন: চাল-ডাল, চা-বিস্কুট, খুচরা মালামাল"
-                className="h-11 w-full rounded-xl border border-border-strong bg-white px-3.5 text-sm text-ink placeholder:text-ink-subtle focus:border-primary-ink focus:outline-none"
-              />
-            </div>
 
-            <div>
-              <label className="mb-1 block text-xs text-ink-muted">
-                ক্রয়মূল্য (ঐচ্ছিক — দিলে সঠিক লাভ হিসাব হবে)
-              </label>
-              <NumericInput
-                value={quickOptionalCost}
-                onChange={(raw) => setQuickOptionalCost(raw)}
-                placeholder="না জানা থাকলে খালি রাখুন"
-              />
-            </div>
           </div>
         ) : (
           <div className="space-y-3">
@@ -466,15 +450,62 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
           </div>
         )}
 
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-ink-muted">ছাড় (ঐচ্ছিক)</label>
-          <NumericInput value={discountRaw} onChange={(raw) => setDiscountRaw(raw)} placeholder="০" />
-          {discount > 0 && (
-            <p className="mt-1 text-sm font-semibold text-ink-muted tabular-nums">
-              মোট {formatTaka(subtotal)} − ছাড় {formatTaka(discount)} = {formatTaka(total)}
-            </p>
-          )}
-        </div>
+        {/* Optional details stay folded so the form is short (owner: simple for shopkeepers). */}
+        {showMore ? (
+          <div className="space-y-3 rounded-2xl border border-border bg-white p-4">
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-ink-muted">ছাড় (ঐচ্ছিক)</label>
+              <NumericInput value={discountRaw} onChange={(raw) => setDiscountRaw(raw)} placeholder="০" />
+              {discount > 0 && (
+                <p className="mt-1 text-sm font-semibold text-ink-muted tabular-nums">
+                  মোট {formatTaka(subtotal)} − ছাড় {formatTaka(discount)} = {formatTaka(total)}
+                </p>
+              )}
+            </div>
+{mode === 'quick' && (
+              <>
+              <div>
+                <label className="mb-1 block text-xs text-ink-muted">কী বিক্রি করলেন (ঐচ্ছিক)</label>
+                <input
+                  type="text"
+                  value={quickDescription}
+                  onChange={(e) => setQuickDescription(e.target.value)}
+                  placeholder="যেমন: চাল-ডাল, চা-বিস্কুট, খুচরা মালামাল"
+                  className="h-11 w-full rounded-xl border border-border-strong bg-white px-3.5 text-sm text-ink placeholder:text-ink-subtle focus:border-primary-ink focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-ink-muted">
+                  ক্রয়মূল্য (ঐচ্ছিক — দিলে সঠিক লাভ হিসাব হবে)
+                </label>
+                <NumericInput
+                  value={quickOptionalCost}
+                  onChange={(raw) => setQuickOptionalCost(raw)}
+                  placeholder="না জানা থাকলে খালি রাখুন"
+                />
+              </div>
+              </>
+            )}
+            <div>
+              <label className="mb-1 block text-xs text-ink-muted">নোট / মন্তব্য (ঐচ্ছিক)</label>
+              <input
+                type="text"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="সংক্ষিপ্ত নোট লিখুন"
+                className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink placeholder:text-ink-subtle focus:border-primary-ink focus:bg-white focus:outline-none"
+              />
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowMore(true)}
+            className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-border-strong bg-white text-sm font-bold text-primary-ink"
+          >
+            + আরও তথ্য (ছাড়, বিবরণ, নোট — ঐচ্ছিক)
+          </button>
+        )}
 
         <div className="space-y-3 rounded-2xl border border-border bg-white p-4">
           <div className="flex items-center justify-between gap-2">
@@ -557,16 +588,6 @@ export function SaleFormSheet({ open, editSale, onClose }: SaleFormSheetProps) {
           <DateInput value={dateValue} onChange={setDateValue} aria-label="বিক্রির তারিখ" />
         </div>
 
-        <div>
-          <label className="mb-1 block text-xs text-ink-muted">নোট / মন্তব্য (ঐচ্ছিক)</label>
-          <input
-            type="text"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="সংক্ষিপ্ত নোট লিখুন"
-            className="h-11 w-full rounded-xl border border-border-strong bg-surface px-3.5 text-sm text-ink placeholder:text-ink-subtle focus:border-primary-ink focus:bg-white focus:outline-none"
-          />
-        </div>
       </form>
     </ModalSheet>
   );
