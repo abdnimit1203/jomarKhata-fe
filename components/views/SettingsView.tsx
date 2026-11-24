@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Database, FlaskConical, Hand, RotateCcw, Save, Store } from 'lucide-react';
+import { Database, FlaskConical, Hand, LogOut, RotateCcw, Save, Store } from 'lucide-react';
 import { replayGuide } from '@/components/onboarding/FirstRunGuide';
 import { appVersionLabel } from '@/lib/version';
 import { GREETINGS, setGreetingKey, useGreetingKey, type GreetingKey } from '@/lib/greeting';
@@ -266,9 +266,9 @@ export function SettingsView() {
         </a>
       )}
 
-      <section className="space-y-3.5 rounded-3xl bg-tile-slate-bg p-5 shadow-card">
+      <section className="space-y-3.5 rounded-3xl border-accent border-2 p-5 shadow-card">
         <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-primary-ink">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary">
             <Database className="h-5 w-5" />
           </span>
           <div>
@@ -289,7 +289,7 @@ export function SettingsView() {
               goHome();
               replayGuide();
             }}
-            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-secondary text-sm font-bold text-primary-ink"
+            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-bold text-on-primary"
           >
             <Hand className="h-4 w-4" />
             <span>অ্যাপ চালানো শিখুন</span>
@@ -320,12 +320,15 @@ export function SettingsView() {
 
       {/* Bottom of the page: sign-out and the one dangerous action, away from everyday settings. */}
       <section className="space-y-2.5 pt-2">
+
         {auth.status === 'authenticated' && (
+
           <button
             type="button"
             onClick={() => setConfirmLogout(true)}
-            className="flex h-11 w-full items-center justify-center rounded-2xl bg-white text-sm font-bold text-danger shadow-card"
+            className="flex h-11 w-full items-center justify-center rounded-2xl bg-danger text-sm font-bold text-white shadow-card"
           >
+            <LogOut className='h-4 w-4 m-2' />
             লগআউট
           </button>
         )}
