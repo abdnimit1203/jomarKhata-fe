@@ -2,88 +2,75 @@
 
 import React, { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
-import { WelcomeIllustration } from './WelcomeIllustration';
 import { RestoreFlow } from '@/components/settings/RestoreFlow';
 import { AuthScreen } from './AuthScreen';
 
 interface WelcomeScreenProps {
-  /** Start the owner's own khata (opens the shop setup form). */
+  /** Start the owner's own khata (opens the shop setup form). Reached only from the sign-in screen
+   *  while accounts don't exist yet (see AuthScreen `onTryWithoutLogin`). */
   onStart: () => void;
-  /** Look around with sample data (separate demo database). */
-  onDemo: () => void;
 }
 
 /**
- * First screen when the user is not logged in. Layout follows the owner's reference theme
- * ("Main app THEME … first page"): brand on top, large headline, illustration, one big pill CTA,
- * and a secondary sign-in line.
+ * First screen (owner, 2026-11-24): ONE choice. Full-screen illustration (`/brand/welcome-banner.webp`,
+ * 74 KB, cached by the service worker so it shows offline), headline in the empty sky at the top,
+ * and at the bottom a fade with a single "শুরু করুন" button that goes to sign-in. Accounts are
+ * mandatory (email), so sign-in IS "start". Restoring from a backup file stays as a small link.
  *
- * Honest auth (plan §7.2): login needs the backend, so "লগইন করুন" only explains that accounts
- * are not available yet. It never creates a signed-in state. (D26: login becomes mandatory once
- * the backend exists; until then the khata is local to this phone.)
+ * Honest auth: sign-in needs the backend. Until it exists, the sign-in screen says so and offers a
+ * temporary "try without login" path; that path disappears by itself once a real provider is available.
  */
-export function WelcomeScreen({ onStart, onDemo }: WelcomeScreenProps) {
+export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
   const [showAuth, setShowAuth] = useState(false);
   const [showRestore, setShowRestore] = useState(false);
-  if (showAuth) return <AuthScreen onBack={() => setShowAuth(false)} />;
+  if (showAuth) return <AuthScreen onBack={() => setShowAuth(false)} onTryWithoutLogin={onStart} />;
 
   return (
-    <div className="min-h-dvh bg-gradient-to-b from-secondary via-canvas to-canvas">
-      <div className="mx-auto flex min-h-dvh max-w-md flex-col px-6 pt-10 pb-8">
-        {/* Brand */}
+    <div className="relative min-h-dvh overflow-hidden bg-gradient-to-b from-secondary via-canvas to-canvas">
+      {/* Illustration fills the screen; the brand gradient shows until it loads (and offline before first cache). */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/brand/welcome-banner.webp"
+        alt=""
+        aria-hidden="true"
+        width={720}
+        height={1280}
+        fetchPriority="high"
+        className="pointer-events-none absolute inset-0 mx-auto h-full w-full max-w-md object-cover object-[50%_60%]"
+      />
+      {/* Top fade keeps the headline readable over the shop roof */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[34%] bg-gradient-to-b from-secondary via-secondary/80 to-transparent" />
+      {/* Bottom fade so the button sits on a calm background */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-[45%] bg-gradient-to-t from-canvas via-canvas/90 to-transparent" />
+
+      <div className="relative mx-auto flex min-h-dvh max-w-md flex-col px-6 pt-10 pb-8">
+        {/* Brand + headline in the empty sky */}
         <div className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/logo-mark.png" alt="" width={40} height={40} className="h-10 w-10" />
           <span className="text-xl font-extrabold tracking-tight text-primary-ink">জমারখাতা</span>
         </div>
-
-        {/* Headline */}
-        <h1 className="mt-8 text-3xl leading-tight font-extrabold text-ink">
+        <h1 className="mt-6 text-3xl leading-tight font-extrabold text-ink">
           দোকানের সব হিসাব,
           <br />
           এক খাতায়।
         </h1>
-        <p className="mt-3 text-base font-medium text-ink-muted">
-          বেচা-কেনা, বাকি আর খরচ — ইন্টারনেট ছাড়াই আপনার ফোনে সহজে রাখুন।
-        </p>
+        <p className="mt-2 text-base font-semibold text-ink-muted">বাকি, বিক্রি, খরচ — ইন্টারনেট ছাড়াও।</p>
 
-        {/* Illustration */}
-        <div className="mt-6 flex flex-1 items-center justify-center">
-          <WelcomeIllustration className="h-auto w-full max-w-[340px]" />
-        </div>
+        <div className="flex-1" />
 
-        {/* Primary CTA */}
+        {/* One action */}
         <button
           type="button"
-          onClick={onStart}
-          className="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-primary-gradient px-6 text-base font-bold text-on-primary shadow-hero transition-colors hover:brightness-[0.97] active:scale-[0.99]"
+          onClick={() => setShowAuth(true)}
+          className="flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-primary-gradient px-6 text-lg font-bold text-on-primary shadow-hero transition-colors hover:brightness-[0.97] active:scale-[0.99]"
         >
-          <span>আমার খাতা শুরু করুন</span>
+          <span>শুরু করুন</span>
           <ArrowRight className="h-5 w-5" />
         </button>
-        <button
-          type="button"
-          onClick={onDemo}
-          className="mt-3 flex min-h-12 w-full items-center justify-center rounded-full border border-border-strong bg-white px-6 text-base font-bold text-ink"
-        >
-          আগে ডেমো দেখুন
-        </button>
-
-        {/* Secondary: sign in (backend not available yet) */}
-        <p className="mt-4 text-center text-sm font-medium text-ink-muted">
-          অ্যাকাউন্ট আছে?{' '}
-          <button
-            type="button"
-            onClick={() => setShowAuth(true)}
-            className="font-bold text-primary-ink underline-offset-4 hover:underline"
-          >
-            লগইন করুন
-          </button>
-        </p>
-
 
         {/* New phone / reinstalled app: bring the khata back from a backup file (S8). */}
-        <p className="mt-3 text-center text-sm font-medium text-ink-muted">
+        <p className="mt-4 text-center text-sm font-medium text-ink-muted">
           আগের হিসাবের ব্যাকআপ ফাইল আছে?{' '}
           <button
             type="button"

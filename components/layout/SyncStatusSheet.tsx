@@ -43,7 +43,7 @@ export function SyncStatusSheet({ onClose }: { onClose: () => void }) {
   const waiting = state ? state.counts.pending + state.counts.failed + state.counts.syncing + state.counts.needs_review : 0;
 
   return (
-    <ModalSheet open onClose={onClose} title="সিঙ্ক অবস্থা" subtitle={online ? 'ইন্টারনেট আছে' : 'ইন্টারনেট নেই — সমস্যা নেই, অ্যাপ চলবে'}>
+    <ModalSheet open onClose={onClose} title="হিসাব কোথায় রাখা আছে" subtitle={online ? 'ইন্টারনেট আছে' : 'ইন্টারনেট নেই — সমস্যা নেই, অ্যাপ চলবে'}>
       <div className="space-y-3 pb-2">
         <div className="flex items-start gap-3 rounded-2xl bg-tile-green-bg p-4">
           <Smartphone className="mt-0.5 h-5 w-5 shrink-0 text-tile-green-fg" />

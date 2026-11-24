@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Database, FlaskConical, RotateCcw, Save, Store } from 'lucide-react';
+import { Database, FlaskConical, Hand, RotateCcw, Save, Store } from 'lucide-react';
+import { replayGuide } from '@/components/onboarding/FirstRunGuide';
+import { appVersionLabel } from '@/lib/version';
 import { BackupSection } from '@/components/settings/BackupSection';
 import { AccountSection } from '@/components/settings/AccountSection';
 import { InstallCard } from '@/components/pwa/PwaPrompts';
@@ -114,7 +116,7 @@ function SettingsProfileForm({ profile }: { profile: BusinessProfile }) {
 
       <section className="space-y-3.5 rounded-3xl bg-white p-5 shadow-card">
         <div>
-          <h2 className="text-sm font-semibold text-ink">শুরুর ব্যালেন্স (Opening Balances)</h2>
+          <h2 className="text-sm font-semibold text-ink">শুরুতে কত টাকা ছিল</h2>
           <p className="text-xs text-ink-muted">
             বর্তমান ক্যাশ, বিকাশ, নগদ ও ব্যাংক ব্যালেন্স এই শুরুর ব্যালেন্স থেকে হিসাব হয়
           </p>
@@ -162,7 +164,9 @@ function SettingsProfileForm({ profile }: { profile: BusinessProfile }) {
 }
 
 export function SettingsView() {
-  const { data, actions, showToast, mode, auth } = useJomarkhata();
+  const { data, actions, showToast, mode, auth, navigate } = useJomarkhata();
+  // the guide points at the home screen and bottom bar
+  const goHome = () => navigate('dashboard');
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
@@ -224,19 +228,27 @@ export function SettingsView() {
           </span>
           <div>
             <h2 className="text-sm font-semibold text-ink">
-              ফোনের ডেটাবেস
+              অ্যাপ ও সাহায্য
             </h2>
             <p className="mt-1 text-xs leading-relaxed text-ink-muted">
-              আপনার সব হিসাব এই ফোনের ব্রাউজারে (IndexedDB) সংরক্ষিত। ক্লাউড ব্যাকআপ ও লগইন এখনও চালু হয়নি।
+              আপনার সব হিসাব এই ফোনেই রাখা আছে। নিয়মিত ব্যাকআপ নিন।
             </p>
-            <p className="mt-1.5 text-xs font-medium text-ink-muted tabular-nums">
-              লোকাল সিঙ্ক কিউ: {formatBanglaNumber(data.pendingSyncCount)}টি রেকর্ড · পরিবর্তনের রেকর্ড:{' '}
-              {formatBanglaNumber(data.auditLogs.length)}টি
-            </p>
+            <p className="mt-1.5 text-xs font-medium text-ink-muted tabular-nums">{appVersionLabel()}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-2.5 pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              goHome();
+              replayGuide();
+            }}
+            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-secondary text-sm font-bold text-primary-ink"
+          >
+            <Hand className="h-4 w-4" />
+            <span>অ্যাপ চালানো শিখুন</span>
+          </button>
           {mode === 'demo' ? (
             <button
               type="button"

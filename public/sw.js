@@ -11,7 +11,7 @@
  */
 // Bump VERSION whenever a file under /icons or /brand is replaced: those paths are served
 // cache-first, so phones keep the old copy until the cache name changes.
-const VERSION = 'jk-shell-v4';
+const VERSION = 'jk-shell-v5';
 const FEATURE_ICONS = [
   'add-plus', 'book-due', 'book-expense', 'book-purchase', 'book-sales', 'cashbox', 'due-collect',
   'expense', 'money-in', 'money-out', 'nav-home', 'nav-transactions', 'party-list', 'purchase',
@@ -26,6 +26,7 @@ const SHELL_URLS = [
   '/icons/icon-512.png',
   '/icons/icon-maskable-512.png',
   '/brand/logo-mark.png',
+  '/brand/welcome-banner.webp',
   ...FEATURE_ICONS,
 ];
 

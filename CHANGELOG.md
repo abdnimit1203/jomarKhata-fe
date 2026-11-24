@@ -4,6 +4,33 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### 0.2.0: simple start for shopkeepers, 2026-11-24
+- **Welcome has one choice:**
+  - a full-screen illustration (the owner's image, 760 KB → 74 KB WebP, cached by the service worker `jk-shell-v5` so it shows offline)
+  - the headline sits in the empty sky; the bottom fade carries one big **"শুরু করুন"** button that goes to sign-in, because accounts are mandatory
+  - "ফিরিয়ে আনুন" (restore from a backup file) stays as a small link
+  - **demo and the separate "start without account" are removed from the first screen**; demo stays in Settings for training and videos
+- **Sign-in screen:**
+  - while accounts don't exist yet (no backend), it says so honestly and offers **"আপাতত লগইন ছাড়া শুরু করুন"**
+  - the button is tied to `provider.available`, so it **disappears by itself** once a real sign-in provider exists
+- **First-run guide** (`components/onboarding/FirstRunGuide.tsx`):
+  - 5 short steps that dim the screen, highlight the real button, and point at it with a tapping hand: হাতের টাকা → + → বাকি → লেনদেন → আরও
+  - shown once on the real khata's home screen; "অ্যাপ চালানো শিখুন" in Settings replays it
+  - no library, works offline
+  - targets are `data-guide` attributes; a missing target is skipped
+- **Shorter forms:**
+  - the sale form folds discount, description, cost and note behind **"+ আরও তথ্য"** (open automatically when editing a sale that has them)
+  - shop setup asks for cash only; bKash, Nagad and bank are behind one link
+- **Plain words:**
+  - "সব লেনদেন (লেজার)" → "সব লেনদেন"
+  - "CSV ডাউনলোড" → "রিপোর্ট ফাইল নামান"
+  - "সিঙ্ক অবস্থা" → "হিসাব কোথায় রাখা আছে"
+  - "শুরুর ব্যালেন্স (Opening Balances)" → "শুরুতে কত টাকা ছিল"
+  - Settings' "ফোনের ডেটাবেস (IndexedDB) / লোকাল সিঙ্ক কিউ" → "অ্যাপ ও সাহায্য"
+- **App version:** `package.json` → `NEXT_PUBLIC_APP_VERSION` (next.config) → `lib/version.ts` and shown in Settings ("সংস্করণ ০.২.০"). Tutorial videos use the same number.
+- **Landing install button** (owner's): the icon is kept inside the button; decorative divider.
+- `tests/simple-start.test.ts` (9). 263/263 tests pass.
+
 ### Referral: two kinds of referrer; lint clean, 2026-11-23
 - **Two kinds of referrer** (owner decision; BACKEND_CONTRACT §8):
   - a **promoter** gets a cash commission (by default 20% for the first 6 months, then 10%)

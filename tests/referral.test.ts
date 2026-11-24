@@ -79,7 +79,7 @@ describe('sign-up: optional referral code', () => {
   it('has an optional field and sends the code with both sign-in methods', () => {
     expect(src).toMatch(/রেফারেল কোড <span[^>]*>\(ঐচ্ছিক\)/);
     expect(src).toMatch(/provider\.signInWithGoogle\(opt\)/);
-    expect(src).toMatch(/referralFromSearch\(window\.location\.search\)/);
+    expect(src).toContain('referralFromSearch(window.location?.search');
   });
   it('an empty field never blocks sign-up', () => {
     expect(src).toMatch(/if \(!referral\.trim\(\)\) return \{\};/);

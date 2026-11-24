@@ -94,7 +94,7 @@ export function ReportsView() {
     ];
     const csv = '\uFEFF' + rows.map((r) => r.join(',')).join('\n');
     downloadTextFile(`jomarkhata-report-${period === 'pick' ? `${picked.year}-${String(picked.month + 1).padStart(2, '0')}` : period}.csv`, csv, 'text/csv;charset=utf-8;');
-    showToast('রিপোর্ট CSV ডাউনলোড হয়েছে।');
+    showToast('রিপোর্ট ফাইল নামানো হয়েছে (Excel-এ খোলা যাবে)।');
   };
 
   return (
@@ -112,7 +112,7 @@ export function ReportsView() {
           className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-white px-4 text-xs font-semibold text-primary-ink shadow-card hover:bg-secondary"
         >
           <Download className="h-4 w-4" />
-          <span>CSV ডাউনলোড</span>
+          <span>রিপোর্ট ফাইল নামান</span>
         </button>
       </div>
 

@@ -167,6 +167,16 @@
   animation: jk-pulse 2.4s ease-out infinite;
 }
 
+/* First-run guide hand: gentle tap motion. Uses `translate` so it combines with the hand's rotation. */
+@keyframes jk-guide-tap {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 6px; }
+}
+.jk-guide-hand { animation: jk-guide-tap 1.1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .jk-guide-hand { animation: none; }
+}
+
 /* Animated download icon (subtle bounce / drop to catch the eye) */
 @keyframes jk-download-drop {
   0%, 100% {
