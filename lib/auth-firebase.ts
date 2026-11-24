@@ -67,6 +67,20 @@ export async function addReferral(referralCode: string): Promise<AuthState> {
   return authFromSession({ ...res.user, serverTime: res.serverTime });
 }
 
+/**
+ * Send the shop's identity (name, owner, phone) to the server so the owner's admin panel can find
+ * the shop. Only these three fields — never any khata data. Quietly skipped when offline.
+ */
+export async function syncShopProfile(p: { shopName: string; ownerName: string; phone: string }): Promise<void> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+  try {
+    const token = await currentIdToken();
+    if (token) await apiFetch('/me/profile', { token, method: 'PUT', body: p });
+  } catch {
+    /* next change or next start will try again */
+  }
+}
+
 /** Current Firebase ID token for API calls (waits for Firebase to restore the sign-in). null = signed out. */
 export async function currentIdToken(): Promise<string | null> {
   if (!loginConfigured) return null;

@@ -6,7 +6,7 @@ import { toFriendlyError } from '@/lib/errors';
 import { timed } from '@/lib/perf';
 import { decideAccess, type AccessDecision, type CachedSubscription } from '@/lib/access-policy';
 import { authFromSession, LOCAL_AUTH, type AuthState } from '@/lib/auth';
-import { authProvider, refreshSession } from '@/lib/auth-firebase';
+import { authProvider, refreshSession, syncShopProfile } from '@/lib/auth-firebase';
 
 /** Actions that change records. Blocked when access is read-only (view + export always work). */
 const WRITE_ACTION = /^(create|edit|void|record|update|adjust|set|restore|clear)/;
@@ -277,6 +277,13 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
     await jomarkhataService.setGuestMode(true);
     setGuestModeState(true);
   }, []);
+  // signed in → keep the shop's name / owner / phone on the server (for the admin panel's search)
+  const profileKey = data?.businessProfile ? `${data.businessProfile.shopName}|${data.businessProfile.ownerName}|${data.businessProfile.phone}` : '';
+  useEffect(() => {
+    if (auth.status !== 'authenticated' || !profileKey || mode !== 'real') return;
+    const [shopName, ownerName, phone] = profileKey.split('|');
+    void syncShopProfile({ shopName, ownerName, phone });
+  }, [auth.status, profileKey, mode]);
   const accessRef = useRef(access);
   useEffect(() => {
     accessRef.current = access; // read by write guards outside render

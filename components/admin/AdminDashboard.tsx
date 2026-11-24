@@ -16,6 +16,9 @@ export interface AdminUserRow {
   phone: string;
   shopName: string;
   displayName: string;
+  ownerName?: string;
+  /** 'google.com' | 'password' */
+  signInProvider?: string;
   role: string;
   status: 'active' | 'blocked';
   referralCode: string;
@@ -34,6 +37,18 @@ interface Stats {
   endingSoon: AdminUserRow[];
   signupsByDay: { day: string; users: number }[];
   revenueByMonth: { month: string; taka: number; orders: number }[];
+}
+
+/** Tiny badge: how the user signs in. */
+export function LoginBadge({ provider }: { provider?: string }) {
+  const tr = useTr();
+  if (!provider) return null;
+  const google = provider === 'google.com';
+  return (
+    <span className={`ml-1 rounded px-1 py-px text-xs font-bold ${google ? 'bg-tile-red-bg text-tile-red-fg' : 'bg-tile-slate-bg text-tile-slate-fg'}`}>
+      {google ? 'Google' : tr('ইমেইল')}
+    </span>
+  );
 }
 
 /** Users table (dashboard + users page). Row click opens the user. */
@@ -66,7 +81,7 @@ export function UsersTable({ users, empty = 'কাউকে পাওয়া 
                 {u.role === 'super_admin' && <span className="ml-1 text-xs font-bold text-primary-ink">{tr("(অ্যাডমিন)")}</span>}
               </td>
               <td className={`${TD} text-xs text-ink-muted`}>
-                {u.email}
+                {u.email} <LoginBadge provider={u.signInProvider} />
                 {u.phone && <div>{u.phone}</div>}
               </td>
               <td className={TD}>

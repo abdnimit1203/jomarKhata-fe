@@ -124,6 +124,11 @@ const EN: Record<string, string> = {
   'মেয়াদ বাড়ানো': 'Extended',
   'তারিখ ঠিক করা': 'Date set',
   'মেয়াদ শেষ করা': 'Expired',
+  'মালিক': 'Owner',
+  'রেফারেলের ধরন': 'Referral type',
+  'সাধারণ (ফ্রি মাস)': 'Regular (free months)',
+  'প্রচারক (কমিশন)': 'Promoter (commission)',
+  'কল': 'Call',
   // settings
   'সংরক্ষণ হয়েছে। অ্যাপে কয়েক মিনিটের মধ্যে বদলাবে।': 'Saved. The app updates within a few minutes.',
   'সংরক্ষণ করা যায়নি।': 'Could not save.',

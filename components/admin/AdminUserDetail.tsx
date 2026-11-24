@@ -12,7 +12,9 @@ import { DateInput } from '@/components/ui/DateInput';
 import { SimpleSelect } from '@/components/ui/select';
 import { formatBanglaNumber, formatTaka } from '@/lib/format';
 import { adminFetch } from './adminApi';
-import { type AdminUserRow, UsersTable } from './AdminDashboard';
+import { type AdminUserRow, LoginBadge, UsersTable } from './AdminDashboard';
+import { SegmentedControl } from '@/components/ui/segmented';
+import { toWhatsAppNumber } from '@/lib/dues';
 import { Pill, TABLE, TD, TH } from './AdminShell';
 
 interface LogRow {
@@ -76,6 +78,14 @@ export function AdminUserDetail({ accountId }: { accountId: string }) {
       setBusy(false);
     }
   };
+  const setReferrerType = async (referrerType: 'regular' | 'promoter') => {
+    try {
+      await adminFetch(`/admin/users/${encodeURIComponent(accountId)}/referrer-type`, { method: 'POST', body: { referrerType } });
+      load();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : tr('করা যায়নি।'));
+    }
+  };
   const setStatus = async (status: 'active' | 'blocked') => {
     try {
       await adminFetch(`/admin/users/${encodeURIComponent(accountId)}/status`, { method: 'POST', body: { status } });
@@ -111,13 +121,31 @@ export function AdminUserDetail({ accountId }: { accountId: string }) {
           </div>
           <dl className="grid grid-cols-[8rem_1fr] gap-y-1.5 text-sm">
             <dt className="text-ink-muted">{tr("ইমেইল")}</dt>
-            <dd>{u.email}</dd>
+            <dd>
+              {u.email} <LoginBadge provider={u.signInProvider} />
+            </dd>
+            <dt className="text-ink-muted">{tr('মালিক')}</dt>
+            <dd>{u.ownerName || '—'}</dd>
             <dt className="text-ink-muted">{tr("ফোন")}</dt>
             <dd>{u.phone || '—'}</dd>
             <dt className="text-ink-muted">{tr("অবস্থা")}</dt>
             <dd>{u.status === 'blocked' ? <span className="font-bold text-danger">{tr("বন্ধ")}</span> : 'চালু'}</dd>
             <dt className="text-ink-muted">{tr("রেফারেল কোড")}</dt>
             <dd className="font-mono font-bold">{u.referralCode}</dd>
+            <dt className="text-ink-muted">{tr('রেফারেলের ধরন')}</dt>
+            <dd>
+              <SegmentedControl
+                aria-label={tr('রেফারেলের ধরন')}
+                variant="chips"
+                size="sm"
+                value={u.referrerType === 'promoter' ? 'promoter' : 'regular'}
+                onValueChange={(v) => void setReferrerType(v as 'regular' | 'promoter')}
+                options={[
+                  { value: 'regular', label: tr('সাধারণ (ফ্রি মাস)') },
+                  { value: 'promoter', label: tr('প্রচারক (কমিশন)') },
+                ]}
+              />
+            </dd>
             <dt className="text-ink-muted">{tr("যাকে দিয়ে এসেছে")}</dt>
             <dd>
               {d.referredBy ? (
@@ -133,6 +161,22 @@ export function AdminUserDetail({ accountId }: { accountId: string }) {
             <dt className="text-ink-muted">{tr("শেষ দেখা")}</dt>
             <dd>{fd(u.lastSeenAt)}</dd>
           </dl>
+          {/* one-tap contact */}
+          <div className="flex flex-wrap gap-2 pt-2">
+            {u.phone && (
+              <a href={`tel:${u.phone}`} className="rounded-lg bg-tile-sky-bg px-3 py-1.5 text-xs font-bold text-tile-sky-fg">
+                {tr('কল')}
+              </a>
+            )}
+            {u.phone && toWhatsAppNumber(u.phone) && (
+              <a href={`https://wa.me/${toWhatsAppNumber(u.phone)}`} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-tile-green-bg px-3 py-1.5 text-xs font-bold text-tile-green-fg">
+                WhatsApp
+              </a>
+            )}
+            <a href={`mailto:${u.email}`} className="rounded-lg bg-tile-slate-bg px-3 py-1.5 text-xs font-bold text-tile-slate-fg">
+              {tr('ইমেইল')}
+            </a>
+          </div>
         </section>
 
         <section className="space-y-3 rounded-2xl bg-white p-5 shadow-card">
