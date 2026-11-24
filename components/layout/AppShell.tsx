@@ -47,6 +47,8 @@ import { ReportsView } from '@/components/views/ReportsView';
 import { SettingsView } from '@/components/views/SettingsView';
 import { WelcomeScreen } from '@/components/onboarding/WelcomeScreen';
 import { FirstRunGuide } from '@/components/onboarding/FirstRunGuide';
+import { AuthScreen } from '@/components/onboarding/AuthScreen';
+import { authProvider } from '@/lib/auth-firebase';
 import { ShopSetupScreen } from '@/components/onboarding/ShopSetupScreen';
 import { LegacyChoiceScreen } from '@/components/onboarding/LegacyChoiceScreen';
 import type { AppRoute } from '@/types/domain';
@@ -127,7 +129,11 @@ export function AppShell() {
     mode,
     actions,
     access,
+    auth,
+    completeSignIn,
   } = useJomarkhata();
+  // guest mode → one tap to sign in from anywhere (not hidden in Settings)
+  const [loginOpen, setLoginOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const pending = data?.pendingSyncCount ?? 0;
   const isHome = activeRoute === 'dashboard';
@@ -316,6 +322,33 @@ export function AppShell() {
                 {access.level === 'grace'
                   ? `সাবস্ক্রিপশনের মেয়াদ শেষ। আরও ${formatBanglaNumber(access.graceDaysLeft ?? 0)} দিন সব কাজ চলবে — এর মধ্যে নবায়ন করুন।`
                   : 'সাবস্ক্রিপশনের মেয়াদ শেষ। আপনার সব হিসাব দেখা ও ব্যাকআপ নেওয়া যাবে, কিন্তু নতুন কিছু লেখা যাবে না।'}
+              </div>
+            )}
+            {mode === 'real' && !isLoading && auth.status === 'local' && authProvider.available && (
+              <div
+                role="status"
+                className="mx-auto mb-4 flex max-w-6xl items-center justify-between gap-2 rounded-2xl bg-secondary px-4 py-2.5 text-sm font-semibold text-primary-ink"
+              >
+                <span>গেস্ট মোড — হিসাব শুধু এই ফোনে।</span>
+                <button
+                  type="button"
+                  onClick={() => setLoginOpen(true)}
+                  className="shrink-0 rounded-full bg-primary px-4 py-1.5 text-sm font-bold text-on-primary shadow-sm"
+                >
+                  লগইন
+                </button>
+              </div>
+            )}
+            {loginOpen && (
+              <div className="fixed inset-0 z-[80] overflow-y-auto bg-canvas">
+                <AuthScreen
+                  onBack={() => setLoginOpen(false)}
+                  onSignedIn={async (state) => {
+                    await completeSignIn(state);
+                    setLoginOpen(false);
+                    showToast('লগইন হয়েছে।');
+                  }}
+                />
               </div>
             )}
             {mode === 'demo' && !isLoading && (
