@@ -24,7 +24,8 @@ export function MonthYearPicker({
   className?: string;
 }) {
   const now = currentMonth();
-  const oldestYear = Math.min(now.year, ...years);
+  // at least 5 years back (old entries can be back-dated); never past the current month
+  const oldestYear = Math.min(now.year - 5, ...years);
   const [open, setOpen] = useState(false);
   const [sheetYear, setSheetYear] = useState(value.year);
 
