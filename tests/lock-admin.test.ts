@@ -18,8 +18,7 @@ describe('locked without a session', () => {
   const shell = read('components/layout/AppShell.tsx');
   const ctx = read('context/JomarkhataContext.tsx');
   it('no login and no guest choice → only the login screen (no home, no settings)', () => {
-    expect(shell).toMatch(/authProvider\.available && auth\.status === 'local' && !guestMode\) \{\s*return \(/);
-    expect(shell).toContain('onGuest={() => void chooseGuest()}');
+    expect(shell).toMatch(/authProvider\.available && auth\.status === 'local' && !guestMode\) \{[\s\S]{0,400}<WelcomeScreen onStart=\{\(\) => \{\}\} \/>/);
     expect(shell).toContain('if (!authReady && authProvider.available) return');
   });
   it('logout clears the session AND the guest choice', () => {

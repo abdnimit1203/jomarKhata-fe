@@ -160,17 +160,12 @@ export function AppShell() {
   // Nothing of the khata is visible until the person signs in or picks guest / test mode.
   if (!authReady && authProvider.available) return <div className="min-h-dvh bg-canvas" />;
   if (!isLoading && !error && phase !== 'welcome' && authProvider.available && auth.status === 'local' && !guestMode) {
+    // Same welcome page as the first visit (banner + "শুরু করুন" → sign in / guest). The khata already
+    // exists, so signing in or choosing guest simply unlocks it (no shop setup again).
     return (
       <>
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-        <AuthScreen
-          onBack={() => window.location.assign('/')}
-          onGuest={() => void chooseGuest()}
-          onSignedIn={async (state) => {
-            await completeSignIn(state);
-            showToast('লগইন হয়েছে।');
-          }}
-        />
+        <WelcomeScreen onStart={() => {}} />
       </>
     );
   }
