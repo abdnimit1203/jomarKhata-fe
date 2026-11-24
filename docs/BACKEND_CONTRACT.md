@@ -132,7 +132,16 @@ The UI is ready: `components/settings/AccountSection.tsx` (ID and code with copy
 - Later, optional: inline **Approve / Reject** buttons through a bot webhook, checked against the admin's Telegram ID.
 
 ### 9.1 Owner decisions, 2026-11-24
-- **The admin panel is a separate project** (its own repo or deploy, e.g. `jomarKhata-admin`), online-only, and may be heavy. **Nothing of it ships inside `/app`**, which stays small and offline-first.
+- **The admin panel lives in THIS frontend project, at `/admin`** (owner decision, 2026-11-24; this replaces the earlier "separate project" idea).
+  - It is its own route with its own layout, online-only, and may be heavy (tables, charts).
+  - Next.js splits code per route, so **nothing of `/admin` loads in `/app`**. A test must guard that `app/app/**` and `components/` used by `/app` never import from `components/admin/**`.
+  - `public/sw.js` never caches `/admin` (no precache, no offline fallback).
+  - `robots.ts` disallows `/admin`; the admin layout sets `noindex`; no link to it anywhere in the app or landing.
+  - **Security is the server, not the URL:**
+    1. Firebase login
+    2. `GET /admin/me` must return `role: 'super_admin'`; every `/admin/*` API checks the role on the server (D31)
+    3. otherwise the page shows nothing and the API returns 403
+  - The backend (Express + MongoDB) stays a separate server; the admin UI here calls it.
 - **One super admin (the owner)** manages everything. Super-admin rights live only on the server (role check, D31), never in the app bundle.
 - **Settings page** (super admin → সেটিংস), with every changeable value edited there and none hard-coded:
   - **payment numbers** (bKash, Nagad, bank account), shown to users on the payment screen
