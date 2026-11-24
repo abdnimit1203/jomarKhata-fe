@@ -4,6 +4,25 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### Admin dashboard + subscriptions, 2026-11-25
+- **Admin panel with a left sidebar** (`app/admin/(panel)/*` + `components/admin/AdminShell.tsx`): ড্যাশবোর্ড · সাবস্ক্রিপশন রিকোয়েস্ট (pending badge) · সাবস্ক্রিপশন অর্ডার · ইউজার · সেটিংস. Tables on the right. One super-admin check for every page.
+- **Dashboard:** coloured count boxes (total / trial / paid / expired / new payment requests), plus a table of subscriptions ending within 7 days.
+- **Users:** search by ID, email, phone, shop or referral code; filter trial / paid / expired / blocked; pages.
+- **User page:**
+  - profile; who referred them, and whom they referred
+  - **subscription:** +30 / +180 / +365 days or custom days, an exact end date, or expire now, with amount, method, TrxID and note; days are added on top of the remaining time
+  - block / unblock
+  - full subscription history
+- **Payment requests:**
+  - the shop owner picks a plan in the app (Settings → নবায়ন করুন), pays by bKash / Nagad / bank and sends the TrxID; Telegram alerts the owner
+  - the admin approves (the subscription extends automatically, once) or rejects with a reason
+  - approved requests are the **orders**
+- **Settings (in the sidebar):** plans and prices (editable list), payment numbers, WhatsApp help, trial days, referral %, Telegram chat IDs.
+- **`/admin/login`:** its own dark admin sign-in (no new account, guest or referral).
+- **In the app:** the account card shows the plan and end date ("… পর্যন্ত · N দিন বাকি", highlighted within 7 days) with **নবায়ন করুন**; the super admin sees a badge and an "অ্যাডমিন প্যানেল খুলুন" link.
+- **Backend (`jomarKhata-be`):** `/admin/stats|users|users/:id|…/subscription|…/status`, `/me/payments`, `/admin/payments` (+ approve/reject), `SubscriptionLog` and `PaymentRequest` models, plans in settings and `/config`. 16 API tests.
+- Admin colours are tokens (`--color-admin-*`).
+
 ### Lock after logout, simpler settings, greeting, admin settings, 404, 2026-11-25
 - **Bug fix (owner):** after logout the app no longer stays open as a guest. With no session and no guest choice, **only the login screen** shows; home, settings and every other screen are hidden.
   - Logout clears both the session and the guest choice (`appMeta.guestMode`).

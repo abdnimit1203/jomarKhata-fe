@@ -7,9 +7,32 @@
  */
 import React, { useState } from 'react';
 import { Check, Copy, Gift, IdCard, Share2 } from 'lucide-react';
-import type { AuthState } from '@/lib/auth';
+import type { AuthState, AuthUser } from '@/lib/auth';
 import { REFERRAL_COMMISSION_RATE, referralShareText } from '@/lib/referral';
-import { formatBanglaNumber, formatTaka } from '@/lib/format';
+import { formatBanglaNumber, formatTaka, toBanglaDigits } from '@/lib/format';
+import { RenewSheet } from './RenewSheet';
+
+/** "ট্রায়াল · ২৫/১২/২০২৬ পর্যন্ত · ৩০ দিন বাকি" + নবায়ন. */
+function SubscriptionLine({ sub, onRenew }: { sub: NonNullable<AuthUser['subscription']>; onRenew: () => void }) {
+  const end = new Date(sub.expiresAt);
+  const [now] = useState(() => Date.now()); // read once (render stays pure)
+  const left = Math.ceil((end.getTime() - now) / 86_400_000);
+  const expired = left <= 0;
+  const p = (n: number) => String(n).padStart(2, '0');
+  const date = toBanglaDigits(`${p(end.getDate())}/${p(end.getMonth() + 1)}/${end.getFullYear()}`);
+  const label = expired ? 'মেয়াদ শেষ' : sub.status === 'trial' ? 'ফ্রি ট্রায়াল' : 'সাবস্ক্রিপশন চালু';
+  return (
+    <div className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2 ${expired || left <= 7 ? 'bg-warning-soft' : 'bg-surface-muted'}`}>
+      <p className="text-xs">
+        <b>{label}</b> · {date} পর্যন্ত
+        {!expired && <span className="text-ink-muted"> · {formatBanglaNumber(left)} দিন বাকি</span>}
+      </p>
+      <button type="button" onClick={onRenew} className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-on-primary">
+        নবায়ন করুন
+      </button>
+    </div>
+  );
+}
 
 function CopyRow({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
   const [copied, setCopied] = useState(false);
@@ -52,6 +75,7 @@ export function AccountSection({
   onLogin?: () => void;
   onLogout?: () => void;
 }) {
+  const [renewOpen, setRenewOpen] = useState(false);
   const rate = (auth.status === 'authenticated' && auth.user.referralStats?.commissionRate) || REFERRAL_COMMISSION_RATE;
   const percent = formatBanglaNumber(Math.round(rate * 100));
   const promoter = auth.status === 'authenticated' && auth.user.referralStats?.referrerType === 'promoter';
@@ -83,9 +107,21 @@ export function AccountSection({
     // Compact on purpose (owner): the shop settings are the focus; account and referral sit quietly below.
     <section className="space-y-1 rounded-3xl bg-white p-4 shadow-card" aria-label="অ্যাকাউন্ট ও রেফারেল">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold text-ink">অ্যাকাউন্ট</h2>
+        <h2 className="text-sm font-semibold text-ink">
+          অ্যাকাউন্ট
+          {user.role === 'super_admin' && (
+            <span className="ml-1.5 rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-on-primary">সুপার অ্যাডমিন</span>
+          )}
+        </h2>
         <p className="truncate text-xs text-ink-muted">{user.email}</p>
       </div>
+      {user.subscription && <SubscriptionLine sub={user.subscription} onRenew={() => setRenewOpen(true)} />}
+      <RenewSheet open={renewOpen} onClose={() => setRenewOpen(false)} />
+      {user.role === 'super_admin' && (
+        <a href="/admin/dashboard" className="block py-1 text-xs font-bold text-primary-ink">
+          অ্যাডমিন প্যানেল খুলুন →
+        </a>
+      )}
       <div className="divide-y divide-border">
         <CopyRow label="ইউজার আইডি" value={user.accountId} icon={<IdCard className="h-4 w-4" />} />
         <CopyRow label="আমার রেফারেল কোড" value={user.referralCode} icon={<Gift className="h-4 w-4" />} />

@@ -1,61 +1,63 @@
 'use client';
 
 /**
- * /admin/settings: everything the owner changes without env or code (BACKEND_CONTRACT §9.1).
- * Online-only. Guarded: not signed in → /admin/login; not super admin → "no permission".
+ * Sidebar → সেটিংস: everything the owner changes without env or code (BACKEND_CONTRACT §9.1).
+ * The shell (AdminShell) already checked super admin.
  */
-import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
-import { authProvider } from '@/lib/auth-firebase';
-import { adminFetch, checkAdmin } from './adminApi';
+import { Plus, Trash2 } from 'lucide-react';
+import { adminFetch } from './adminApi';
 
+interface Plan {
+  key: string;
+  label: string;
+  days: number;
+  price: number;
+}
 interface SettingsValue {
   supportWhatsApp: string;
   trialDays: number;
   referralRate: number;
   paymentNumbers: { bkash: string; nagad: string; bank: string };
   telegramChatIds: string[];
+  plans: Plan[];
 }
 
 const input =
-  'h-11 w-full rounded-xl border border-border-strong bg-white px-3.5 text-base text-ink focus:border-primary-ink focus:outline-none';
+  'h-10 w-full rounded-xl border border-border-strong bg-white px-3 text-sm text-ink focus:border-primary-ink focus:outline-none';
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-sm font-semibold text-ink">{label}</span>
+      {children}
+      {hint && <span className="mt-1 block text-xs text-ink-muted">{hint}</span>}
+    </label>
+  );
+}
 
 export function AdminSettings() {
-  const router = useRouter();
-  const [state, setState] = useState<'loading' | 'ok' | 'forbidden' | 'error'>('loading');
   const [s, setS] = useState<SettingsValue | null>(null);
   const [chatIds, setChatIds] = useState('');
   const [botReady, setBotReady] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const r = await checkAdmin();
-        if (!alive) return;
-        if (r === 'login') return router.replace('/admin/login');
-        if (r === 'forbidden') return setState('forbidden');
-        const res = await adminFetch<{ settings: SettingsValue; telegramBotConfigured: boolean }>('/admin/settings');
-        if (!alive) return;
+    adminFetch<{ settings: SettingsValue; telegramBotConfigured: boolean }>('/admin/settings')
+      .then((res) => {
         setS(res.settings);
         setChatIds(res.settings.telegramChatIds.join(', '));
         setBotReady(res.telegramBotConfigured);
-        setState('ok');
-      } catch {
-        if (alive) setState('error');
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [router]);
+      })
+      .catch((e: unknown) => setErr(e instanceof Error ? e.message : 'লোড করা যায়নি।'));
+  }, []);
 
-  if (state === 'loading') return <p className="p-8 text-center text-ink-muted">লোড হচ্ছে…</p>;
-  if (state === 'forbidden') return <p className="p-8 text-center font-semibold text-danger">এই অ্যাকাউন্টের অ্যাডমিন অনুমতি নেই।</p>;
-  if (state === 'error' || !s)
-    return <p className="p-8 text-center font-semibold text-danger">সার্ভারে যোগাযোগ করা যায়নি। ইন্টারনেট দেখে আবার চেষ্টা করুন।</p>;
+  if (err) return <p className="text-danger">{err}</p>;
+  if (!s) return <p className="text-ink-muted">লোড হচ্ছে…</p>;
+
+  const setPlan = (i: number, patch: Partial<Plan>) => setS({ ...s, plans: s.plans.map((p, j) => (j === i ? { ...p, ...patch } : p)) });
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,65 +68,80 @@ export function AdminSettings() {
       const res = await adminFetch<{ settings: SettingsValue }>('/admin/settings', { method: 'PUT', body });
       setS(res.settings);
       setMsg({ ok: true, text: 'সংরক্ষণ হয়েছে। অ্যাপে কয়েক মিনিটের মধ্যে বদলাবে।' });
-    } catch (err) {
-      setMsg({ ok: false, text: err instanceof Error ? err.message : 'সংরক্ষণ করা যায়নি।' });
+    } catch (error) {
+      setMsg({ ok: false, text: error instanceof Error ? error.message : 'সংরক্ষণ করা যায়নি।' });
     } finally {
       setSaving(false);
     }
   };
 
-  const field = (label: string, el: React.ReactNode, hint?: string) => (
-    <label className="block">
-      <span className="mb-1 block text-sm font-semibold text-ink">{label}</span>
-      {el}
-      {hint && <span className="mt-1 block text-xs text-ink-muted">{hint}</span>}
-    </label>
-  );
-
+  const card = 'space-y-4 rounded-2xl border-t-4 border-primary/30 bg-white p-5 shadow-card';
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6">
-      <div className="mb-5 flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold">অ্যাডমিন · সেটিংস</h1>
-        <button
-          type="button"
-          onClick={async () => {
-            await authProvider.signOut().catch(() => {});
-            router.replace('/admin/login');
-          }}
-          className="rounded-xl border border-border-strong px-3 py-2 text-sm font-bold"
-        >
-          লগআউট
-        </button>
-      </div>
+    <form onSubmit={save} className="max-w-3xl space-y-5">
+      <section className={card}>
+        <h2 className="font-bold text-tile-indigo-fg">প্ল্যান ও দাম</h2>
+        <div className="space-y-2">
+          {s.plans.map((p, i) => (
+            <div key={i} className="grid grid-cols-[1fr_6rem_7rem_2.5rem] items-center gap-2">
+              <input className={input} value={p.label} onChange={(e) => setPlan(i, { label: e.target.value })} aria-label="প্ল্যানের নাম" placeholder="যেমন: ৬ মাস" />
+              <input className={input} type="number" min={1} value={p.days} onChange={(e) => setPlan(i, { days: Number(e.target.value) })} aria-label="দিন" />
+              <input className={input} type="number" min={0} value={p.price} onChange={(e) => setPlan(i, { price: Number(e.target.value) })} aria-label="দাম (টাকা)" />
+              <button type="button" aria-label="মুছুন" disabled={s.plans.length <= 1} onClick={() => setS({ ...s, plans: s.plans.filter((_, j) => j !== i) })} className="flex h-10 items-center justify-center rounded-xl text-danger disabled:opacity-30">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+          <p className="text-xs text-ink-muted">নাম · দিন · দাম (টাকা)। অ্যাপের ‘নবায়ন’ পাতায় এগুলোই দেখাবে।</p>
+          <button type="button" onClick={() => setS({ ...s, plans: [...s.plans, { key: `p${Date.now().toString(36)}`, label: '', days: 30, price: 0 }] })} className="flex items-center gap-1 text-sm font-bold text-primary-ink">
+            <Plus className="h-4 w-4" /> প্ল্যান যোগ করুন
+          </button>
+        </div>
+      </section>
 
-      <form onSubmit={save} className="space-y-5">
-        <section className="space-y-4 rounded-3xl bg-white p-5 shadow-card">
-          <h2 className="font-bold">সাহায্য ও পেমেন্ট</h2>
-          {field('WhatsApp হেল্পলাইন নম্বর', <input className={input} value={s.supportWhatsApp} onChange={(e) => setS({ ...s, supportWhatsApp: e.target.value })} placeholder="01XXXXXXXXX" />, 'অ্যাপের "সাহায্য দরকার?" বাটনে যাবে।')}
-          {field('বিকাশ নম্বর', <input className={input} value={s.paymentNumbers.bkash} onChange={(e) => setS({ ...s, paymentNumbers: { ...s.paymentNumbers, bkash: e.target.value } })} />)}
-          {field('নগদ নম্বর', <input className={input} value={s.paymentNumbers.nagad} onChange={(e) => setS({ ...s, paymentNumbers: { ...s.paymentNumbers, nagad: e.target.value } })} />)}
-          {field('ব্যাংক অ্যাকাউন্ট', <input className={input} value={s.paymentNumbers.bank} onChange={(e) => setS({ ...s, paymentNumbers: { ...s.paymentNumbers, bank: e.target.value } })} />)}
-        </section>
+      <section className={card}>
+        <h2 className="font-bold text-tile-green-fg">পেমেন্টের নম্বর ও সাহায্য</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="বিকাশ নম্বর">
+            <input className={input} value={s.paymentNumbers.bkash} onChange={(e) => setS({ ...s, paymentNumbers: { ...s.paymentNumbers, bkash: e.target.value } })} />
+          </Field>
+          <Field label="নগদ নম্বর">
+            <input className={input} value={s.paymentNumbers.nagad} onChange={(e) => setS({ ...s, paymentNumbers: { ...s.paymentNumbers, nagad: e.target.value } })} />
+          </Field>
+          <Field label="ব্যাংক অ্যাকাউন্ট">
+            <input className={input} value={s.paymentNumbers.bank} onChange={(e) => setS({ ...s, paymentNumbers: { ...s.paymentNumbers, bank: e.target.value } })} />
+          </Field>
+          <Field label="WhatsApp হেল্পলাইন" hint='অ্যাপের "সাহায্য দরকার?" বাটনে যাবে।'>
+            <input className={input} value={s.supportWhatsApp} onChange={(e) => setS({ ...s, supportWhatsApp: e.target.value })} placeholder="01XXXXXXXXX" />
+          </Field>
+        </div>
+      </section>
 
-        <section className="space-y-4 rounded-3xl bg-white p-5 shadow-card">
-          <h2 className="font-bold">ট্রায়াল ও রেফারেল</h2>
-          {field('নতুন অ্যাকাউন্টের ফ্রি ট্রায়াল (দিন)', <input type="number" min={0} max={365} className={input} value={s.trialDays} onChange={(e) => setS({ ...s, trialDays: Number(e.target.value) })} />, 'শুধু নতুন অ্যাকাউন্টে খাটবে।')}
-          {field('রেফারেল কমিশন (%)', <input type="number" min={0} max={100} className={input} value={Math.round(s.referralRate * 100)} onChange={(e) => setS({ ...s, referralRate: Number(e.target.value) / 100 })} />, 'বদলালে শুধু পরের পেমেন্টে খাটবে।')}
-        </section>
+      <section className={card}>
+        <h2 className="font-bold text-tile-sky-fg">ট্রায়াল ও রেফারেল</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="ফ্রি ট্রায়াল (দিন)" hint="শুধু নতুন অ্যাকাউন্টে খাটবে।">
+            <input type="number" min={0} max={365} className={input} value={s.trialDays} onChange={(e) => setS({ ...s, trialDays: Number(e.target.value) })} />
+          </Field>
+          <Field label="রেফারেল কমিশন (%)" hint="বদলালে শুধু পরের পেমেন্টে খাটবে।">
+            <input type="number" min={0} max={100} className={input} value={Math.round(s.referralRate * 100)} onChange={(e) => setS({ ...s, referralRate: Number(e.target.value) / 100 })} />
+          </Field>
+        </div>
+      </section>
 
-        <section className="space-y-4 rounded-3xl bg-white p-5 shadow-card">
-          <h2 className="font-bold">টেলিগ্রাম অ্যালার্ট</h2>
-          <p className={`text-sm font-semibold ${botReady ? 'text-success' : 'text-danger'}`}>
-            {botReady ? 'বট চালু আছে (token সার্ভারের .env-এ)।' : 'বট token সেট করা নেই (সার্ভারের .env-এ TELEGRAM_BOT_TOKEN দিন)।'}
-          </p>
-          {field('কাকে মেসেজ যাবে (chat ID, কমা দিয়ে একাধিক)', <input className={input} value={chatIds} onChange={(e) => setChatIds(e.target.value)} placeholder="123456789" />, '@userinfobot থেকে নিজের ID নিন। বটকে একবার /start পাঠাতে হবে।')}
-        </section>
+      <section className={card}>
+        <h2 className="font-bold text-tile-gold-fg">টেলিগ্রাম অ্যালার্ট</h2>
+        <p className={`text-sm font-semibold ${botReady ? 'text-success' : 'text-danger'}`}>
+          {botReady ? 'বট চালু আছে (token সার্ভারের .env-এ)।' : 'বট token সেট করা নেই (সার্ভারের .env-এ TELEGRAM_BOT_TOKEN দিন)।'}
+        </p>
+        <Field label="কাকে মেসেজ যাবে (chat ID, কমা দিয়ে একাধিক)" hint="@userinfobot থেকে নিজের ID নিন। বটকে একবার /start পাঠাতে হবে।">
+          <input className={input} value={chatIds} onChange={(e) => setChatIds(e.target.value)} placeholder="123456789" />
+        </Field>
+      </section>
 
-        {msg && <p className={`rounded-2xl p-3 text-sm font-semibold ${msg.ok ? 'bg-success-soft text-ink' : 'bg-danger-soft text-danger'}`}>{msg.text}</p>}
-        <button type="submit" disabled={saving} className="h-12 w-full rounded-2xl bg-primary-gradient text-base font-bold text-on-primary disabled:opacity-60">
-          {saving ? 'সংরক্ষণ হচ্ছে…' : 'সংরক্ষণ করুন'}
-        </button>
-      </form>
-    </div>
+      {msg && <p className={`rounded-xl p-3 text-sm font-semibold ${msg.ok ? 'bg-success-soft text-ink' : 'bg-danger-soft text-danger'}`}>{msg.text}</p>}
+      <button type="submit" disabled={saving} className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-on-primary disabled:opacity-60 sm:w-auto sm:px-8">
+        {saving ? 'সংরক্ষণ হচ্ছে…' : 'সংরক্ষণ করুন'}
+      </button>
+    </form>
   );
 }

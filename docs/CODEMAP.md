@@ -85,7 +85,7 @@ A compact map of the project for anyone (human or tool) starting work. Kept up t
 
 - **Login:** `lib/auth-firebase.ts` (Firebase via dynamic import → `POST /auth/session` on jomarKhata-be) and `lib/api.ts`. The session is cached in `appMeta.session` (`jomarkhataService.getSession/saveSession`). Context exposes `auth`, `completeSignIn` and `signOut`. Guest / test mode = `auth.status === 'local'`. Backend: `../jomarKhata-be` (README there).
 - **Lock:** `AppShell` shows ONLY `AuthScreen` when there is no session and no guest choice (`guestMode`, `appMeta.guestMode`; cleared by `signOut`). **Greeting:** `lib/greeting.ts` (per-phone choice).
-- **Admin:** `app/admin/{login,settings}` + `components/admin/*` (online-only, SW-excluded, noindex). Calls the backend with `currentIdToken()`. `/admin` itself is a 404. Never import admin code from `/app`.
+- **Admin:** `app/admin/login` + `app/admin/(panel)/{dashboard,payments,orders,users,users/[accountId],settings}` (layout = `AdminShell` sidebar) + `components/admin/*` (online-only, SW-excluded, noindex). Calls the backend with `currentIdToken()`. `/admin` itself is a 404. Never import admin code from `/app`.
 - **First screens:** `WelcomeScreen` (one button → `AuthScreen`; banner `/brand/welcome-banner.webp`, precached in `public/sw.js`). `AuthScreen.onTryWithoutLogin` is TEMPORARY: it shows only while `provider.available` is false.
 - **First-run guide:** `components/onboarding/FirstRunGuide.tsx`. A step = a row in `STEPS` + a `data-guide="<id>"` on the element. Replay with `replayGuide()`.
 - **Version:** bump `package.json` "version" for every phone release (`lib/version.ts` reads it; shown in Settings, used on tutorial videos).

@@ -52,6 +52,11 @@
   --color-tile-sky-bg: #DDF1FC;    --color-tile-sky-fg: #1688C9;     /* রিপোর্ট, লেনদেন */
   --color-tile-gold-bg: #FFF1CC;   --color-tile-gold-fg: #B97A00;    /* ক্যাশ */
   --color-tile-slate-bg: #ECEEF1;  --color-tile-slate-fg: #4E5A68;   /* সেটিংস */
+  /* Owner's admin panel only (online, desktop-first): dark sidebar / login, light grey canvas */
+  --color-admin-sidebar: #0F172A;
+  --color-admin-canvas: #F1F5F9;
+  --color-admin-login: #0B1220;
+  --color-admin-card: #111A2E;
   --color-highlight: #FFC94D;      /* coins / sparkle highlight inside icons & illustrations (decorative) */
 
   /* Mobile-first type scale (DESIGN_SYSTEM §3). Minimum on mobile is 13px. */
