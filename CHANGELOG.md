@@ -4,6 +4,72 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### Admin dashboard + subscriptions, 2026-11-25
+- **Admin panel with a left sidebar** (`app/admin/(panel)/*` + `components/admin/AdminShell.tsx`): ড্যাশবোর্ড · সাবস্ক্রিপশন রিকোয়েস্ট (pending badge) · সাবস্ক্রিপশন অর্ডার · ইউজার · সেটিংস. Tables on the right. One super-admin check for every page.
+- **Dashboard:** coloured count boxes (total / trial / paid / expired / new payment requests), plus a table of subscriptions ending within 7 days.
+- **Users:** search by ID, email, phone, shop or referral code; filter trial / paid / expired / blocked; pages.
+- **User page:**
+  - profile; who referred them, and whom they referred
+  - **subscription:** +30 / +180 / +365 days or custom days, an exact end date, or expire now, with amount, method, TrxID and note; days are added on top of the remaining time
+  - block / unblock
+  - full subscription history
+- **Payment requests:**
+  - the shop owner picks a plan in the app (Settings → নবায়ন করুন), pays by bKash / Nagad / bank and sends the TrxID; Telegram alerts the owner
+  - the admin approves (the subscription extends automatically, once) or rejects with a reason
+  - approved requests are the **orders**
+- **Settings (in the sidebar):** plans and prices (editable list), payment numbers, WhatsApp help, trial days, referral %, Telegram chat IDs.
+- **`/admin/login`:** its own dark admin sign-in (no new account, guest or referral).
+- **In the app:** the account card shows the plan and end date ("… পর্যন্ত · N দিন বাকি", highlighted within 7 days) with **নবায়ন করুন**; the super admin sees a badge and an "অ্যাডমিন প্যানেল খুলুন" link.
+- **Backend (`jomarKhata-be`):** `/admin/stats|users|users/:id|…/subscription|…/status`, `/me/payments`, `/admin/payments` (+ approve/reject), `SubscriptionLog` and `PaymentRequest` models, plans in settings and `/config`. 16 API tests.
+- Admin colours are tokens (`--color-admin-*`).
+
+### Lock after logout, simpler settings, greeting, admin settings, 404, 2026-11-25
+- **Bug fix (owner):** after logout the app no longer stays open as a guest. With no session and no guest choice, **only the login screen** shows; home, settings and every other screen are hidden.
+  - Logout clears both the session and the guest choice (`appMeta.guestMode`).
+  - Guest / test mode works only when picked on the login screen.
+  - Nothing flashes while the session is read (`authReady`).
+- **Guest mode:** a banner with a one-tap **লগইন** on every screen.
+- **Settings are simpler:**
+  1. shop info first
+  2. **greeting** (আসসালামু আলাইকুম / নমস্কার / শুভেচ্ছা / কিছু না): used on the home header, in the বাকি reminder and in the help message
+  3. backup
+  4. a **compact** account card (email, ID and referral code with small copy buttons, one-line referral numbers, share + logout)
+  5. help
+- **Offline note on sign-in:** "এখন ইন্টারনেট নেই… আপনার হিসাব নিরাপদ আছে।"
+- **Admin panel:**
+  - `/admin/login` (Firebase sign-in, then a super-admin check) and `/admin/settings`: WhatsApp help number, bKash / Nagad / bank numbers, trial days, referral %, Telegram chat IDs, and bot status
+  - `/admin` itself is a 404
+  - noindex, not in robots.txt, never cached by the service worker (`jk-shell-v6`)
+  - a test guards that `/app` never imports admin code
+- **Branded 404 page** with হোম পেজে যান / অ্যাপ খুলুন.
+- The help message now shows the real app version.
+- 272/272 tests pass. Checked live: lock after logout, greeting, settings order, 404, `/admin` → 404, `/admin/login`.
+
+### 0.3.0: real login + backend v1, 2026-11-24
+- **Backend repo `jomarKhata-be` (new; Express 5 + TypeScript + Mongoose; hosted off Vercel):**
+  - Firebase ID-token auth
+  - `POST /auth/session` creates the account on first login: unique account ID (`JK-1234-5678`), unique referral code, 30-day trial, optional referral link-up, Telegram alert
+  - `/me`, `/subscription`, `/config`, `/admin/me` (super admin by email)
+  - security: helmet, CORS allow-list, rate limit, blocked accounts refused
+  - **no passwords stored** (Firebase keeps them)
+  - 7 API tests with in-memory MongoDB
+- **App sign-in:**
+  - Google, or email + password (sign in / new account / forgot password)
+  - optional referral code at sign-up
+  - **"গেস্ট / টেস্ট মোড" is always offered:** the khata stays on this phone only and nothing is sent anywhere
+  - mobile OTP removed (accounts are email-based)
+- **The Firebase SDK is code-split:** it loads only on sign-in or a session refresh, never at app start (checked on the production build).
+- **Session handling:**
+  - the session is cached on the phone (`appMeta.session`), so the app opens signed-in **offline**
+  - when online it quietly refreshes `/me` (subscription, referral numbers)
+  - the session's subscription feeds the existing offline access policy
+- **Settings → অ্যাকাউন্ট ও রেফারেল:** guest mode shows "লগইন / নতুন অ্যাকাউন্ট"; when signed in it shows the user ID and referral code with copy buttons, and লগআউট (the khata on the phone is kept).
+- **Env:**
+  - `.env.example` lists `NEXT_PUBLIC_API_URL` and the 4 `NEXT_PUBLIC_FIREBASE_*` values
+  - `.env.local` is created empty (git-ignored)
+  - login turns on only when all are set
+- **Not yet:** cloud sync of khata data, payments, admin panel (next steps).
+
 ### 0.2.0: simple start for shopkeepers, 2026-11-24
 - **Welcome has one choice:**
   - a full-screen illustration (the owner's image, 760 KB → 74 KB WebP, cached by the service worker `jk-shell-v5` so it shows offline)

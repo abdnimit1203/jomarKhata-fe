@@ -5,7 +5,8 @@ import { SheetGuardContext } from '@/lib/sheet-guard';
 import { toFriendlyError } from '@/lib/errors';
 import { timed } from '@/lib/perf';
 import { decideAccess, type AccessDecision, type CachedSubscription } from '@/lib/access-policy';
-import { LOCAL_AUTH, type AuthState } from '@/lib/auth';
+import { authFromSession, LOCAL_AUTH, type AuthState } from '@/lib/auth';
+import { authProvider, refreshSession, syncShopProfile } from '@/lib/auth-firebase';
 
 /** Actions that change records. Blocked when access is read-only (view + export always work). */
 const WRITE_ACTION = /^(create|edit|void|record|update|adjust|set|restore|clear)/;
@@ -78,8 +79,18 @@ interface JomarkhataContextValue {
   mode: DbMode;
   /** navigator.storage.persist() result: true = the browser won't evict data under storage pressure. */
   storagePersisted: boolean | null;
-  /** S10: always `local` until a real auth provider exists (no fake login). */
+  /** `local` = guest / test mode (this phone only); `authenticated` = real backend session. */
   auth: AuthState;
+  /** Call after a successful provider sign-in: caches the session on the phone. */
+  completeSignIn: (state: AuthState) => Promise<void>;
+  /** Firebase sign-out + forget the cached session. The khata on this phone is kept, but the app
+   *  is locked behind the login screen again (guest mode must be chosen again). */
+  signOut: () => Promise<void>;
+  /** The user chose guest / test mode on the login screen. */
+  guestMode: boolean;
+  chooseGuest: () => Promise<void>;
+  /** Session + guest flag have been read (until then the shell shows nothing, no flash). */
+  authReady: boolean;
   /** S10 access policy (7-day grace → read-only). Local mode is always full. */
   access: AccessDecision;
   error: string | null;
@@ -225,6 +236,54 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
   const [mode, setMode] = useState<DbMode>('real');
   const [storagePersisted, setStoragePersisted] = useState<boolean | null>(null);
   const [access, setAccess] = useState<AccessDecision>(() => decideAccess(null));
+  const [auth, setAuth] = useState<AuthState>(LOCAL_AUTH);
+  const [guestMode, setGuestModeState] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
+  // Cached session first (works offline), then a quiet online refresh.
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const [cached, guest] = await Promise.all([
+        jomarkhataService.getSession().catch(() => null),
+        jomarkhataService.getGuestMode().catch(() => false),
+      ]);
+      if (!alive) return;
+      setGuestModeState(guest);
+      if (cached) setAuth(authFromSession(cached));
+      setAuthReady(true);
+      if (!cached) return;
+      const fresh = await refreshSession();
+      if (!alive || !fresh || fresh.status !== 'authenticated') return;
+      await jomarkhataService.saveSession(fresh.user).catch(() => {});
+      setAuth(fresh);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const completeSignIn = useCallback(async (state: AuthState) => {
+    if (state.status !== 'authenticated') return;
+    await jomarkhataService.saveSession(state.user);
+    setAuth(state);
+  }, []);
+  const signOut = useCallback(async () => {
+    await authProvider.signOut().catch(() => {});
+    await jomarkhataService.saveSession(null);
+    await jomarkhataService.setGuestMode(false);
+    setGuestModeState(false);
+    setAuth(LOCAL_AUTH);
+  }, []);
+  const chooseGuest = useCallback(async () => {
+    await jomarkhataService.setGuestMode(true);
+    setGuestModeState(true);
+  }, []);
+  // signed in → keep the shop's name / owner / phone on the server (for the admin panel's search)
+  const profileKey = data?.businessProfile ? `${data.businessProfile.shopName}|${data.businessProfile.ownerName}|${data.businessProfile.phone}` : '';
+  useEffect(() => {
+    if (auth.status !== 'authenticated' || !profileKey || mode !== 'real') return;
+    const [shopName, ownerName, phone] = profileKey.split('|');
+    void syncShopProfile({ shopName, ownerName, phone });
+  }, [auth.status, profileKey, mode]);
   const accessRef = useRef(access);
   useEffect(() => {
     accessRef.current = access; // read by write guards outside render
@@ -251,7 +310,7 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
     return () => {
       alive = false;
     };
-  }, [phase]);
+  }, [phase, auth]);
   useEffect(() => {
     // Ask the browser to keep IndexedDB even when the phone is low on space (plan 7.1).
     const st = typeof navigator !== 'undefined' ? navigator.storage : undefined;
@@ -655,10 +714,21 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
       refresh,
       actions: safeActions,
       storagePersisted,
-      auth: LOCAL_AUTH,
+      auth,
+      completeSignIn,
+      signOut,
+      guestMode,
+      chooseGuest,
+      authReady,
       access,
     }),
     [
+      auth,
+      completeSignIn,
+      signOut,
+      guestMode,
+      chooseGuest,
+      authReady,
       access,
       storagePersisted,
       safeActions,

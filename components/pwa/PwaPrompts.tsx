@@ -38,6 +38,24 @@ export function UpdateBanner() {
 }
 
 const DISMISS_KEY = 'jk_install_dismissed';
+const INSTALLED_KEY = 'jk_installed';
+const readInstalled = () => {
+  try {
+    return window.localStorage.getItem(INSTALLED_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+// Remember an install, so the card also stays hidden when the site is later opened in the browser.
+if (typeof window !== 'undefined') {
+  window.addEventListener('appinstalled', () => {
+    try {
+      window.localStorage.setItem(INSTALLED_KEY, '1');
+    } catch {
+      /* ignore */
+    }
+  });
+}
 const readDismissed = () => {
   try {
     return window.localStorage.getItem(DISMISS_KEY) === '1';
@@ -55,7 +73,8 @@ export function InstallCard({ dismissible = true }: { dismissible?: boolean }) {
   const [mode, setMode] = useState<'hidden' | 'prompt' | 'ios'>('hidden');
   useEffect(() => {
     const decide = () => {
-      if (isStandalone() || (dismissible && readDismissed())) return setMode('hidden');
+      // installed (opened as the app, or installed earlier on this phone) → never show
+      if (isStandalone() || readInstalled() || (dismissible && readDismissed())) return setMode('hidden');
       if (canPromptInstall()) return setMode('prompt');
       setMode(isIos() ? 'ios' : 'hidden');
     };

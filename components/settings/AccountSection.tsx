@@ -7,9 +7,32 @@
  */
 import React, { useState } from 'react';
 import { Check, Copy, Gift, IdCard, Share2 } from 'lucide-react';
-import type { AuthState } from '@/lib/auth';
+import type { AuthState, AuthUser } from '@/lib/auth';
 import { REFERRAL_COMMISSION_RATE, referralShareText } from '@/lib/referral';
-import { formatBanglaNumber, formatTaka } from '@/lib/format';
+import { formatBanglaNumber, formatTaka, toBanglaDigits } from '@/lib/format';
+import { RenewSheet } from './RenewSheet';
+
+/** "ট্রায়াল · ২৫/১২/২০২৬ পর্যন্ত · ৩০ দিন বাকি" + নবায়ন. */
+function SubscriptionLine({ sub, onRenew }: { sub: NonNullable<AuthUser['subscription']>; onRenew: () => void }) {
+  const end = new Date(sub.expiresAt);
+  const [now] = useState(() => Date.now()); // read once (render stays pure)
+  const left = Math.ceil((end.getTime() - now) / 86_400_000);
+  const expired = left <= 0;
+  const p = (n: number) => String(n).padStart(2, '0');
+  const date = toBanglaDigits(`${p(end.getDate())}/${p(end.getMonth() + 1)}/${end.getFullYear()}`);
+  const label = expired ? 'মেয়াদ শেষ' : sub.status === 'trial' ? 'ফ্রি ট্রায়াল' : 'সাবস্ক্রিপশন চালু';
+  return (
+    <div className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2 ${expired || left <= 7 ? 'bg-warning-soft' : 'bg-surface-muted'}`}>
+      <p className="text-xs">
+        <b>{label}</b> · {date} পর্যন্ত
+        {!expired && <span className="text-ink-muted"> · {formatBanglaNumber(left)} দিন বাকি</span>}
+      </p>
+      <button type="button" onClick={onRenew} className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-on-primary">
+        নবায়ন করুন
+      </button>
+    </div>
+  );
+}
 
 function CopyRow({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
   const [copied, setCopied] = useState(false);
@@ -23,17 +46,17 @@ function CopyRow({ label, value, icon }: { label: string; value: string; icon: R
     }
   };
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-surface-muted p-3">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-primary-ink">{icon}</span>
+    <div className="flex items-center gap-2.5 py-1.5">
+      <span className="shrink-0 text-ink-muted">{icon}</span>
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-ink-muted">{label}</p>
-        <p className="truncate font-mono text-base font-bold tracking-wider text-ink select-all">{value}</p>
+        <p className="text-xs text-ink-muted">{label}</p>
+        <p className="truncate font-mono text-sm font-bold tracking-wide text-ink select-all">{value}</p>
       </div>
       <button
         type="button"
         onClick={copy}
         aria-label={`${label} কপি করুন`}
-        className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-bold text-primary-ink shadow-card"
+        className="flex min-h-10 shrink-0 items-center gap-1 rounded-xl px-2.5 text-xs font-bold text-primary-ink hover:bg-secondary"
       >
         {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
         {copied ? 'কপি হয়েছে' : 'কপি'}
@@ -42,22 +65,37 @@ function CopyRow({ label, value, icon }: { label: string; value: string; icon: R
   );
 }
 
-export function AccountSection({ auth }: { auth: AuthState }) {
+export function AccountSection({
+  auth,
+  onLogin,
+  onLogout,
+}: {
+  auth: AuthState;
+  /** Guest / test mode → open the sign-in screen. */
+  onLogin?: () => void;
+  onLogout?: () => void;
+}) {
+  const [renewOpen, setRenewOpen] = useState(false);
   const rate = (auth.status === 'authenticated' && auth.user.referralStats?.commissionRate) || REFERRAL_COMMISSION_RATE;
   const percent = formatBanglaNumber(Math.round(rate * 100));
   const promoter = auth.status === 'authenticated' && auth.user.referralStats?.referrerType === 'promoter';
 
   if (auth.status !== 'authenticated') {
     return (
-      <section className="space-y-2.5 rounded-3xl bg-white p-5 shadow-card" aria-label="অ্যাকাউন্ট ও রেফারেল">
+      <section className="space-y-2.5 rounded-3xl bg-tile-indigo-bg p-4 shadow-card" aria-label="অ্যাকাউন্ট ও রেফারেল">
         <h2 className="text-sm font-semibold text-ink">অ্যাকাউন্ট ও রেফারেল</h2>
         <p className="text-sm text-ink-muted">
-          অ্যাকাউন্ট চালু হলে এখানে আপনার ইউজার আইডি আর নিজের রেফারেল কোড দেখাবে, কপি করার বাটনসহ। আপনার কোড দিয়ে কেউ
-          অ্যাকাউন্ট খুলে সাবস্ক্রিপশন নিলে আপনি ফ্রি মাস পাবেন।
+          গেস্ট মোড — কোনো আইডি বা কোড এখনও নেই। লগইন করলে নিজের রেফারেল কোড পাবেন; সেই কোডে কেউ সাবস্ক্রিপশন নিলে আপনি ফ্রি মাস পাবেন।
         </p>
-        <p className="rounded-2xl bg-warning-soft p-3 text-xs font-semibold text-warning-ink">
-          অ্যাকাউন্ট এখনও চালু হয়নি, তাই কোনো আইডি বা কোড এখনও নেই।
-        </p>
+        {onLogin && (
+          <button
+            type="button"
+            onClick={onLogin}
+            className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-primary-gradient text-base font-bold text-on-primary shadow-sm"
+          >
+            লগইন / নতুন অ্যাকাউন্ট
+          </button>
+        )}
       </section>
     );
   }
@@ -66,44 +104,53 @@ export function AccountSection({ auth }: { auth: AuthState }) {
   const origin = typeof window !== 'undefined' ? window.location?.origin ?? '' : '';
   const share = `https://wa.me/?text=${encodeURIComponent(referralShareText(user.referralCode, origin))}`;
   return (
-    <section className="space-y-3 rounded-3xl bg-white p-5 shadow-card" aria-label="অ্যাকাউন্ট ও রেফারেল">
-      <h2 className="text-sm font-semibold text-ink">অ্যাকাউন্ট ও রেফারেল</h2>
-      <CopyRow label="ইউজার আইডি" value={user.accountId} icon={<IdCard className="h-5 w-5" />} />
-      <CopyRow label="আমার রেফারেল কোড" value={user.referralCode} icon={<Gift className="h-5 w-5" />} />
-      <p className="text-xs text-ink-muted">
+    // Compact on purpose (owner): the shop settings are the focus; account and referral sit quietly below.
+    <section className="space-y-1 rounded-3xl bg-tile-indigo-bg p-4 shadow-card" aria-label="অ্যাকাউন্ট ও রেফারেল">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="text-sm font-semibold text-ink">
+          অ্যাকাউন্ট
+          {user.role === 'super_admin' && (
+            <span className="ml-1.5 rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-on-primary">সুপার অ্যাডমিন</span>
+          )}
+        </h2>
+        <p className="truncate text-xs text-ink-muted">{user.email}</p>
+      </div>
+      {user.subscription && <SubscriptionLine sub={user.subscription} onRenew={() => setRenewOpen(true)} />}
+      <RenewSheet open={renewOpen} onClose={() => setRenewOpen(false)} />
+      {user.role === 'super_admin' && (
+        <a href="/admin/dashboard" className="block py-1 text-xs font-bold text-primary-ink">
+          অ্যাডমিন প্যানেল খুলুন →
+        </a>
+      )}
+      <div className="divide-y divide-border">
+        <CopyRow label="ইউজার আইডি" value={user.accountId} icon={<IdCard className="h-4 w-4" />} />
+        <CopyRow label="আমার রেফারেল কোড" value={user.referralCode} icon={<Gift className="h-4 w-4" />} />
+      </div>
+      <p className="pt-1 text-xs text-ink-muted">
         {promoter
           ? `এই কোড দিয়ে কেউ অ্যাকাউন্ট খুললে, তার সাবস্ক্রিপশন পেমেন্টের ${percent}% কমিশন আপনি পাবেন।`
           : 'এই কোড দিয়ে কেউ অ্যাকাউন্ট খুলে সাবস্ক্রিপশন নিলে আপনি ফ্রি মাস পাবেন।'}
+        {user.referralStats &&
+          ` আপনার কোডে যোগ দিয়েছেন ${formatBanglaNumber(user.referralStats.referredUsers)} জন · ` +
+            (promoter
+              ? `মোট কমিশন ${formatTaka(user.referralStats.commissionEarned)}`
+              : `ফ্রি পেয়েছেন ${formatBanglaNumber(user.referralStats.freeDaysEarned ?? 0)} দিন`)}
       </p>
-      {user.referralStats && (
-        <div className="grid grid-cols-2 gap-2.5">
-          <div className="rounded-2xl bg-surface-muted p-3">
-            <p className="text-xs text-ink-muted">আপনার কোডে যোগ দিয়েছেন</p>
-            <p className="text-lg font-extrabold text-ink">{formatBanglaNumber(user.referralStats.referredUsers)} জন</p>
-          </div>
-          <div className="rounded-2xl bg-surface-muted p-3">
-            {promoter ? (
-              <>
-                <p className="text-xs text-ink-muted">মোট কমিশন</p>
-                <p className="text-lg font-extrabold text-ink">{formatTaka(user.referralStats.commissionEarned)}</p>
-              </>
-            ) : (
-              <>
-                <p className="text-xs text-ink-muted">ফ্রি পেয়েছেন</p>
-                <p className="text-lg font-extrabold text-ink">{formatBanglaNumber(user.referralStats.freeDaysEarned ?? 0)} দিন</p>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-      <a
-        href={share}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-tile-green-bg text-sm font-bold text-tile-green-fg"
-      >
-        <Share2 className="h-4 w-4" /> WhatsApp-এ কোড পাঠান
-      </a>
+      <div className="flex gap-2 pt-2">
+        <a
+          href={share}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-tile-green-bg text-xs font-bold text-tile-green-fg"
+        >
+          <Share2 className="h-4 w-4" /> কোড পাঠান
+        </a>
+        {onLogout && (
+          <button type="button" onClick={onLogout} className="min-h-10 flex-1 rounded-xl border border-border-strong text-xs font-bold text-ink">
+            লগআউট
+          </button>
+        )}
+      </div>
     </section>
   );
 }

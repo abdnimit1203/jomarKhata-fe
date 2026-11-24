@@ -1,11 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Database, FlaskConical, Hand, RotateCcw, Save, Store } from 'lucide-react';
+import { Database, FlaskConical, Hand, LogOut, RotateCcw, Save, Store } from 'lucide-react';
 import { replayGuide } from '@/components/onboarding/FirstRunGuide';
 import { appVersionLabel } from '@/lib/version';
+import { GREETINGS, setGreetingKey, useGreetingKey, type GreetingKey } from '@/lib/greeting';
+import { SegmentedControl } from '@/components/ui/segmented';
 import { BackupSection } from '@/components/settings/BackupSection';
 import { AccountSection } from '@/components/settings/AccountSection';
+import { AuthScreen } from '@/components/onboarding/AuthScreen';
 import { InstallCard } from '@/components/pwa/PwaPrompts';
 import { supportLink } from '@/lib/support';
 import { useJomarkhata } from '@/context/JomarkhataContext';
@@ -114,7 +117,7 @@ function SettingsProfileForm({ profile }: { profile: BusinessProfile }) {
         </div>
       </section>
 
-      <section className="space-y-3.5 rounded-3xl bg-white p-5 shadow-card">
+      <section className="space-y-3.5 rounded-3xl bg-tile-sky-bg p-5 shadow-card">
         <div>
           <h2 className="text-sm font-semibold text-ink">শুরুতে কত টাকা ছিল</h2>
           <p className="text-xs text-ink-muted">
@@ -164,9 +167,12 @@ function SettingsProfileForm({ profile }: { profile: BusinessProfile }) {
 }
 
 export function SettingsView() {
-  const { data, actions, showToast, mode, auth, navigate } = useJomarkhata();
+  const { data, actions, showToast, mode, auth, navigate, completeSignIn, signOut } = useJomarkhata();
+  const [showAuth, setShowAuth] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
   // the guide points at the home screen and bottom bar
   const goHome = () => navigate('dashboard');
+  const greetingKey = useGreetingKey();
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
@@ -199,16 +205,55 @@ export function SettingsView() {
         </div>
       </section>
 
-      <AccountSection auth={auth} />
+
+
+
+
 
       <SettingsProfileForm
         key={data.businessProfile.updatedAt}
         profile={data.businessProfile}
       />
 
+      {/* greeting on the home screen and in messages (shopkeepers of every faith) */}
+      <section className="space-y-2.5 rounded-3xl bg-tile-purple-bg p-5 shadow-card">
+        <h2 className="text-sm font-semibold text-ink">হোমে সম্ভাষণ</h2>
+        <SegmentedControl
+          aria-label="সম্ভাষণ"
+          variant="chips"
+          value={greetingKey}
+          onValueChange={(v) => setGreetingKey(v as GreetingKey)}
+          options={GREETINGS.map((g) => ({ value: g.key, label: g.text || 'কিছু না' }))}
+        />
+      </section>
+
       <BackupSection />
 
-      <InstallCard dismissible={false} />
+      <AccountSection auth={auth} onLogin={() => setShowAuth(true)} />
+      {showAuth && (
+        <div className="fixed inset-0 z-[80] overflow-y-auto bg-canvas">
+          <AuthScreen
+            onBack={() => setShowAuth(false)}
+            onSignedIn={async (state) => {
+              await completeSignIn(state);
+              setShowAuth(false);
+              showToast('লগইন হয়েছে।');
+            }}
+          />
+        </div>
+      )}
+      <ConfirmDialog
+        open={confirmLogout}
+        title="লগআউট করবেন?"
+        description="এই ফোনের হিসাব মুছবে না। আবার লগইন করলে আগের মতো চলবে।"
+        confirmLabel="হ্যাঁ, লগআউট"
+        onCancel={() => setConfirmLogout(false)}
+        onConfirm={async () => {
+          await signOut();
+          setConfirmLogout(false);
+          showToast('লগআউট হয়েছে।', 'info');
+        }}
+      />
 
       {supportLink(data.businessProfile.shopName) && (
         <a
@@ -221,9 +266,9 @@ export function SettingsView() {
         </a>
       )}
 
-      <section className="space-y-3.5 rounded-3xl bg-white p-5 shadow-card">
+      <section className="space-y-3.5 rounded-3xl border-accent border-2 p-5 shadow-card">
         <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-primary-ink">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary">
             <Database className="h-5 w-5" />
           </span>
           <div>
@@ -244,7 +289,7 @@ export function SettingsView() {
               goHome();
               replayGuide();
             }}
-            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-secondary text-sm font-bold text-primary-ink"
+            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-bold text-on-primary"
           >
             <Hand className="h-4 w-4" />
             <span>অ্যাপ চালানো শিখুন</span>
@@ -269,6 +314,25 @@ export function SettingsView() {
             </button>
           )}
         </div>
+      </section>
+
+      <InstallCard dismissible={false} />
+
+      {/* Bottom of the page: sign-out and the one dangerous action, away from everyday settings. */}
+      <section className="space-y-2.5 pt-2">
+
+        {auth.status === 'authenticated' && (
+
+          <button
+            type="button"
+            onClick={() => setConfirmLogout(true)}
+            className="flex h-11 w-full items-center justify-center rounded-2xl bg-danger text-sm font-bold text-white shadow-card"
+          >
+            <LogOut className='h-4 w-4 m-2' />
+            লগআউট
+          </button>
+        )}
+        <BackupSection part="danger" />
       </section>
 
       <ConfirmDialog

@@ -8,7 +8,7 @@ This is what the `jomarKhata-be` repository must provide so the existing fronten
 
 | Item | Rule |
 |---|---|
-| Sign-in methods | Google first. Bangladeshi mobile OTP only if an affordable SMS provider is confirmed (D26). |
+| Sign-in methods | **Google, or email + password** (owner, 2026-11-24: accounts are email-based; mobile OTP dropped). Firebase stores and hashes passwords; our server never sees them. Guest / test mode = local only, nothing sent. |
 | Token | The client sends the Firebase ID token as `Authorization: Bearer <token>`. The server verifies it with the Firebase Admin SDK on every request. |
 | Session | Persistent. The user logs in again only after an explicit logout, or when the token expires or is revoked (D12). |
 | Account ID | A server-generated, unique, easy-to-read ID such as `JK-4827-1935` (D29). It's for support only and is **never** a login credential. |

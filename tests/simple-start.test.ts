@@ -28,13 +28,17 @@ describe('welcome: one choice, sign-in first', () => {
     expect(welcome).not.toMatch(/আমার খাতা শুরু করুন/);
     expect(welcome).toMatch(/<RestoreFlow \/>/);
   });
-  it('"try without login" shows ONLY while sign-in is unavailable (disappears once the backend exists)', () => {
+  it('sign-in: Google + email/password; guest / test mode always offered; warning only without login config', () => {
     const noop = () => {};
-    const off = renderToStaticMarkup(React.createElement(AuthScreen, { onBack: noop, onTryWithoutLogin: noop, provider: noBackendAuthProvider }));
-    expect(off).toContain('আপাতত লগইন ছাড়া শুরু করুন');
+    const off = renderToStaticMarkup(React.createElement(AuthScreen, { onBack: noop, onGuest: noop, provider: noBackendAuthProvider }));
+    expect(off).toContain('গেস্ট / টেস্ট মোডে চালান');
+    expect(off).toContain('এখনও চালু হয়নি');
     const real: AuthProvider = { ...noBackendAuthProvider, available: true };
-    const on = renderToStaticMarkup(React.createElement(AuthScreen, { onBack: noop, onTryWithoutLogin: noop, provider: real }));
-    expect(on).not.toContain('আপাতত লগইন ছাড়া শুরু করুন');
+    const on = renderToStaticMarkup(React.createElement(AuthScreen, { onBack: noop, onGuest: noop, provider: real }));
+    expect(on).toContain('গেস্ট / টেস্ট মোডে চালান');
+    expect(on).not.toContain('এখনও চালু হয়নি');
+    expect(on).toContain('id="auth-email"');
+    expect(on).toContain('id="auth-password"');
   });
 });
 

@@ -11,7 +11,7 @@
  */
 // Bump VERSION whenever a file under /icons or /brand is replaced: those paths are served
 // cache-first, so phones keep the old copy until the cache name changes.
-const VERSION = 'jk-shell-v5';
+const VERSION = 'jk-shell-v6';
 const FEATURE_ICONS = [
   'add-plus', 'book-due', 'book-expense', 'book-purchase', 'book-sales', 'cashbox', 'due-collect',
   'expense', 'money-in', 'money-out', 'nav-home', 'nav-transactions', 'party-list', 'purchase',
@@ -46,7 +46,9 @@ self.addEventListener('activate', (event) => {
 });
 
 function isSameOriginGet(request) {
-  return request.method === 'GET' && new URL(request.url).origin === self.location.origin;
+  const url = new URL(request.url);
+  // The owner's admin panel (/admin/...) is online-only: never cached, never served offline.
+  return request.method === 'GET' && url.origin === self.location.origin && !url.pathname.startsWith('/admin');
 }
 
 function isImmutableAsset(url) {

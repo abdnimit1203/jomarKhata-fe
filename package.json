@@ -1,6 +1,6 @@
 {
   "name": "jomarkhata-fe",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -15,15 +15,18 @@
     "@hookform/resolvers": "^5.2.1",
     "@radix-ui/react-select": "^2.4.1",
     "@radix-ui/react-toggle-group": "^1.2.1",
+    "apexcharts": "^8.9.1",
     "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dexie": "^4.4.7",
+    "firebase": "^13.4.0",
     "lucide-react": "^0.553.0",
     "motion": "^12.23.24",
     "next": "^16.4.6",
     "postcss": "^8.5.6",
     "react": "^19.2.1",
+    "react-apexcharts": "^2.2.1",
     "react-dom": "^19.2.1",
     "tailwind-merge": "^3.3.1"
   },

@@ -53,17 +53,18 @@ describe('access policy (D4)', () => {
 });
 
 describe('no fake authentication (plan §7.2)', () => {
-  it('the only provider today refuses every sign-in with an honest message', async () => {
+  it('without Firebase/API settings every sign-in is refused with an honest message', async () => {
     expect(noBackendAuthProvider.available).toBe(false);
     await expect(noBackendAuthProvider.signInWithGoogle()).rejects.toBeInstanceOf(AuthUnavailableError);
-    await expect(noBackendAuthProvider.sendOtp('01712345678')).rejects.toThrow('এখনও চালু হয়নি');
-    await expect(noBackendAuthProvider.verifyOtp('x', '123456')).rejects.toBeInstanceOf(AuthUnavailableError);
+    await expect(noBackendAuthProvider.signInWithEmail('a@b.c', 'secret1')).rejects.toThrow('এখনও চালু হয়নি');
+    await expect(noBackendAuthProvider.signUpWithEmail('a@b.c', 'secret1')).rejects.toBeInstanceOf(AuthUnavailableError);
   });
 
-  it('the app state is always "local": no code path sets "authenticated"', () => {
+  it('"authenticated" comes only from a backend session (authFromSession); the app starts as guest', () => {
     const ctx = read('context/JomarkhataContext.tsx');
-    expect(ctx).toMatch(/auth: LOCAL_AUTH/);
-    const sources = ['context/JomarkhataContext.tsx', 'components/onboarding/AuthScreen.tsx', 'components/onboarding/WelcomeScreen.tsx'].map(read).join('\n');
+    expect(ctx).toContain('useState<AuthState>(LOCAL_AUTH)');
+    expect(read('lib/auth-firebase.ts')).toContain("apiFetch<SessionResponse>('/auth/session'");
+    const sources = ['context/JomarkhataContext.tsx', 'components/onboarding/AuthScreen.tsx', 'components/onboarding/WelcomeScreen.tsx', 'lib/auth-firebase.ts'].map(read).join('\n');
     expect(sources).not.toMatch(/status: 'authenticated'/);
   });
 

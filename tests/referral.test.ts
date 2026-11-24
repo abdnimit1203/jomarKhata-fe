@@ -70,7 +70,7 @@ describe('profile: account & referral section', () => {
   });
 
   it('is on the profile (settings) screen', () => {
-    expect(read('components/views/SettingsView.tsx')).toMatch(/<AccountSection auth=\{auth\} \/>/);
+    expect(read('components/views/SettingsView.tsx')).toContain('<AccountSection auth={auth}');
   });
 });
 
@@ -83,5 +83,18 @@ describe('sign-up: optional referral code', () => {
   });
   it('an empty field never blocks sign-up', () => {
     expect(src).toMatch(/if \(!referral\.trim\(\)\) return \{\};/);
+  });
+});
+
+describe('one-time referral step (Google users too)', () => {
+  const src = read('components/onboarding/AuthScreen.tsx');
+  it('a new account without a referrer is asked once, can skip; the server call is /me/referral', () => {
+    expect(src).toContain('state.user.isNewAccount && state.user.canAddReferral');
+    expect(src).toContain('কেউ আপনাকে রেফার করেছে?');
+    expect(src).toContain('না, এগিয়ে যান');
+    expect(read('lib/auth-firebase.ts')).toContain("apiFetch<{ user: AuthUser; serverTime: string }>('/me/referral'");
+  });
+  it('on the new-account tab the code field comes BEFORE the Google button', () => {
+    expect(src.indexOf('id="auth-referral"')).toBeLessThan(src.indexOf('Google দিয়ে'));
   });
 });
