@@ -59,6 +59,21 @@ async function openSession(getIdToken: () => Promise<string>, options?: SignUpOp
   return authFromSession({ ...res.user, serverTime: res.serverTime });
 }
 
+/** Current Firebase ID token for API calls (waits for Firebase to restore the sign-in). null = signed out. */
+export async function currentIdToken(): Promise<string | null> {
+  if (!loginConfigured) return null;
+  const { auth, authMod } = await firebaseAuth();
+  const user =
+    auth.currentUser ??
+    (await new Promise<import('firebase/auth').User | null>((resolve) => {
+      const off = authMod.onAuthStateChanged(auth, (u) => {
+        off();
+        resolve(u);
+      });
+    }));
+  return user ? user.getIdToken() : null;
+}
+
 /**
  * Online refresh of the signed-in account (subscription, referral numbers). Returns null when
  * offline, not signed in to Firebase on this device, or the server can't be reached — the cached

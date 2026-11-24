@@ -3,9 +3,11 @@
  * The number comes from NEXT_PUBLIC_SUPPORT_WHATSAPP (set in Vercel → Project → Environment
  * Variables, e.g. 01XXXXXXXXX). While it's empty, the help button stays hidden.
  */
+import { greetingText } from './greeting';
 import { toWhatsAppNumber } from './dues';
+import { APP_VERSION } from './version';
 
-export const APP_VERSION_LABEL = '0.1.0';
+export const APP_VERSION_LABEL = APP_VERSION;
 
 export function supportNumber(): string | null {
   const raw = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? '';
@@ -15,7 +17,7 @@ export function supportNumber(): string | null {
 /** Shop name and app version help support; no financial data is ever included. */
 export function supportMessage(shopName?: string): string {
   return [
-    'আসসালামু আলাইকুম, জমারখাতা অ্যাপ থেকে লিখছি।',
+    `${greetingText() ? `${greetingText()}, ` : ''}জমারখাতা অ্যাপ থেকে লিখছি।`,
     shopName ? `দোকান: ${shopName}` : null,
     `অ্যাপ ভার্সন: ${APP_VERSION_LABEL}`,
     'আমার প্রশ্ন / সমস্যা: ',

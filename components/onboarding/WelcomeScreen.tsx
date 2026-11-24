@@ -21,14 +21,17 @@ interface WelcomeScreenProps {
  * temporary "try without login" path; that path disappears by itself once a real provider is available.
  */
 export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
-  const { completeSignIn } = useJomarkhata();
+  const { completeSignIn, chooseGuest } = useJomarkhata();
   const [showAuth, setShowAuth] = useState(false);
   const [showRestore, setShowRestore] = useState(false);
   if (showAuth)
     return (
       <AuthScreen
         onBack={() => setShowAuth(false)}
-        onGuest={onStart}
+        onGuest={async () => {
+          await chooseGuest(); // remembered until logout
+          onStart();
+        }}
         onSignedIn={async (state) => {
           await completeSignIn(state);
           onStart(); // signed in: set up the shop (name, owner, phone)

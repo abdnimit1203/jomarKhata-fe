@@ -23,17 +23,17 @@ function CopyRow({ label, value, icon }: { label: string; value: string; icon: R
     }
   };
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-surface-muted p-3">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-primary-ink">{icon}</span>
+    <div className="flex items-center gap-2.5 py-1.5">
+      <span className="shrink-0 text-ink-muted">{icon}</span>
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-ink-muted">{label}</p>
-        <p className="truncate font-mono text-base font-bold tracking-wider text-ink select-all">{value}</p>
+        <p className="text-xs text-ink-muted">{label}</p>
+        <p className="truncate font-mono text-sm font-bold tracking-wide text-ink select-all">{value}</p>
       </div>
       <button
         type="button"
         onClick={copy}
         aria-label={`${label} কপি করুন`}
-        className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-bold text-primary-ink shadow-card"
+        className="flex min-h-10 shrink-0 items-center gap-1 rounded-xl px-2.5 text-xs font-bold text-primary-ink hover:bg-secondary"
       >
         {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
         {copied ? 'কপি হয়েছে' : 'কপি'}
@@ -58,14 +58,10 @@ export function AccountSection({
 
   if (auth.status !== 'authenticated') {
     return (
-      <section className="space-y-2.5 rounded-3xl bg-white p-5 shadow-card" aria-label="অ্যাকাউন্ট ও রেফারেল">
+      <section className="space-y-2.5 rounded-3xl bg-white p-4 shadow-card" aria-label="অ্যাকাউন্ট ও রেফারেল">
         <h2 className="text-sm font-semibold text-ink">অ্যাকাউন্ট ও রেফারেল</h2>
-        <p className="rounded-2xl bg-warning-soft p-3 text-xs font-semibold text-warning-ink">
-          আপনি গেস্ট / টেস্ট মোডে আছেন। হিসাব শুধু এই ফোনে, কোনো আইডি বা কোড এখনও নেই।
-        </p>
         <p className="text-sm text-ink-muted">
-          লগইন করলে এখানে আপনার ইউজার আইডি আর নিজের রেফারেল কোড দেখাবে, কপি করার বাটনসহ। আপনার কোড দিয়ে কেউ
-          অ্যাকাউন্ট খুলে সাবস্ক্রিপশন নিলে আপনি ফ্রি মাস পাবেন।
+          গেস্ট মোড — কোনো আইডি বা কোড এখনও নেই। লগইন করলে নিজের রেফারেল কোড পাবেন; সেই কোডে কেউ সাবস্ক্রিপশন নিলে আপনি ফ্রি মাস পাবেন।
         </p>
         {onLogin && (
           <button
@@ -84,50 +80,41 @@ export function AccountSection({
   const origin = typeof window !== 'undefined' ? window.location?.origin ?? '' : '';
   const share = `https://wa.me/?text=${encodeURIComponent(referralShareText(user.referralCode, origin))}`;
   return (
-    <section className="space-y-3 rounded-3xl bg-white p-5 shadow-card" aria-label="অ্যাকাউন্ট ও রেফারেল">
-      <h2 className="text-sm font-semibold text-ink">অ্যাকাউন্ট ও রেফারেল</h2>
-      <CopyRow label="ইউজার আইডি" value={user.accountId} icon={<IdCard className="h-5 w-5" />} />
-      <CopyRow label="আমার রেফারেল কোড" value={user.referralCode} icon={<Gift className="h-5 w-5" />} />
-      <p className="text-xs text-ink-muted">
+    // Compact on purpose (owner): the shop settings are the focus; account and referral sit quietly below.
+    <section className="space-y-1 rounded-3xl bg-white p-4 shadow-card" aria-label="অ্যাকাউন্ট ও রেফারেল">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="text-sm font-semibold text-ink">অ্যাকাউন্ট</h2>
+        <p className="truncate text-xs text-ink-muted">{user.email}</p>
+      </div>
+      <div className="divide-y divide-border">
+        <CopyRow label="ইউজার আইডি" value={user.accountId} icon={<IdCard className="h-4 w-4" />} />
+        <CopyRow label="আমার রেফারেল কোড" value={user.referralCode} icon={<Gift className="h-4 w-4" />} />
+      </div>
+      <p className="pt-1 text-xs text-ink-muted">
         {promoter
           ? `এই কোড দিয়ে কেউ অ্যাকাউন্ট খুললে, তার সাবস্ক্রিপশন পেমেন্টের ${percent}% কমিশন আপনি পাবেন।`
           : 'এই কোড দিয়ে কেউ অ্যাকাউন্ট খুলে সাবস্ক্রিপশন নিলে আপনি ফ্রি মাস পাবেন।'}
+        {user.referralStats &&
+          ` আপনার কোডে যোগ দিয়েছেন ${formatBanglaNumber(user.referralStats.referredUsers)} জন · ` +
+            (promoter
+              ? `মোট কমিশন ${formatTaka(user.referralStats.commissionEarned)}`
+              : `ফ্রি পেয়েছেন ${formatBanglaNumber(user.referralStats.freeDaysEarned ?? 0)} দিন`)}
       </p>
-      {user.referralStats && (
-        <div className="grid grid-cols-2 gap-2.5">
-          <div className="rounded-2xl bg-surface-muted p-3">
-            <p className="text-xs text-ink-muted">আপনার কোডে যোগ দিয়েছেন</p>
-            <p className="text-lg font-extrabold text-ink">{formatBanglaNumber(user.referralStats.referredUsers)} জন</p>
-          </div>
-          <div className="rounded-2xl bg-surface-muted p-3">
-            {promoter ? (
-              <>
-                <p className="text-xs text-ink-muted">মোট কমিশন</p>
-                <p className="text-lg font-extrabold text-ink">{formatTaka(user.referralStats.commissionEarned)}</p>
-              </>
-            ) : (
-              <>
-                <p className="text-xs text-ink-muted">ফ্রি পেয়েছেন</p>
-                <p className="text-lg font-extrabold text-ink">{formatBanglaNumber(user.referralStats.freeDaysEarned ?? 0)} দিন</p>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-      <a
-        href={share}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-tile-green-bg text-sm font-bold text-tile-green-fg"
-      >
-        <Share2 className="h-4 w-4" /> WhatsApp-এ কোড পাঠান
-      </a>
-      <p className="text-xs text-ink-muted">{user.email}</p>
-      {onLogout && (
-        <button type="button" onClick={onLogout} className="min-h-11 w-full rounded-2xl border border-border-strong text-sm font-bold text-ink">
-          লগআউট
-        </button>
-      )}
+      <div className="flex gap-2 pt-2">
+        <a
+          href={share}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-tile-green-bg text-xs font-bold text-tile-green-fg"
+        >
+          <Share2 className="h-4 w-4" /> কোড পাঠান
+        </a>
+        {onLogout && (
+          <button type="button" onClick={onLogout} className="min-h-10 flex-1 rounded-xl border border-border-strong text-xs font-bold text-ink">
+            লগআউট
+          </button>
+        )}
+      </div>
     </section>
   );
 }

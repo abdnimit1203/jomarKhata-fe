@@ -631,6 +631,14 @@ export const jomarkhataService = {
     return (await getMeta<AuthUser>(getRealDb(), 'session')) ?? null;
   },
 
+  /** Guest / test mode was chosen on this phone (cleared on logout, so the login screen shows again). */
+  async getGuestMode(): Promise<boolean> {
+    return (await getMeta<boolean>(getRealDb(), 'guestMode')) === true;
+  },
+  async setGuestMode(on: boolean): Promise<void> {
+    await setMeta(getRealDb(), 'guestMode', on);
+  },
+
   /** Save (or clear) the session; also caches its subscription for the offline access policy. */
   async saveSession(user: AuthUser | null): Promise<void> {
     const db = getRealDb();

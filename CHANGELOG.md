@@ -4,6 +4,28 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### Lock after logout, simpler settings, greeting, admin settings, 404, 2026-11-25
+- **Bug fix (owner):** after logout the app no longer stays open as a guest. With no session and no guest choice, **only the login screen** shows; home, settings and every other screen are hidden.
+  - Logout clears both the session and the guest choice (`appMeta.guestMode`).
+  - Guest / test mode works only when picked on the login screen.
+  - Nothing flashes while the session is read (`authReady`).
+- **Guest mode:** a banner with a one-tap **লগইন** on every screen.
+- **Settings are simpler:**
+  1. shop info first
+  2. **greeting** (আসসালামু আলাইকুম / নমস্কার / শুভেচ্ছা / কিছু না): used on the home header, in the বাকি reminder and in the help message
+  3. backup
+  4. a **compact** account card (email, ID and referral code with small copy buttons, one-line referral numbers, share + logout)
+  5. help
+- **Offline note on sign-in:** "এখন ইন্টারনেট নেই… আপনার হিসাব নিরাপদ আছে।"
+- **Admin panel:**
+  - `/admin/login` (Firebase sign-in, then a super-admin check) and `/admin/settings`: WhatsApp help number, bKash / Nagad / bank numbers, trial days, referral %, Telegram chat IDs, and bot status
+  - `/admin` itself is a 404
+  - noindex, not in robots.txt, never cached by the service worker (`jk-shell-v6`)
+  - a test guards that `/app` never imports admin code
+- **Branded 404 page** with হোম পেজে যান / অ্যাপ খুলুন.
+- The help message now shows the real app version.
+- 272/272 tests pass. Checked live: lock after logout, greeting, settings order, 404, `/admin` → 404, `/admin/login`.
+
 ### 0.3.0: real login + backend v1, 2026-11-24
 - **Backend repo `jomarKhata-be` (new; Express 5 + TypeScript + Mongoose; hosted off Vercel):**
   - Firebase ID-token auth

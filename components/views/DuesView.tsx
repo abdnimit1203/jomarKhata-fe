@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { ShowMore, usePaged } from '@/components/ui/ShowMore';
 import { useJomarkhata } from '@/context/JomarkhataContext';
+import { greetingText } from '@/lib/greeting';
 import { EmptyState } from '@/components/ui/StateBlocks';
 import { DateInput } from '@/components/ui/DateInput';
 import { FeatureIcon } from '@/components/ui/FeatureIcon';
@@ -106,7 +107,7 @@ export function DuesView() {
 
   // ======================================================================= one party
   if (selectedParty) {
-    const msg = reminderMessage(selectedParty, data.businessProfile.shopName);
+    const msg = reminderMessage(selectedParty, data.businessProfile.shopName, greetingText());
     const wa = selectedParty.phone ? toWhatsAppNumber(selectedParty.phone) : null;
     const b = selectedParty.balance;
     const cardTone = b > 0 ? 'bg-tile-green-bg' : b < 0 ? 'bg-danger-soft' : 'bg-surface-muted';

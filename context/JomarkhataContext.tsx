@@ -83,8 +83,14 @@ interface JomarkhataContextValue {
   auth: AuthState;
   /** Call after a successful provider sign-in: caches the session on the phone. */
   completeSignIn: (state: AuthState) => Promise<void>;
-  /** Firebase sign-out + forget the cached session. The khata on this phone is kept. */
+  /** Firebase sign-out + forget the cached session. The khata on this phone is kept, but the app
+   *  is locked behind the login screen again (guest mode must be chosen again). */
   signOut: () => Promise<void>;
+  /** The user chose guest / test mode on the login screen. */
+  guestMode: boolean;
+  chooseGuest: () => Promise<void>;
+  /** Session + guest flag have been read (until then the shell shows nothing, no flash). */
+  authReady: boolean;
   /** S10 access policy (7-day grace → read-only). Local mode is always full. */
   access: AccessDecision;
   error: string | null;
@@ -231,13 +237,21 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
   const [storagePersisted, setStoragePersisted] = useState<boolean | null>(null);
   const [access, setAccess] = useState<AccessDecision>(() => decideAccess(null));
   const [auth, setAuth] = useState<AuthState>(LOCAL_AUTH);
+  const [guestMode, setGuestModeState] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
   // Cached session first (works offline), then a quiet online refresh.
   useEffect(() => {
     let alive = true;
     void (async () => {
-      const cached = await jomarkhataService.getSession().catch(() => null);
-      if (!alive || !cached) return;
-      setAuth(authFromSession(cached));
+      const [cached, guest] = await Promise.all([
+        jomarkhataService.getSession().catch(() => null),
+        jomarkhataService.getGuestMode().catch(() => false),
+      ]);
+      if (!alive) return;
+      setGuestModeState(guest);
+      if (cached) setAuth(authFromSession(cached));
+      setAuthReady(true);
+      if (!cached) return;
       const fresh = await refreshSession();
       if (!alive || !fresh || fresh.status !== 'authenticated') return;
       await jomarkhataService.saveSession(fresh.user).catch(() => {});
@@ -255,7 +269,13 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
   const signOut = useCallback(async () => {
     await authProvider.signOut().catch(() => {});
     await jomarkhataService.saveSession(null);
+    await jomarkhataService.setGuestMode(false);
+    setGuestModeState(false);
     setAuth(LOCAL_AUTH);
+  }, []);
+  const chooseGuest = useCallback(async () => {
+    await jomarkhataService.setGuestMode(true);
+    setGuestModeState(true);
   }, []);
   const accessRef = useRef(access);
   useEffect(() => {
@@ -690,12 +710,18 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
       auth,
       completeSignIn,
       signOut,
+      guestMode,
+      chooseGuest,
+      authReady,
       access,
     }),
     [
       auth,
       completeSignIn,
       signOut,
+      guestMode,
+      chooseGuest,
+      authReady,
       access,
       storagePersisted,
       safeActions,

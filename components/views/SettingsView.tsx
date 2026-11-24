@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { Database, FlaskConical, Hand, RotateCcw, Save, Store } from 'lucide-react';
 import { replayGuide } from '@/components/onboarding/FirstRunGuide';
 import { appVersionLabel } from '@/lib/version';
+import { GREETINGS, setGreetingKey, useGreetingKey, type GreetingKey } from '@/lib/greeting';
+import { SegmentedControl } from '@/components/ui/segmented';
 import { BackupSection } from '@/components/settings/BackupSection';
 import { AccountSection } from '@/components/settings/AccountSection';
 import { AuthScreen } from '@/components/onboarding/AuthScreen';
@@ -170,6 +172,7 @@ export function SettingsView() {
   const [confirmLogout, setConfirmLogout] = useState(false);
   // the guide points at the home screen and bottom bar
   const goHome = () => navigate('dashboard');
+  const greetingKey = useGreetingKey();
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
@@ -202,6 +205,30 @@ export function SettingsView() {
         </div>
       </section>
 
+
+
+
+
+
+      <SettingsProfileForm
+        key={data.businessProfile.updatedAt}
+        profile={data.businessProfile}
+      />
+
+      {/* greeting on the home screen and in messages (shopkeepers of every faith) */}
+      <section className="space-y-2.5 rounded-3xl bg-white p-5 shadow-card">
+        <h2 className="text-sm font-semibold text-ink">হোমে সম্ভাষণ</h2>
+        <SegmentedControl
+          aria-label="সম্ভাষণ"
+          variant="chips"
+          value={greetingKey}
+          onValueChange={(v) => setGreetingKey(v as GreetingKey)}
+          options={GREETINGS.map((g) => ({ value: g.key, label: g.text || 'কিছু না' }))}
+        />
+      </section>
+
+      <BackupSection />
+
       <AccountSection auth={auth} onLogin={() => setShowAuth(true)} onLogout={() => setConfirmLogout(true)} />
       {showAuth && (
         <div className="fixed inset-0 z-[80] overflow-y-auto bg-canvas">
@@ -227,15 +254,6 @@ export function SettingsView() {
           showToast('লগআউট হয়েছে।', 'info');
         }}
       />
-
-      <SettingsProfileForm
-        key={data.businessProfile.updatedAt}
-        profile={data.businessProfile}
-      />
-
-      <BackupSection />
-
-      <InstallCard dismissible={false} />
 
       {supportLink(data.businessProfile.shopName) && (
         <a
@@ -297,6 +315,8 @@ export function SettingsView() {
           )}
         </div>
       </section>
+
+      <InstallCard dismissible={false} />
 
       <ConfirmDialog
         open={confirmResetOpen}

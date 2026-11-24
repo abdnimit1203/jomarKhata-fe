@@ -111,6 +111,6 @@ export function toWhatsAppNumber(phone: string): string | null {
   return null;
 }
 
-export function reminderMessage(party: Pick<Party, 'name' | 'balance'>, shopName: string): string {
-  return `আসসালামু আলাইকুম ${party.name}, ${shopName} থেকে বলছি। আপনার কাছে বর্তমান বাকি ${formatTaka(Math.abs(party.balance))}। সুবিধামতো পরিশোধ করার অনুরোধ রইল। ধন্যবাদ।`;
+export function reminderMessage(party: Pick<Party, 'name' | 'balance'>, shopName: string, greeting = 'আসসালামু আলাইকুম'): string {
+  return `${greeting ? `${greeting} ` : ''}${party.name}, ${shopName} থেকে বলছি। আপনার কাছে বর্তমান বাকি ${formatTaka(Math.abs(party.balance))}। সুবিধামতো পরিশোধ করার অনুরোধ রইল। ধন্যবাদ।`;
 }

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/segmented';
 import type { AuthProvider, AuthState } from '@/lib/auth';
 import { authProvider } from '@/lib/auth-firebase';
+import { useOnline } from '@/hooks/use-online';
 import { normalizeReferralCode, referralFromSearch } from '@/lib/referral';
 
 /**
@@ -29,6 +30,7 @@ export function AuthScreen({
   onSignedIn?: (state: AuthState) => void | Promise<void>;
   provider?: AuthProvider;
 }) {
+  const online = useOnline();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -98,6 +100,12 @@ export function AuthScreen({
         <h1 className="mt-5 text-2xl font-extrabold text-ink">{mode === 'signin' ? 'লগইন করুন' : 'নতুন অ্যাকাউন্ট খুলুন'}</h1>
         <p className="mt-1 text-base text-ink-muted">অ্যাকাউন্ট থাকলে ফোন বদলালেও হিসাব ফেরত পাবেন।</p>
 
+        {provider.available && !online && (
+          <p role="status" className="mt-4 flex items-start gap-2.5 rounded-2xl bg-warning-soft p-3.5 text-sm font-semibold text-warning-ink">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+            এখন ইন্টারনেট নেই। লগইন করতে একবার নেট লাগবে। নেট চালু হলে আবার চেষ্টা করুন — আপনার হিসাব নিরাপদ আছে।
+          </p>
+        )}
         {!provider.available && (
           <p role="status" className="mt-4 flex items-start gap-2.5 rounded-2xl bg-warning-soft p-3.5 text-sm font-semibold text-warning-ink">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />

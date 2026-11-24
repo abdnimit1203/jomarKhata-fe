@@ -48,6 +48,7 @@ import { SettingsView } from '@/components/views/SettingsView';
 import { WelcomeScreen } from '@/components/onboarding/WelcomeScreen';
 import { FirstRunGuide } from '@/components/onboarding/FirstRunGuide';
 import { AuthScreen } from '@/components/onboarding/AuthScreen';
+import { greetingText, useGreetingKey } from '@/lib/greeting';
 import { authProvider } from '@/lib/auth-firebase';
 import { ShopSetupScreen } from '@/components/onboarding/ShopSetupScreen';
 import { LegacyChoiceScreen } from '@/components/onboarding/LegacyChoiceScreen';
@@ -131,9 +132,13 @@ export function AppShell() {
     access,
     auth,
     completeSignIn,
+    guestMode,
+    chooseGuest,
+    authReady,
   } = useJomarkhata();
   // guest mode → one tap to sign in from anywhere (not hidden in Settings)
   const [loginOpen, setLoginOpen] = useState(false);
+  const greeting = greetingText(useGreetingKey());
   const [setupOpen, setSetupOpen] = useState(false);
   const pending = data?.pendingSyncCount ?? 0;
   const isHome = activeRoute === 'dashboard';
@@ -148,6 +153,24 @@ export function AppShell() {
         ) : (
           <WelcomeScreen onStart={() => setSetupOpen(true)} />
         )}
+      </>
+    );
+  }
+  // Locked: no login and guest mode not chosen (e.g. right after logout) → only the login screen.
+  // Nothing of the khata is visible until the person signs in or picks guest / test mode.
+  if (!authReady && authProvider.available) return <div className="min-h-dvh bg-canvas" />;
+  if (!isLoading && !error && phase !== 'welcome' && authProvider.available && auth.status === 'local' && !guestMode) {
+    return (
+      <>
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+        <AuthScreen
+          onBack={() => window.location.assign('/')}
+          onGuest={() => void chooseGuest()}
+          onSignedIn={async (state) => {
+            await completeSignIn(state);
+            showToast('লগইন হয়েছে।');
+          }}
+        />
       </>
     );
   }
@@ -261,7 +284,7 @@ export function AppShell() {
                     className="h-10 w-10 shrink-0 rounded-[0.7rem] ring-2 ring-white/80 lg:hidden"
                   />
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-medium text-on-primary">আসসালামু আলাইকুম,</p>
+                    {greeting && <p className="truncate text-xs font-medium text-on-primary">{greeting},</p>}
                     <p className="truncate text-base font-bold text-on-primary">
                       {data?.businessProfile.shopName || 'জমারখাতা'}
                     </p>
