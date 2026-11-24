@@ -101,3 +101,33 @@ The UI is ready: `components/settings/AccountSection.tsx` (ID and code with copy
 | Launch offer (optional) | A referred new user may get extra trial days (e.g. 45 instead of 30), as super-admin configuration. |
 | Report | `GET /me` → `referralStats: { referredUsers, commissionEarned, commissionRate, freeDaysEarned? }`. The app only displays these numbers. |
 | Admin | The super-admin panel lists referrers, referred users and commissions, and marks payouts as paid. |
+
+## 9. Admin dashboard and Telegram alerts (owner, 2026-11-24)
+
+**The admin panel is built together with the backend (phase 3), not at the end.** Subscription approval, referral payouts and support all need it from day one.
+
+| Area | What the super admin can do |
+|---|---|
+| Users | Search by account ID, email, phone or shop name. See trial or subscription status and the device's last sync. Block or unblock. Set `referrerType` (regular / promoter). |
+| Payments | List of submitted payments (bKash, Nagad, bank; TrxID, amount, screenshot). **Approve** → the subscription is extended automatically; **Reject** with a reason. |
+| Requests | Help or feature requests sent from the app (one simple form). Status: new / in progress / done. |
+| Referrals | Referrers, the users they brought, and commission or free-day rows; mark a payout as paid. |
+| Settings (no code change needed) | Trial days, prices per plan, referral rates and reward days, payment numbers shown in the app, and the WhatsApp help number. |
+| Audit | Every admin action is logged (who, what, when). |
+
+**Automation:**
+- A payment the user submits stays **pending** until it is approved.
+- On approval, the subscription dates update and the app sees the change on its next `GET /subscription`.
+- Optional later: auto-match bKash TrxIDs.
+
+**Telegram alerts** (the same pattern as the owner's e-commerce site):
+- The backend calls the Telegram Bot API `sendMessage` whenever one of these events happens:
+  - a new account is created (and which referral code it used)
+  - a payment is submitted
+  - a help or feature request is sent
+  - a promoter payout is due
+- Each message is short Bangla text plus a **direct link to that item in the admin panel**, e.g. `💰 নতুন পেমেন্ট — ৳999, বিকাশ, TrxID 8N7…, দোকান: মায়ের দোয়া স্টোর → https://<admin>/payments/<id>`.
+- **Env (backend only, never in the frontend):** `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID` (one ID, or a comma-separated list).
+- Sending goes through a small outbox with retry. A failed Telegram call never blocks the user's request.
+- Later, optional: inline **Approve / Reject** buttons through a bot webhook, checked against the admin's Telegram ID.
+

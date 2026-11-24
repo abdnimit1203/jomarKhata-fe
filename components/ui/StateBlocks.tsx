@@ -79,27 +79,24 @@ export function ToastContainer({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.96 }}
             transition={{ duration: 0.16 }}
-            className={`pointer-events-auto flex w-full items-center gap-2.5 rounded-2xl px-4 py-3 text-sm font-medium shadow-lg ${
-              t.type === 'error'
-                ? 'bg-danger text-white'
-                : t.type === 'info'
-                  ? 'bg-ink text-white'
-                  : 'bg-primary text-on-primary'
+            // White card + coloured edge and icon, so it never blends into the blue header.
+            className={`pointer-events-auto flex w-full items-center gap-2.5 rounded-2xl border-l-4 bg-white px-3.5 py-3 text-sm font-semibold text-ink shadow-hero ring-1 ring-border ${
+              t.type === 'error' ? 'border-danger' : t.type === 'info' ? 'border-primary-ink' : 'border-success'
             }`}
           >
             {t.type === 'error' ? (
-              <AlertCircle className="h-5 w-5 shrink-0" />
+              <AlertCircle className="h-5 w-5 shrink-0 text-danger" />
             ) : t.type === 'info' ? (
-              <Info className="h-5 w-5 shrink-0" />
+              <Info className="h-5 w-5 shrink-0 text-primary-ink" />
             ) : (
-              <CheckCircle2 className="h-5 w-5 shrink-0" />
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
             )}
             <span className="flex-1">{t.text}</span>
             <button
               type="button"
               onClick={() => onDismiss(t.id)}
               aria-label="বন্ধ করুন"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-muted hover:bg-surface-muted"
             >
               <X className="h-4 w-4" />
             </button>
