@@ -56,13 +56,13 @@ export function PwaInstallButton({ variant = 'hero', className = '' }: PwaInstal
       <button
         type="button"
         onClick={handleInstallClick}
-        className={`inline-flex h-10 items-center gap-1.5 rounded-full border border-border-strong bg-secondary px-3 text-xs font-bold text-primary-ink shadow-xs transition-all duration-200 cursor-pointer hover:bg-secondary-hover hover:scale-[1.10] active:scale-95 sm:px-4 sm:text-sm ${className}`}
+        className={`relative inline-flex h-10 items-center gap-1.5 rounded-full border border-border-strong bg-secondary px-3 text-xs font-bold text-primary-ink shadow-xs transition-all duration-200 cursor-pointer hover:bg-secondary-hover hover:scale-[1.10] active:scale-95 sm:px-4 sm:text-sm ${className}`}
         aria-label="অ্যাপ ইনস্টল করুন"
         title="ফোনে ইনস্টল করুন"
       >
-        <span className="flex items-center gap-0.5">
+        <span className="relative flex items-center gap-0.5">
           <Smartphone className="h-7 w-7 shrink-0 text-primary-ink" />
-          <Download className="h-3 w-3 fixed ml-2 mb-1 shrink-0 animate-download-drop text-primary-ink" />
+          <Download className="absolute top-1.5 left-1/2 h-3 w-3 -translate-x-1/2 shrink-0 animate-download-drop text-primary-ink" />
         </span>
         {/* <span className="hidden sm:inline">ইনস্টল করুন</span> */}
         {/* <span className="sm:hidden">ইনস্টল</span> */}

@@ -102,7 +102,7 @@ export function LandingPage() {
           </nav>
           <div className="flex items-center gap-2 sm:gap-3">
             <PwaInstallButton variant="header" />
-            <p className='text-xs'>|</p>
+            <span aria-hidden="true" className="h-5 w-px bg-border-strong" />
             <Link
               href="/app"
               className="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary-gradient px-4 text-sm font-bold text-on-primary shadow-sm transition-all duration-200 hover:scale-[1.03] active:scale-95"
