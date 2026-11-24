@@ -56,6 +56,14 @@ interface SessionResponse {
 async function openSession(getIdToken: () => Promise<string>, options?: SignUpOptions): Promise<AuthState> {
   const token = await getIdToken();
   const res = await apiFetch<SessionResponse>('/auth/session', { token, body: { referralCode: options?.referralCode } });
+  return authFromSession({ ...res.user, isNewAccount: res.created, serverTime: res.serverTime });
+}
+
+/** One-time: add a referral code after sign-up (server allows it once, within 7 days). */
+export async function addReferral(referralCode: string): Promise<AuthState> {
+  const token = await currentIdToken();
+  if (!token) throw new Error('লগইন করুন।');
+  const res = await apiFetch<{ user: AuthUser; serverTime: string }>('/me/referral', { token, body: { referralCode } });
   return authFromSession({ ...res.user, serverTime: res.serverTime });
 }
 

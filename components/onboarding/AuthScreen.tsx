@@ -5,7 +5,7 @@ import { ArrowLeft, FlaskConical, Gift, Info, Lock, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/segmented';
 import type { AuthProvider, AuthState } from '@/lib/auth';
-import { authProvider } from '@/lib/auth-firebase';
+import { addReferral, authProvider } from '@/lib/auth-firebase';
 import { useOnline } from '@/hooks/use-online';
 import { normalizeReferralCode, referralFromSearch } from '@/lib/referral';
 
@@ -39,6 +39,11 @@ export function AuthScreen({
   const [busy, setBusy] = useState(false);
   const [referral, setReferral] = useState(() => (typeof window !== 'undefined' ? referralFromSearch(window.location?.search ?? '') ?? '' : ''));
   const [referralError, setReferralError] = useState<string | null>(null);
+  // one-time referral step after a new account is created
+  const [pending, setPending] = useState<AuthState | null>(null);
+  const [claimCode, setClaimCode] = useState(referral);
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const [claimBusy, setClaimBusy] = useState(false);
 
   /** {} = no code; null = a code that isn't valid (asks to fix or clear it). */
   const referralOption = (): { referralCode?: string } | null => {
@@ -58,7 +63,11 @@ export function AuthScreen({
     setInfo(null);
     try {
       const state = await fn();
-      if (state && state.status === 'authenticated') await onSignedIn?.(state);
+      if (state && state.status === 'authenticated') {
+        // A brand-new account with no referrer (e.g. Google, or the code was skipped): ask ONCE.
+        if (state.user.isNewAccount && state.user.canAddReferral) setPending(state);
+        else await onSignedIn?.(state);
+      }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'লগইন করা যায়নি।');
     } finally {
@@ -85,6 +94,55 @@ export function AuthScreen({
 
   const field =
     'h-12 w-full rounded-2xl border border-border-strong bg-white pr-4 pl-11 text-base text-ink focus:border-primary-ink focus:outline-none';
+
+  if (pending) {
+    const finish = async (state: AuthState) => {
+      setPending(null);
+      await onSignedIn?.(state);
+    };
+    const submitClaim = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const code = normalizeReferralCode(claimCode);
+      if (!code) return setClaimError('রেফারেল কোডটি ঠিক নেই।');
+      setClaimBusy(true);
+      setClaimError(null);
+      try {
+        await finish(await addReferral(code));
+      } catch (err) {
+        setClaimError(err instanceof Error ? err.message : 'কোড যোগ করা যায়নি।');
+      } finally {
+        setClaimBusy(false);
+      }
+    };
+    return (
+      <div className="min-h-dvh bg-canvas">
+        <form onSubmit={submitClaim} className="mx-auto max-w-md space-y-4 px-5 pt-16 pb-10">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-primary-ink">
+            <Gift className="h-7 w-7" />
+          </span>
+          <h1 className="text-2xl font-extrabold text-ink">কেউ আপনাকে রেফার করেছে?</h1>
+          <p className="text-base text-ink-muted">থাকলে তার রেফারেল কোড দিন। এটা শুধু একবারই দেওয়া যায়।</p>
+          <input
+            id="claim-referral"
+            autoCapitalize="characters"
+            autoComplete="off"
+            value={claimCode}
+            onChange={(e) => setClaimCode(e.target.value)}
+            placeholder="যেমন: JK7Q4M2X"
+            aria-label="রেফারেল কোড"
+            className="h-12 w-full rounded-2xl border border-border-strong bg-white px-4 font-mono text-base tracking-wider text-ink uppercase placeholder:font-sans placeholder:tracking-normal placeholder:normal-case focus:border-primary-ink focus:outline-none"
+          />
+          {claimError && <p role="alert" className="text-sm font-semibold text-danger">{claimError}</p>}
+          <Button type="submit" size="xl" fullWidth disabled={claimBusy || !claimCode.trim()}>
+            {claimBusy ? 'অপেক্ষা করুন…' : 'কোড যোগ করুন'}
+          </Button>
+          <button type="button" onClick={() => void finish(pending)} className="min-h-12 w-full text-base font-bold text-ink-muted">
+            না, এগিয়ে যান
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh bg-canvas">
@@ -126,6 +184,27 @@ export function AuthScreen({
               { value: 'signup', label: 'নতুন অ্যাকাউন্ট' },
             ]}
           />
+
+          {mode === 'signup' && (
+            <div>
+              <label htmlFor="auth-referral" className="mb-1.5 block text-sm font-semibold text-ink-muted">
+                রেফারেল কোড <span className="font-normal text-ink-subtle">(ঐচ্ছিক)</span>
+              </label>
+              <div className="relative">
+                <Gift className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
+                <input
+                  id="auth-referral"
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  value={referral}
+                  onChange={(e) => setReferral(e.target.value)}
+                  placeholder="কেউ কোড দিয়ে থাকলে লিখুন"
+                  className={`${field} font-mono tracking-wider uppercase placeholder:font-sans placeholder:tracking-normal placeholder:normal-case`}
+                />
+              </div>
+              {referralError && <p className="mt-1 text-sm font-semibold text-danger">{referralError}</p>}
+            </div>
+          )}
 
           <Button
             variant="secondary"
@@ -173,26 +252,6 @@ export function AuthScreen({
               />
             </div>
 
-            {mode === 'signup' && (
-              <div>
-                <label htmlFor="auth-referral" className="mb-1.5 block text-sm font-semibold text-ink-muted">
-                  রেফারেল কোড <span className="font-normal text-ink-subtle">(ঐচ্ছিক)</span>
-                </label>
-                <div className="relative">
-                  <Gift className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
-                  <input
-                    id="auth-referral"
-                    autoCapitalize="characters"
-                    autoComplete="off"
-                    value={referral}
-                    onChange={(e) => setReferral(e.target.value)}
-                    placeholder="কেউ কোড দিয়ে থাকলে লিখুন"
-                    className={`${field} font-mono tracking-wider uppercase placeholder:font-sans placeholder:tracking-normal placeholder:normal-case`}
-                  />
-                </div>
-                {referralError && <p className="mt-1 text-sm font-semibold text-danger">{referralError}</p>}
-              </div>
-            )}
 
             <Button type="submit" size="xl" fullWidth disabled={busy}>
               {busy ? 'অপেক্ষা করুন…' : mode === 'signin' ? 'লগইন করুন' : 'অ্যাকাউন্ট খুলুন'}

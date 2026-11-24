@@ -13,6 +13,10 @@ export interface AuthUser {
   phone?: string;
   role?: 'user' | 'super_admin';
   subscription?: { status: 'trial' | 'active' | 'expired'; plan?: string; expiresAt: string };
+  /** No referrer yet and still inside the one-time 7-day window (server decides). */
+  canAddReferral?: boolean;
+  /** The account was created by this sign-in (shows the one-time referral step). */
+  isNewAccount?: boolean;
   /** Server time when this record was fetched (clock-safe access policy). */
   serverTime?: string;
   /** Unique, server-generated code this user shares with others (see lib/referral.ts). */
