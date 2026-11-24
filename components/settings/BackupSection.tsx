@@ -15,7 +15,12 @@ export function backupFileName(shopName: string) {
 }
 
 /** S8 settings block: backup (optional password), restore, safety copy, guarded clear khata. */
-export function BackupSection() {
+/**
+ * `part="main"` (default): backup, restore, safety copy.
+ * `part="danger"`: only the red "খাতা খালি করুন" (+ its confirm sheet), placed at the very bottom of
+ * Settings so a dangerous button never sits in the middle of everyday settings (owner, 2026-11-25).
+ */
+export function BackupSection({ part = 'main' }: { part?: 'main' | 'danger' }) {
   const { data, actions, showToast, mode, storagePersisted } = useJomarkhata();
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
   const [safety, setSafety] = useState<{ reason: string; createdAt: string; json: string } | null>(null);
@@ -57,6 +62,49 @@ export function BackupSection() {
       setBusy(false);
     }
   };
+
+  if (part === 'danger') {
+    if (mode !== 'real') return null;
+    return (
+      <>
+      {mode === 'real' && (
+        <button
+          type="button"
+          onClick={() => setClearOpen(true)}
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-danger-border text-sm font-bold text-danger"
+        >
+          <Trash2 className="h-4 w-4" /> খাতা খালি করুন
+        </button>
+      )}
+
+      {clearOpen && (
+        <ModalSheet open onClose={() => setClearOpen(false)} title="খাতা খালি করবেন?" subtitle="সব বিক্রি, কেনা, বাকি, খরচ, পণ্য ও পার্টি মুছে যাবে">
+          <div className="space-y-3 pb-2">
+            <p className="text-sm text-ink">
+              মোট {formatBanglaNumber(data.sales.length)}টি বিক্রি, {formatBanglaNumber(data.parties.length)} জন পার্টি ও{' '}
+              {formatBanglaNumber(data.expenses.length)}টি খরচ মুছে যাবে। দোকানের নাম থাকবে।
+            </p>
+            <Button variant="secondary" fullWidth onClick={download}>
+              <Download className="h-5 w-5" /> আগে ব্যাকআপ ডাউনলোড করুন
+            </Button>
+            <label htmlFor="clear-confirm" className="block text-sm font-semibold text-ink-muted">
+              নিশ্চিত করতে লিখুন: <strong className="text-danger">খালি</strong>
+            </label>
+            <input
+              id="clear-confirm"
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              className="h-12 w-full rounded-2xl border border-border-strong bg-white px-4 text-base text-ink focus:border-danger focus:outline-none"
+            />
+            <Button variant="danger" fullWidth disabled={typed.trim() !== 'খালি' || busy} onClick={clear}>
+              {busy ? 'খালি হচ্ছে…' : 'হ্যাঁ, খাতা খালি করুন'}
+            </Button>
+          </div>
+        </ModalSheet>
+      )}
+      </>
+    );
+  }
 
   return (
     <section className="space-y-4 rounded-3xl bg-white p-5 shadow-card">
@@ -132,42 +180,6 @@ export function BackupSection() {
         </div>
       )}
 
-      {/* Danger zone */}
-      {mode === 'real' && (
-        <button
-          type="button"
-          onClick={() => setClearOpen(true)}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-danger-soft text-sm font-bold text-danger"
-        >
-          <Trash2 className="h-4 w-4" /> খাতা খালি করুন
-        </button>
-      )}
-
-      {clearOpen && (
-        <ModalSheet open onClose={() => setClearOpen(false)} title="খাতা খালি করবেন?" subtitle="সব বিক্রি, কেনা, বাকি, খরচ, পণ্য ও পার্টি মুছে যাবে">
-          <div className="space-y-3 pb-2">
-            <p className="text-sm text-ink">
-              মোট {formatBanglaNumber(data.sales.length)}টি বিক্রি, {formatBanglaNumber(data.parties.length)} জন পার্টি ও{' '}
-              {formatBanglaNumber(data.expenses.length)}টি খরচ মুছে যাবে। দোকানের নাম থাকবে।
-            </p>
-            <Button variant="secondary" fullWidth onClick={download}>
-              <Download className="h-5 w-5" /> আগে ব্যাকআপ ডাউনলোড করুন
-            </Button>
-            <label htmlFor="clear-confirm" className="block text-sm font-semibold text-ink-muted">
-              নিশ্চিত করতে লিখুন: <strong className="text-danger">খালি</strong>
-            </label>
-            <input
-              id="clear-confirm"
-              value={typed}
-              onChange={(e) => setTyped(e.target.value)}
-              className="h-12 w-full rounded-2xl border border-border-strong bg-white px-4 text-base text-ink focus:border-danger focus:outline-none"
-            />
-            <Button variant="danger" fullWidth disabled={typed.trim() !== 'খালি' || busy} onClick={clear}>
-              {busy ? 'খালি হচ্ছে…' : 'হ্যাঁ, খাতা খালি করুন'}
-            </Button>
-          </div>
-        </ModalSheet>
-      )}
     </section>
   );
 }

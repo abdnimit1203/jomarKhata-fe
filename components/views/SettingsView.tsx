@@ -229,7 +229,7 @@ export function SettingsView() {
 
       <BackupSection />
 
-      <AccountSection auth={auth} onLogin={() => setShowAuth(true)} onLogout={() => setConfirmLogout(true)} />
+      <AccountSection auth={auth} onLogin={() => setShowAuth(true)} />
       {showAuth && (
         <div className="fixed inset-0 z-[80] overflow-y-auto bg-canvas">
           <AuthScreen
@@ -317,6 +317,20 @@ export function SettingsView() {
       </section>
 
       <InstallCard dismissible={false} />
+
+      {/* Bottom of the page: sign-out and the one dangerous action, away from everyday settings. */}
+      <section className="space-y-2.5 pt-2">
+        {auth.status === 'authenticated' && (
+          <button
+            type="button"
+            onClick={() => setConfirmLogout(true)}
+            className="flex h-11 w-full items-center justify-center rounded-2xl bg-white text-sm font-bold text-danger shadow-card"
+          >
+            লগআউট
+          </button>
+        )}
+        <BackupSection part="danger" />
+      </section>
 
       <ConfirmDialog
         open={confirmResetOpen}
