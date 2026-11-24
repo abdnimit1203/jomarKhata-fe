@@ -267,7 +267,7 @@ export function ReportsView() {
 
       {/* 3. Single Clean 7-Day Sales vs Expense Bar Overview + Expense Breakdown */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <section className="rounded-3xl bg-white p-5 shadow-card lg:col-span-7">
+        <section className="min-w-0 overflow-hidden rounded-3xl bg-white p-4 shadow-card sm:p-5 lg:col-span-7">
           <div className="flex items-start justify-between gap-2">
             <div>
               <h2 className="text-sm font-semibold text-ink">গত ৭ দিনের বিক্রি ও খরচ</h2>
@@ -281,7 +281,8 @@ export function ReportsView() {
             )}
           </div>
 
-          <div className="mt-6 flex h-44 items-end justify-between gap-2 px-1">
+          {/* 7 columns always fit the card at 360px: no fixed-width labels, slim bars */}
+          <div className="mt-6 grid h-44 grid-cols-7 items-end gap-1">
             {barSeries.map((pt, idx) => {
               const saleH = Math.max(8, Math.round((pt.sales / maxBarValue) * 100));
               const expH = pt.expenses > 0 ? Math.max(6, Math.round((pt.expenses / maxBarValue) * 100)) : 0;
@@ -292,24 +293,24 @@ export function ReportsView() {
                   key={pt.dateKey}
                   type="button"
                   onClick={() => setActiveBarIdx(idx)}
-                  className="group flex flex-1 flex-col items-center gap-2 focus:outline-none"
+                  className="group flex min-w-0 flex-col items-center gap-1.5 focus:outline-none"
                 >
-                  <div className="flex h-32 w-full items-end justify-center gap-1">
+                  <div className="flex h-32 w-full items-end justify-center gap-0.5">
                     <div
                       style={{ height: `${saleH}%` }}
-                      className={`w-4 rounded-t-full transition-all sm:w-5 ${
+                      className={`w-3 rounded-t-full transition-all sm:w-5 ${
                         isSelected ? 'bg-primary' : 'bg-primary/45 group-hover:bg-primary/80'
                       }`}
                     />
                     {expH > 0 && (
                       <div
                         style={{ height: `${expH}%` }}
-                        className="w-2.5 rounded-t-full bg-danger-border sm:w-3"
+                        className="w-2 rounded-t-full bg-danger-border sm:w-3"
                       />
                     )}
                   </div>
                   <span
-                    className={`text-xs whitespace-nowrap ${
+                    className={`w-full text-center text-xs leading-tight break-words ${
                       isSelected ? 'font-bold text-primary-ink' : 'text-ink-muted'
                     }`}
                   >
