@@ -216,7 +216,9 @@ export function AuthScreen({
               if (opt) void attempt(() => provider.signInWithGoogle(opt));
             }}
           >
-            <span aria-hidden="true" className="text-lg font-extrabold">G</span> Google দিয়ে {mode === 'signin' ? 'লগইন' : 'অ্যাকাউন্ট খুলুন'}
+            {/* Official multicolour "G" (Google's sign-in branding guidelines allow it on a Google sign-in button) */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icons/google-g.svg" alt="" aria-hidden="true" width={22} height={22} className="h-5.5 w-5.5 shrink-0" /> Google দিয়ে {mode === 'signin' ? 'লগইন' : 'অ্যাকাউন্ট খুলুন'}
           </Button>
 
           <div className="flex items-center gap-3 text-sm text-ink-subtle">
