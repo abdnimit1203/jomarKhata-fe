@@ -30,6 +30,8 @@ type Method = "bkash" | "nagad" | "bank";
 interface Config {
   plans: Plan[];
   paymentNumbers: Record<Method, string>;
+  /** ImageKit links set in the admin dashboard (bKash / Nagad). */
+  paymentQr?: Partial<Record<Method, string>>;
 }
 interface Req {
   _id: string;
@@ -134,7 +136,6 @@ function CopyNumber({ value }: { value: string }) {
 export function RenewSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const online = useOnline();
   const [cfg, setCfg] = useState<Config | null>(null);
-  const [qr, setQr] = useState<Record<Method, string> | null>(null);
   const [mine, setMine] = useState<Req[]>([]);
   const [plan, setPlan] = useState("");
   const [method, setMethod] = useState<Method>("bkash");
@@ -154,9 +155,6 @@ export function RenewSheet({ open, onClose }: { open: boolean; onClose: () => vo
         setPlan((p) => p || c.plans[1]?.key || c.plans[0]?.key || "");
         const first = (["bkash", "nagad", "bank"] as Method[]).find((m) => c.paymentNumbers[m]);
         if (first) setMethod((m) => (c.paymentNumbers[m] ? m : first));
-        apiFetch<{ paymentQr: Record<Method, string> }>("/config/payment-qr")
-          .then((r) => alive && setQr(r.paymentQr))
-          .catch(() => {});
         const token = await currentIdToken();
         const r = token ? await apiFetch<{ requests: Req[] }>("/me/payments", { token }) : { requests: [] };
         if (alive) setMine(r.requests);
@@ -192,7 +190,7 @@ export function RenewSheet({ open, onClose }: { open: boolean; onClose: () => vo
   const chosen = cfg?.plans.find((p) => p.key === plan);
   const methods = cfg ? (["bkash", "nagad", "bank"] as Method[]).filter((m) => cfg.paymentNumbers[m]) : [];
   const number = cfg?.paymentNumbers[method];
-  const qrImg = qr?.[method];
+  const qrImg = cfg?.paymentQr?.[method];
   const field =
     "h-12 w-full rounded-xl border border-border-strong bg-white px-3.5 text-base text-ink focus:border-primary-ink focus:outline-none";
 

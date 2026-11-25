@@ -11,6 +11,8 @@ export interface AuthUser {
   email: string;
   displayName: string;
   phone?: string;
+  /** Profile photo (ImageKit). Missing or broken → initials. */
+  avatarUrl?: string;
   role?: 'user' | 'super_admin';
   subscription?: { status: 'trial' | 'active' | 'expired'; plan?: string; expiresAt: string };
   /** No referrer yet and still inside the one-time 7-day window (server decides). */

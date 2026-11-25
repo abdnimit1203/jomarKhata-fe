@@ -7,6 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { adminFetch } from './adminApi';
+import { uploadPaymentQr, uploadsConfigured } from '@/lib/upload';
 import { useTr } from './i18n';
 
 interface Plan {
@@ -22,7 +23,7 @@ interface Video {
   title: string;
   url: string;
 }
-type Method = 'bkash' | 'nagad' | 'bank';
+type QrMethod = 'bkash' | 'nagad';
 interface SettingsValue {
   supportWhatsApp: string;
   supportEmail: string;
@@ -30,22 +31,13 @@ interface SettingsValue {
   trialDays: number;
   referralRate: number;
   paymentNumbers: { bkash: string; nagad: string; bank: string };
-  paymentQr: { bkash: string; nagad: string; bank: string };
+  paymentQr: { bkash: string; nagad: string };
   telegramChatIds: string[];
   plans: Plan[];
   tutorialVideos: Video[];
 }
 
-/** QR photo -> small PNG data URL (max 480 px), so it fits in the settings document. */
-async function qrToDataUrl(file: File): Promise<string> {
-  const bmp = await createImageBitmap(file);
-  const scale = Math.min(1, 480 / Math.max(bmp.width, bmp.height));
-  const c = document.createElement('canvas');
-  c.width = Math.round(bmp.width * scale);
-  c.height = Math.round(bmp.height * scale);
-  c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
-  return c.toDataURL('image/png');
-}
+
 type Box = 'plans' | 'payment' | 'help' | 'trial' | 'telegram' | 'videos';
 
 const input =
@@ -68,6 +60,7 @@ export function AdminSettings() {
   const [botReady, setBotReady] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState<Box | null>(null);
+  const [qrBusy, setQrBusy] = useState<QrMethod | null>(null);
   const [msg, setMsg] = useState<Partial<Record<Box, { ok: boolean; text: string }>>>({});
 
   useEffect(() => {
@@ -95,6 +88,23 @@ export function AdminSettings() {
       setMsg((m) => ({ ...m, [box]: { ok: false, text: e instanceof Error ? e.message : tr('সংরক্ষণ করা যায়নি।') } }));
     } finally {
       setSaving(null);
+    }
+  };
+
+  /** Upload (or remove) a QR: compressed in the browser -> ImageKit -> saved; the server deletes the old file. */
+  const setQr = async (m: QrMethod, file: File | null, input?: HTMLInputElement) => {
+    setQrBusy(m);
+    setMsg((x) => ({ ...x, payment: undefined }));
+    try {
+      const body = file ? { method: m, ...(await uploadPaymentQr(file)) } : { method: m, url: '' };
+      const r = await adminFetch<{ paymentQr: SettingsValue['paymentQr'] }>('/admin/payment-qr', { method: 'PUT', body });
+      setS((cur) => (cur ? { ...cur, paymentQr: r.paymentQr } : cur));
+      setMsg((x) => ({ ...x, payment: { ok: true, text: tr(file ? 'QR সেভ হয়েছে।' : 'QR মুছে দেওয়া হয়েছে।') } }));
+    } catch (e) {
+      setMsg((x) => ({ ...x, payment: { ok: false, text: e instanceof Error ? e.message : tr('করা যায়নি।') } }));
+    } finally {
+      setQrBusy(null);
+      if (input) input.value = '';
     }
   };
 
@@ -151,37 +161,34 @@ export function AdminSettings() {
         <Field label={tr('ব্যাংক অ্যাকাউন্ট')}>
           <input className={input} value={s.paymentNumbers.bank} onChange={(e) => setS({ ...s, paymentNumbers: { ...s.paymentNumbers, bank: e.target.value } })} />
         </Field>
-        <div className="grid grid-cols-3 gap-3">
-          {(['bkash', 'nagad', 'bank'] as Method[]).map((m) => (
+        <div className="grid grid-cols-2 gap-3">
+          {(['bkash', 'nagad'] as QrMethod[]).map((m) => (
             <div key={m} className="space-y-1.5 rounded-xl bg-canvas p-2.5 text-center">
-              <p className="text-xs font-bold text-ink">{tr({ bkash: 'বিকাশ QR', nagad: 'নগদ QR', bank: 'ব্যাংক QR' }[m])}</p>
+              <p className="text-xs font-bold text-ink">{tr(m === 'bkash' ? 'বিকাশ QR' : 'নগদ QR')}</p>
               {s.paymentQr[m] ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={s.paymentQr[m]} alt="" className="mx-auto h-24 w-24 rounded-lg bg-white object-contain" />
+                <img src={s.paymentQr[m]} alt="" className="mx-auto h-28 w-28 rounded-lg bg-white object-contain" />
               ) : (
-                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-lg border-2 border-dashed border-border-strong text-xs text-ink-subtle">{tr('নেই')}</div>
+                <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-lg border-2 border-dashed border-border-strong text-xs text-ink-subtle">{tr('নেই')}</div>
               )}
-              <label className="block cursor-pointer text-xs font-bold text-primary-ink">
-                {tr('ছবি বাছুন')}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const f = e.target.files?.[0];
-                    if (f) setS({ ...s, paymentQr: { ...s.paymentQr, [m]: await qrToDataUrl(f) } });
-                  }}
-                />
-              </label>
-              {s.paymentQr[m] && (
-                <button type="button" onClick={() => setS({ ...s, paymentQr: { ...s.paymentQr, [m]: '' } })} className="block w-full text-xs text-danger">
+              {qrBusy === m ? (
+                <p className="text-xs font-bold text-ink-muted">{tr('আপলোড হচ্ছে…')}</p>
+              ) : (
+                <label className={`block text-xs font-bold text-primary-ink ${uploadsConfigured ? 'cursor-pointer' : 'opacity-50'}`}>
+                  {tr(s.paymentQr[m] ? 'ছবি বদলান' : 'ছবি বাছুন')}
+                  <input type="file" accept="image/*" className="hidden" disabled={!uploadsConfigured} onChange={(e) => void setQr(m, e.target.files?.[0] ?? null, e.target)} />
+                </label>
+              )}
+              {s.paymentQr[m] && qrBusy !== m && (
+                <button type="button" onClick={() => void setQr(m, null)} className="block w-full text-xs text-danger">
                   {tr('মুছুন')}
                 </button>
               )}
             </div>
           ))}
         </div>
-        {footer('payment', () => ({ paymentNumbers: s.paymentNumbers, paymentQr: s.paymentQr }))}
+        <p className="text-xs text-ink-muted">{tr('QR ছবি সাথে সাথে সেভ হয় (পুরোনোটা মুছে যায়)। নম্বর বদলালে নিচের বাটনে সেভ করুন।')}</p>
+        {footer('payment', () => ({ paymentNumbers: s.paymentNumbers }))}
       </section>
 
       <section className={`${card} border-tile-orange-fg`}>
