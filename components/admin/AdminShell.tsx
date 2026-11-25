@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { setAdminLang, useAdminLang, useFmtDate, useNum, useTr } from './i18n';
-import { BadgeCheck, CreditCard, LayoutDashboard, LogOut, Menu, Receipt, Settings, Users } from 'lucide-react';
+import { BadgeCheck, Bug, CreditCard, LayoutDashboard, LogOut, Menu, Receipt, Settings, Users } from 'lucide-react';
 import { authProvider } from '@/lib/auth-firebase';
 import { formatBanglaNumber, toBanglaDigits } from '@/lib/format';
 import { adminFetch, checkAdmin } from './adminApi';
@@ -18,6 +18,7 @@ const MENU = [
   { href: '/admin/payments', label: 'সাবস্ক্রিপশন রিকোয়েস্ট', icon: CreditCard, badge: true },
   { href: '/admin/orders', label: 'সাবস্ক্রিপশন অর্ডার', icon: Receipt },
   { href: '/admin/users', label: 'ইউজার', icon: Users },
+  { href: '/admin/reports', label: 'রিপোর্ট', icon: Bug },
   { href: '/admin/settings', label: 'সেটিংস', icon: Settings },
 ];
 
@@ -37,6 +38,9 @@ export const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
   pending: { text: 'অপেক্ষায়', cls: 'bg-warning-soft text-warning-ink' },
   approved: { text: 'অনুমোদিত', cls: 'bg-success-soft text-success' },
   rejected: { text: 'বাতিল', cls: 'bg-danger-soft text-danger' },
+  revoked: { text: 'ফেরত নেওয়া', cls: 'bg-danger-soft text-danger' },
+  open: { text: 'খোলা', cls: 'bg-warning-soft text-warning-ink' },
+  resolved: { text: 'সমাধান হয়েছে', cls: 'bg-success-soft text-success' },
 };
 
 export function Pill({ status }: { status: string }) {

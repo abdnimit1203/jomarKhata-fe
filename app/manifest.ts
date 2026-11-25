@@ -25,5 +25,11 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
       { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
+    // Screenshots turn on Chrome's larger install sheet on Android (app name, description, pictures
+    // and an "Install" button) instead of the tiny one-line prompt (owner, 2026-11-25).
+    screenshots: [
+      { src: '/screenshots/welcome.webp', sizes: '720x1560', type: 'image/webp', form_factor: 'narrow', label: 'জমারখাতা — দোকানের সব হিসাব, এক খাতায়' },
+      { src: '/screenshots/landing.webp', sizes: '720x1560', type: 'image/webp', form_factor: 'narrow', label: 'ইন্টারনেট ছাড়াই বেচা-কেনা, বাকি, খরচ' },
+    ],
   };
 }

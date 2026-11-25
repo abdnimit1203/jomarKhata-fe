@@ -38,9 +38,9 @@ describe('routing: landing at /, app at /app', () => {
 
 describe('honest claims only (plan §7.2, AGENTS rule 14)', () => {
   it('no claims of features that do not exist yet', () => {
-    // "ক্লাউড ব্যাকআপ" may only appear in a "not yet" sentence.
+    // Cloud backup exists now (a copy of the khata, signed-in users) — but no encryption / live sync claims.
     expect(landing).not.toMatch(/এনক্রিপ্ট|অটো সিঙ্ক|অটো-সিঙ্ক|ব্যাংক-গ্রেড|encrypted|auto-sync/i);
-    expect(landing).toMatch(/ক্লাউড ব্যাকআপ এখনও চালু হয়নি/);
+    expect(landing).toMatch(/লগইন করা থাকলে নেট পেলেই খাতার একটা কপি ক্লাউডে/);
   });
 
   it('no hardcoded prices, ratings, user counts or testimonials', () => {

@@ -9,7 +9,13 @@ import { DEVELOPER, SITE_DESCRIPTION, siteUrl } from '@/lib/seo';
 
 /** schema.org SoftwareApplication with the developer as author (Google rich results). */
 function jsonLd(): string {
-  const author = { '@type': 'Person', name: DEVELOPER.name, ...(DEVELOPER.url ? { url: DEVELOPER.url } : {}) };
+  const author = {
+    '@type': 'Person',
+    name: DEVELOPER.name,
+    alternateName: DEVELOPER.alternateName,
+    url: DEVELOPER.url,
+    sameAs: DEVELOPER.sameAs,
+  };
   const data = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
@@ -42,7 +48,7 @@ const TRUST = [
 const FEATURES: Array<{ icon: AppIconName; tone: FeatureTone; title: string; text: string }> = [
   { icon: 'sale', tone: 'green', title: 'বিক্রির হিসাব', text: 'দ্রুত বিক্রি বা পণ্য ধরে বিক্রি, ক্যাশ বা বাকিতে।' },
   { icon: 'purchase', tone: 'blue', title: 'কেনার হিসাব', text: 'মহাজনের কাছ থেকে কেনা, স্টক নিজে থেকেই বাড়ে।' },
-  { icon: 'book-due', tone: 'orange', title: 'বাকির হিসাব', text: 'কার কাছে কত পাওনা, কার কত দেনা — এক নজরে।' },
+  { icon: 'book-due', tone: 'orange', title: 'বাকির হিসাব', text: 'কার কাছে কত বাকি পাবেন, কাকে কত দেবেন — এক নজরে।' },
   { icon: 'expense', tone: 'red', title: 'খরচের হিসাব', text: 'ভাড়া, বিল, বেতন — খাত ধরে খরচ লিখুন।' },
   { icon: 'cashbox', tone: 'gold', title: 'ক্যাশ বক্স', text: 'ক্যাশ, বিকাশ, নগদ, ব্যাংক — আলাদা আলাদা ব্যালেন্স।' },
   { icon: 'stock', tone: 'indigo', title: 'স্টক', text: 'কোন মাল কত আছে, কম পড়লে সতর্কতা।' },
@@ -63,7 +69,7 @@ const FAQ = [
   },
   {
     q: 'আমার হিসাব কোথায় থাকে?',
-    a: 'এখন আপনার হিসাব শুধু আপনার ফোনেই সংরক্ষিত থাকে। ক্লাউড ব্যাকআপ এখনও চালু হয়নি, চালু হলে জানানো হবে।',
+    a: 'হিসাব আপনার ফোনে থাকে, তাই ইন্টারনেট ছাড়াও চলে। লগইন করা থাকলে নেট পেলেই খাতার একটা কপি ক্লাউডে রাখা হয় — ফোন হারালে নতুন ফোনে একই অ্যাকাউন্টে লগইন করে ফেরত আনতে পারবেন। চাইলে ফাইল ব্যাকআপও রাখতে পারেন।',
   },
   {
     q: 'ফোন হারালে বা অ্যাপ মুছে ফেললে?',
@@ -139,7 +145,7 @@ export function LandingPage() {
                 <PwaInstallButton variant="hero" />
               </div>
               <ul className="mt-5 space-y-1.5 text-sm font-semibold text-ink-muted">
-                {['দুই ট্যাপে বিক্রি লেখা', 'পাওনা-দেনা সবসময় পরিষ্কার', 'ক্যাশ · বিকাশ · নগদ · ব্যাংক আলাদা'].map((t) => (
+                {['দুই ট্যাপে বিক্রি লেখা', 'বাকির হিসাব সবসময় পরিষ্কার', 'ক্যাশ · বিকাশ · নগদ · ব্যাংক আলাদা'].map((t) => (
                   <li key={t} className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-success" /> {t}
                   </li>
@@ -273,13 +279,10 @@ export function LandingPage() {
           </p>
           <p>
             © জমারখাতা · Developed by{' '}
-            {DEVELOPER.url ? (
-              <a href={DEVELOPER.url} target="_blank" rel="author noopener" className="font-semibold text-primary-ink hover:underline">
-                {DEVELOPER.name}
-              </a>
-            ) : (
-              <span className="font-semibold text-ink">{DEVELOPER.name}</span>
-            )}
+            <a href={DEVELOPER.url} target="_blank" rel="author noopener" className="font-semibold text-primary-ink hover:underline">
+              {DEVELOPER.name}
+            </a>{' '}
+            (abdnimit)
           </p>
         </div>
       </footer>

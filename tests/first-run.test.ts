@@ -195,6 +195,6 @@ describe('first-run UI wiring (static)', () => {
 
   it('settings offers demo reset only inside demo mode', () => {
     const settings = read('components/views/SettingsView.tsx');
-    expect(settings).toMatch(/mode === 'demo' \?[\s\S]*ডেমো খাতা রিসেট করুন[\s\S]*:[\s\S]*ডেমো খাতা দেখুন/);
+    expect(settings).toMatch(/mode === ['"]demo['"] \?[\s\S]*ডেমো খাতা রিসেট করুন[\s\S]*:[\s\S]*ডেমো খাতা দেখুন/);
   });
 });

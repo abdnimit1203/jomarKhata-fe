@@ -44,7 +44,7 @@ describe('wiring (static)', () => {
     expect(b).toMatch(/পাসওয়ার্ড দিয়ে সুরক্ষিত করুন/);
     expect(b).toMatch(/<RestoreFlow currentShopName=/);
     expect(b).toMatch(/নিরাপত্তা-কপি/);
-    expect(b).toMatch(/typed\.trim\(\) !== 'খালি'/);
+    expect(b).toMatch(/typed\.trim\(\) !== ["']খালি["']/);
     expect(b).toMatch(/আগে ব্যাকআপ ডাউনলোড করুন/);
   });
   it('restore shows a preview and needs an extra confirmation for a different shop', () => {

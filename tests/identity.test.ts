@@ -4,10 +4,10 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DUE_CHOICES, balanceSentence, dueRowLabel, entryOf } from '@/lib/dues';
 import { BANGLA_MONTHS, monthLabel, monthRange, shiftMonth, yearOptions } from '@/lib/months';
-import { supportLink, supportMessage } from '@/lib/support';
+import { supportMessage } from '@/lib/support';
 import { bootEmptyShop } from './helpers/app';
 import { assertLedgerInvariants } from './helpers/invariants';
 
@@ -103,15 +103,20 @@ describe('month + year selector', () => {
 });
 
 describe('WhatsApp help + connection dot', () => {
-  it('help link is hidden until the number is configured, and carries a ready message (no money data)', () => {
+  it('help link is hidden until the number is configured, and carries a ready message (no money data)', async () => {
+    // the number comes from the admin dashboard (GET /config, cached on the phone); env is the fallback
     const before = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP;
     delete process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP;
-    expect(supportLink('দোকান')).toBeNull();
+    vi.resetModules();
+    expect((await import('@/lib/support')).supportLink('দোকান')).toBeNull();
     process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP = '01712345678';
-    const link = supportLink('মায়ের দোয়া স্টোর')!;
+    vi.resetModules();
+    const fresh = await import('@/lib/support');
+    const link = fresh.supportLink('মায়ের দোয়া স্টোর')!;
     expect(link).toMatch(/^https:\/\/wa\.me\/8801712345678\?text=/);
     expect(decodeURIComponent(link)).toContain('মায়ের দোয়া স্টোর');
     expect(supportMessage('x')).not.toMatch(/৳/);
+    expect(fresh.supportEmailLink('x')).toBeNull(); // no helpline email set
     process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP = before;
   });
   it('header shows only a pulsing dot (CSS) online and a Wi-Fi-off icon offline, label on hover/tap', () => {
