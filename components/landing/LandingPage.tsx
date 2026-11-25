@@ -2,7 +2,10 @@ import Link from 'next/link';
 import { ArrowRight, Check, Download, Smartphone, WifiOff, Languages, ShieldCheck } from 'lucide-react';
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { FeatureIcon, type FeatureTone } from '@/components/ui/FeatureIcon';
-import { WelcomeIllustration } from '@/components/onboarding/WelcomeIllustration';
+import { LandingPricing } from './LandingPricing';
+import { LandingVideos } from './LandingVideos';
+import { APP_VERSION } from '@/lib/version';
+import { toBanglaDigits } from '@/lib/format';
 import { StandaloneRedirect } from './StandaloneRedirect';
 import { PwaInstallButton } from './PwaInstallButton';
 import { DEVELOPER, SITE_DESCRIPTION, siteUrl } from '@/lib/seo';
@@ -77,7 +80,7 @@ const FAQ = [
   },
   {
     q: 'দাম কত?',
-    a: 'এটি এখন পরীক্ষামূলক সংস্করণ। দামের তথ্য চূড়ান্ত হলে এখানে জানানো হবে।',
+    a: 'শুরুতে কয়েক দিন একদম ফ্রি ট্রায়াল। তারপর ১ মাস, ৬ মাস বা ১ বছরের প্ল্যান — দাম উপরের “সহজ দাম” অংশে আছে। পেমেন্ট বিকাশ, নগদ বা ব্যাংকে।',
   },
   {
     q: 'কোন ফোনে চলে?',
@@ -102,7 +105,8 @@ export function LandingPage() {
           </Link>
           <nav aria-label="পেজের অংশ" className="hidden items-center gap-6 text-sm font-semibold text-ink-muted md:flex">
             <a href="#features" className="transition-colors hover:text-ink">ফিচার</a>
-            <a href="#how" className="transition-colors hover:text-ink">কীভাবে কাজ করে</a>
+            <a href="#videos" className="transition-colors hover:text-ink">ভিডিও</a>
+            <a href="#pricing" className="transition-colors hover:text-ink">দাম</a>
             <a href="#install" className="transition-colors hover:text-ink">ইনস্টল</a>
             <a href="#faq" className="transition-colors hover:text-ink">প্রশ্নোত্তর</a>
           </nav>
@@ -124,9 +128,15 @@ export function LandingPage() {
         <section className="bg-gradient-to-b from-secondary to-canvas">
           <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-10 md:grid-cols-2 md:py-16">
             <div>
-              <p className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold text-primary-ink shadow-sm">
-                বাংলাদেশের দোকানদারদের জন্য
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold text-primary-ink shadow-sm">
+                  বাংলাদেশের দোকানদারদের জন্য
+                </p>
+                {/* current app version, from package.json at build time */}
+                <p className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-3 py-1 text-xs font-bold text-success">
+                  <span className="h-2 w-2 rounded-full bg-success" /> সংস্করণ {toBanglaDigits(APP_VERSION)}
+                </p>
+              </div>
               <h1 className="mt-4 text-3xl leading-tight font-extrabold md:text-5xl md:leading-tight">
                 দোকানের সব হিসাব,
                 <br />
@@ -153,7 +163,16 @@ export function LandingPage() {
               </ul>
             </div>
             <div className="flex justify-center">
-              <WelcomeIllustration className="h-auto w-full max-w-[420px]" />
+              {/* real app screens (demo khata) in phone frames */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/mockups/hero.webp"
+                alt="জমারখাতা অ্যাপ: হোম স্ক্রিন আর বিক্রির ফর্ম"
+                width={980}
+                height={1100}
+                fetchPriority="high"
+                className="h-auto w-full max-w-[480px] drop-shadow-xl"
+              />
             </div>
           </div>
         </section>
@@ -190,6 +209,33 @@ export function LandingPage() {
             ))}
           </div>
         </section>
+
+        {/* Showcase: বাকি */}
+        <section className="bg-gradient-to-b from-canvas to-secondary py-14">
+          <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 md:grid-cols-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/mockups/dues.webp" alt="বাকির তালিকা আর একজন কাস্টমারের হিসাব" width={900} height={1060} loading="lazy" className="mx-auto h-auto w-full max-w-[440px] drop-shadow-xl" />
+            <div>
+              <h2 className="text-2xl font-extrabold md:text-3xl">কে কত বাকি, এক নজরে</h2>
+              <ul className="mt-5 space-y-3 text-base font-semibold text-ink">
+                {[
+                  'সবুজ মানে আপনি পাবেন, লাল মানে আপনি দেবেন',
+                  'নামে চাপ দিলেই পুরো হিসাব, তারিখসহ',
+                  '“মনে করান” চাপলে বার্তা তৈরি, হোয়াটসঅ্যাপে পাঠান',
+                  'আদায়ের দিন লিখে রাখুন, ভুলবেন না',
+                ].map((t) => (
+                  <li key={t} className="flex items-start gap-2.5">
+                    <Check className="mt-1 h-5 w-5 shrink-0 text-success" /> {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <LandingVideos />
+
+        <LandingPricing />
 
         {/* How it works */}
         <section id="how" className="scroll-mt-20 bg-white py-14">
@@ -278,7 +324,7 @@ export function LandingPage() {
             <ShieldCheck className="h-4 w-4" /> আপনার হিসাব আপনার ফোনেই থাকে।
           </p>
           <p>
-            © জমারখাতা · Developed by{' '}
+            © জমারখাতা · সংস্করণ {toBanglaDigits(APP_VERSION)} · Developed by{' '}
             <a href={DEVELOPER.url} target="_blank" rel="author noopener" className="font-semibold text-primary-ink hover:underline">
               {DEVELOPER.name}
             </a>{' '}

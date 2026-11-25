@@ -4,6 +4,14 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### 0.5.0 — plans, payment QR, tutorials, landing, 2026-11-25
+- **নবায়ন (renew) redesigned in 3 steps:** plan cards with badge, struck-through "before" price, per-month price and saving; bKash/Nagad/bank tabs with the QR image, the number + copy button and the exact amount; TrxID. An internet note is always shown at the top.
+- **Settings top strip:** ফ্রি ট্রায়াল / সাবস্ক্রাইবড / মেয়াদ শেষ with days left and one highlighted button to the plans (hidden for guests, who already see the guest banner).
+- **Admin settings:** per-plan "কাটা দাম" and badge; QR image upload per payment method (resized to 480 px, stored in settings, served by `/config/payment-qr`); tutorial video links.
+- **"ভিডিও দেখে শিখুন":** small card on home (online only, ✕ hides it for good) + a list in Settings → অ্যাপ. Links from the admin settings.
+- **Landing:** real app mockups in the hero and a বাকি showcase, a video section (YouTube cover until tapped, then youtube-nocookie), a pricing section from `/config`, FAQ price answer, and the current version (from package.json) in the hero and footer.
+- Google sign-in buttons show the official multicolour G.
+
 ### 0.4.0 — launch prep, 2026-11-25
 - **Cloud backup (MongoDB):** signed-in users' khata is copied to the server ~20 s after any change when online (`components/support/CloudBackupRunner.tsx`, `lib/cloudBackup.ts`; gzip when supported). Settings → ব্যাকআপ shows the last cloud copy, "এখনই ক্লাউডে রাখুন" and an auto on/off switch. Restore: "ক্লাউড থেকে আনুন" inside the normal restore preview + confirmation, and offered on the shop-setup screen of a new phone. A whole-khata snapshot, not record-by-record sync.
 - **Settings regrouped:** shop info open; account, backup, greeting, helpline and app folded (`SettingsGroup`), each its own colour. Logout and "খাতা খালি করুন" stay at the bottom.

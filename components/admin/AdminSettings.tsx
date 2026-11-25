@@ -14,7 +14,15 @@ interface Plan {
   label: string;
   days: number;
   price: number;
+  /** Struck-through "before" price (0 = none). */
+  listPrice?: number;
+  badge?: string;
 }
+interface Video {
+  title: string;
+  url: string;
+}
+type Method = 'bkash' | 'nagad' | 'bank';
 interface SettingsValue {
   supportWhatsApp: string;
   supportEmail: string;
@@ -22,10 +30,23 @@ interface SettingsValue {
   trialDays: number;
   referralRate: number;
   paymentNumbers: { bkash: string; nagad: string; bank: string };
+  paymentQr: { bkash: string; nagad: string; bank: string };
   telegramChatIds: string[];
   plans: Plan[];
+  tutorialVideos: Video[];
 }
-type Box = 'plans' | 'payment' | 'help' | 'trial' | 'telegram';
+
+/** QR photo -> small PNG data URL (max 480 px), so it fits in the settings document. */
+async function qrToDataUrl(file: File): Promise<string> {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, 480 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * scale);
+  c.height = Math.round(bmp.height * scale);
+  c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
+  return c.toDataURL('image/png');
+}
+type Box = 'plans' | 'payment' | 'help' | 'trial' | 'telegram' | 'videos';
 
 const input =
   'h-10 w-full rounded-xl border border-border-strong bg-white px-3 text-sm text-ink focus:border-primary-ink focus:outline-none';
@@ -100,16 +121,18 @@ export function AdminSettings() {
         <h2 className="font-bold text-tile-indigo-fg">{tr('প্ল্যান ও দাম')}</h2>
         <div className="space-y-2">
           {s.plans.map((p, i) => (
-            <div key={i} className="grid grid-cols-[1fr_6rem_7rem_2.5rem] items-center gap-2">
+            <div key={i} className="grid grid-cols-[1fr_5rem_6rem_6rem_9rem_2.5rem] items-center gap-2">
               <input className={input} value={p.label} onChange={(e) => setPlan(i, { label: e.target.value })} aria-label={tr('প্ল্যানের নাম')} placeholder={tr('যেমন: ৬ মাস')} />
               <input className={input} type="number" min={1} value={p.days} onChange={(e) => setPlan(i, { days: Number(e.target.value) })} aria-label={tr('দিন')} />
               <input className={input} type="number" min={0} value={p.price} onChange={(e) => setPlan(i, { price: Number(e.target.value) })} aria-label={tr('দাম (টাকা)')} />
+              <input className={input} type="number" min={0} value={p.listPrice ?? 0} onChange={(e) => setPlan(i, { listPrice: Number(e.target.value) || undefined })} aria-label={tr('কাটা দাম')} />
+              <input className={input} value={p.badge ?? ''} onChange={(e) => setPlan(i, { badge: e.target.value || undefined })} aria-label={tr('ব্যাজ')} placeholder={tr('ব্যাজ (ঐচ্ছিক)')} />
               <button type="button" aria-label={tr('মুছুন')} disabled={s.plans.length <= 1} onClick={() => setS({ ...s, plans: s.plans.filter((_, j) => j !== i) })} className="flex h-10 items-center justify-center rounded-xl text-danger disabled:opacity-30">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
           ))}
-          <p className="text-xs text-ink-muted">{tr('নাম · দিন · দাম (টাকা)। অ্যাপের ‘নবায়ন’ পাতায় এগুলোই দেখাবে।')}</p>
+          <p className="text-xs text-ink-muted">{tr('নাম · দিন · দাম · কাটা দাম · ব্যাজ। কাটা দাম ০ হলে দেখাবে না। ৬ মাস/১ বছরে মাসিক দাম × মাস দিলে সাশ্রয়টা সত্যি থাকে।')}</p>
           <button type="button" onClick={() => setS({ ...s, plans: [...s.plans, { key: `p${Date.now().toString(36)}`, label: '', days: 30, price: 0 }] })} className="flex items-center gap-1 text-sm font-bold text-primary-ink">
             <Plus className="h-4 w-4" /> {tr('প্ল্যান যোগ করুন')}
           </button>
@@ -128,7 +151,37 @@ export function AdminSettings() {
         <Field label={tr('ব্যাংক অ্যাকাউন্ট')}>
           <input className={input} value={s.paymentNumbers.bank} onChange={(e) => setS({ ...s, paymentNumbers: { ...s.paymentNumbers, bank: e.target.value } })} />
         </Field>
-        {footer('payment', () => ({ paymentNumbers: s.paymentNumbers }))}
+        <div className="grid grid-cols-3 gap-3">
+          {(['bkash', 'nagad', 'bank'] as Method[]).map((m) => (
+            <div key={m} className="space-y-1.5 rounded-xl bg-canvas p-2.5 text-center">
+              <p className="text-xs font-bold text-ink">{tr({ bkash: 'বিকাশ QR', nagad: 'নগদ QR', bank: 'ব্যাংক QR' }[m])}</p>
+              {s.paymentQr[m] ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={s.paymentQr[m]} alt="" className="mx-auto h-24 w-24 rounded-lg bg-white object-contain" />
+              ) : (
+                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-lg border-2 border-dashed border-border-strong text-xs text-ink-subtle">{tr('নেই')}</div>
+              )}
+              <label className="block cursor-pointer text-xs font-bold text-primary-ink">
+                {tr('ছবি বাছুন')}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (f) setS({ ...s, paymentQr: { ...s.paymentQr, [m]: await qrToDataUrl(f) } });
+                  }}
+                />
+              </label>
+              {s.paymentQr[m] && (
+                <button type="button" onClick={() => setS({ ...s, paymentQr: { ...s.paymentQr, [m]: '' } })} className="block w-full text-xs text-danger">
+                  {tr('মুছুন')}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        {footer('payment', () => ({ paymentNumbers: s.paymentNumbers, paymentQr: s.paymentQr }))}
       </section>
 
       <section className={`${card} border-tile-orange-fg`}>
@@ -147,6 +200,26 @@ export function AdminSettings() {
           </span>
         </label>
         {footer('help', () => ({ supportWhatsApp: s.supportWhatsApp, supportEmail: s.supportEmail.trim(), bugReportEnabled: s.bugReportEnabled }))}
+      </section>
+
+      <section className={`${card} border-tile-purple-fg xl:col-span-2`}>
+        <h2 className="font-bold text-tile-purple-fg">{tr('টিউটোরিয়াল ভিডিও (ইউটিউব লিংক)')}</h2>
+        <div className="space-y-2">
+          {s.tutorialVideos.map((v, i) => (
+            <div key={i} className="grid grid-cols-[14rem_1fr_2.5rem] items-center gap-2">
+              <input className={input} value={v.title} onChange={(e) => setS({ ...s, tutorialVideos: s.tutorialVideos.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)) })} aria-label={tr('ভিডিওর নাম')} />
+              <input className={input} value={v.url} onChange={(e) => setS({ ...s, tutorialVideos: s.tutorialVideos.map((x, j) => (j === i ? { ...x, url: e.target.value.trim() } : x)) })} aria-label={tr('লিংক')} placeholder="https://youtube.com/shorts/…" />
+              <button type="button" aria-label={tr('মুছুন')} onClick={() => setS({ ...s, tutorialVideos: s.tutorialVideos.filter((_, j) => j !== i) })} className="flex h-10 items-center justify-center rounded-xl text-danger">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+          <p className="text-xs text-ink-muted">{tr('ল্যান্ডিং পেজ আর অ্যাপের “ভিডিও দেখে শিখুন”-এ এই ক্রমে দেখাবে। লিংক খালি থাকলে দেখাবে না।')}</p>
+          <button type="button" onClick={() => setS({ ...s, tutorialVideos: [...s.tutorialVideos, { title: '', url: '' }] })} className="flex items-center gap-1 text-sm font-bold text-primary-ink">
+            <Plus className="h-4 w-4" /> {tr('ভিডিও যোগ করুন')}
+          </button>
+        </div>
+        {footer('videos', () => ({ tutorialVideos: s.tutorialVideos.filter((v) => v.title.trim()) }))}
       </section>
 
       <div className="space-y-5">
