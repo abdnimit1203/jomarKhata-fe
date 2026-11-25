@@ -219,16 +219,18 @@ export function RestoreFlow({
               চাই।
             </label>
           )}
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={reset} disabled={busy}>
-              বাতিল
-            </Button>
+          {/* stacked: the long Bangla label never pushes past a narrow phone screen */}
+          <div className="flex flex-col gap-2">
             <Button
-              className="flex-1"
+              fullWidth
+              className="whitespace-normal"
               disabled={busy || (differentShop && !otherShopOk)}
               onClick={restore}
             >
               {busy ? "ফিরিয়ে আনা হচ্ছে…" : "এই ব্যাকআপ ফিরিয়ে আনুন"}
+            </Button>
+            <Button variant="ghost" fullWidth onClick={reset} disabled={busy}>
+              বাতিল
             </Button>
           </div>
         </div>
