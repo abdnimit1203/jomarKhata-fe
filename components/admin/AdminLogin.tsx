@@ -94,8 +94,10 @@ export function AdminLogin() {
           type="button"
           disabled={busy || !loginConfigured}
           onClick={() => void run(() => firebaseAuthProvider.signInWithGoogle())}
-          className="h-11 w-full rounded-xl border border-slate-700 text-sm font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50"
+          className="flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-700 text-sm font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50"
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icons/google-g.svg" alt="" aria-hidden="true" width={20} height={20} className="h-5 w-5 rounded-full bg-white p-0.5" />
           {tr("Google দিয়ে লগইন")}
         </button>
 

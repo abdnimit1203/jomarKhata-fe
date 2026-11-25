@@ -8,10 +8,17 @@
 import { useSyncExternalStore } from "react";
 import { apiFetch } from "./api";
 
+export interface TutorialVideo {
+  title: string;
+  url: string;
+}
+
 export interface ServerConfig {
   supportWhatsApp: string;
   supportEmail: string;
   bugReportEnabled: boolean;
+  /** YouTube links set in the admin dashboard (landing page + "ভিডিও দেখে শিখুন"). */
+  tutorialVideos: TutorialVideo[];
 }
 
 const KEY = "jk_server_config";
@@ -19,6 +26,7 @@ const FALLBACK: ServerConfig = {
   supportWhatsApp: process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "",
   supportEmail: "",
   bugReportEnabled: false, // shown only once the server has said it is on
+  tutorialVideos: [],
 };
 
 let current: ServerConfig = FALLBACK;
@@ -47,6 +55,7 @@ export function refreshServerConfig(): Promise<void> {
         supportWhatsApp: c.supportWhatsApp || FALLBACK.supportWhatsApp,
         supportEmail: c.supportEmail ?? "",
         bugReportEnabled: c.bugReportEnabled ?? false,
+        tutorialVideos: (c.tutorialVideos ?? []).filter((v) => v && v.url),
       };
       try {
         window.localStorage.setItem(KEY, JSON.stringify(current));

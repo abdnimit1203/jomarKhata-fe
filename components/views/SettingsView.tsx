@@ -8,6 +8,7 @@ import {
   Hand,
   LifeBuoy,
   LogOut,
+  PlayCircle,
   Mail,
   MessageCircle,
   RotateCcw,
@@ -32,6 +33,9 @@ import { AuthScreen } from "@/components/onboarding/AuthScreen";
 import { InstallCard } from "@/components/pwa/PwaPrompts";
 import { supportEmailLink, supportLink } from "@/lib/support";
 import { useServerConfig } from "@/lib/serverConfig";
+import { PlanStatus } from "@/components/settings/PlanStatus";
+import { ProfilePhoto } from "@/components/settings/ProfilePhoto";
+import { TutorialSheet } from "@/components/support/TutorialVideos";
 import { SettingsGroup } from "@/components/settings/SettingsGroup";
 import { openBugReport } from "@/components/support/BugReport";
 import { useJomarkhata } from "@/context/JomarkhataContext";
@@ -234,6 +238,7 @@ export function SettingsView() {
   const greetingKey = useGreetingKey();
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
   const server = useServerConfig(); // re-render when the helpline arrives from the server
 
   if (!data) return null;
@@ -256,9 +261,7 @@ export function SettingsView() {
   return (
     <div className="mx-auto max-w-3xl space-y-3 pb-6">
       <section className="flex items-center gap-4 rounded-3xl bg-white p-4 shadow-card">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-gradient text-on-primary">
-          <Store className="h-6 w-6" />
-        </div>
+        <ProfilePhoto name={shopName} />
         <div className="min-w-0">
           <h1 className="truncate text-lg font-bold text-ink">{shopName}</h1>
           <p className="truncate text-xs text-ink-muted">
@@ -273,6 +276,8 @@ export function SettingsView() {
           )}
         </div>
       </section>
+
+      <PlanStatus auth={auth} />
 
       <SettingsGroup
         title="দোকানের তথ্য"
@@ -410,6 +415,16 @@ export function SettingsView() {
               <span>ডেমো খাতা দেখুন (আসল খাতা অক্ষত থাকবে)</span>
             </button>
           )}
+          {server.tutorialVideos.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setTutorialOpen(true)}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white text-sm font-bold text-ink"
+            >
+              <PlayCircle className="h-5 w-5 text-danger" /> ভিডিও টিউটোরিয়াল
+            </button>
+          )}
+          <TutorialSheet open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
           <InstallCard dismissible={false} />
         </div>
       </SettingsGroup>

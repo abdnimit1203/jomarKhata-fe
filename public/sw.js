@@ -28,6 +28,7 @@ const SHELL_URLS = [
   '/icons/icon-maskable-512.png',
   '/brand/logo-mark.png',
   '/brand/welcome-banner.webp',
+  '/icons/google-g.svg',
   ...FEATURE_ICONS,
 ];
 
