@@ -53,7 +53,8 @@ describe('on-page SEO', () => {
   it('landing has schema.org structured data with the developer as author, and a footer credit', () => {
     const landing = read('components/landing/LandingPage.tsx');
     expect(landing).toMatch(/'@type': 'SoftwareApplication'/);
-    expect(landing).toMatch(/'@type': 'Person', name: DEVELOPER\.name/);
+    expect(landing).toMatch(/'@type': 'Person',\s*name: DEVELOPER\.name/);
+    expect(landing).toMatch(/alternateName: DEVELOPER\.alternateName/); // "abdnimit" finds it too
     expect(landing).toMatch(/Developed by/);
     expect(landing).toMatch(/replace\(\/<\/g, '\\\\u003c'\)/); // no "</script>" injection
   });

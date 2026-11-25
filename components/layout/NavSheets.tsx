@@ -3,6 +3,7 @@
 import React from 'react';
 import { ChevronRight, MessageCircle, RefreshCw } from 'lucide-react';
 import { supportLink } from '@/lib/support';
+import { useServerConfig } from '@/lib/serverConfig';
 import { ModalSheet } from '@/components/ui/ModalSheet';
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { FeatureIcon, type FeatureTone } from '@/components/ui/FeatureIcon';
@@ -63,6 +64,7 @@ export function QuickAddSheet({ onClose }: { onClose: () => void }) {
 export function MoreSheet({ onClose }: { onClose: () => void }) {
   const { navigate, data, openSheet } = useJomarkhata();
   const pending = data?.pendingSyncCount ?? 0;
+  useServerConfig(); // re-render when the helpline number arrives from the server
   const help = supportLink(data?.businessProfile.shopName);
   return (
     <ModalSheet open onClose={onClose} title="আরও" subtitle={data?.businessProfile.shopName || 'জমারখাতা'}>

@@ -17,13 +17,15 @@ interface Plan {
 }
 interface SettingsValue {
   supportWhatsApp: string;
+  supportEmail: string;
+  bugReportEnabled: boolean;
   trialDays: number;
   referralRate: number;
   paymentNumbers: { bkash: string; nagad: string; bank: string };
   telegramChatIds: string[];
   plans: Plan[];
 }
-type Box = 'plans' | 'payment' | 'trial' | 'telegram';
+type Box = 'plans' | 'payment' | 'help' | 'trial' | 'telegram';
 
 const input =
   'h-10 w-full rounded-xl border border-border-strong bg-white px-3 text-sm text-ink focus:border-primary-ink focus:outline-none';
@@ -126,10 +128,25 @@ export function AdminSettings() {
         <Field label={tr('ব্যাংক অ্যাকাউন্ট')}>
           <input className={input} value={s.paymentNumbers.bank} onChange={(e) => setS({ ...s, paymentNumbers: { ...s.paymentNumbers, bank: e.target.value } })} />
         </Field>
-        <Field label={tr('WhatsApp হেল্পলাইন')} hint={tr('অ্যাপের ‘সাহায্য দরকার?’ বাটনে যাবে।')}>
+        {footer('payment', () => ({ paymentNumbers: s.paymentNumbers }))}
+      </section>
+
+      <section className={`${card} border-tile-orange-fg`}>
+        <h2 className="font-bold text-tile-orange-fg">{tr('হেল্পলাইন ও সমস্যা রিপোর্ট')}</h2>
+        <Field label={tr('WhatsApp হেল্পলাইন')} hint={tr('অ্যাপের সেটিংস → হেল্পলাইনে দেখাবে। খালি রাখলে বাটন দেখাবে না।')}>
           <input className={input} value={s.supportWhatsApp} onChange={(e) => setS({ ...s, supportWhatsApp: e.target.value })} placeholder="01XXXXXXXXX" />
         </Field>
-        {footer('payment', () => ({ paymentNumbers: s.paymentNumbers, supportWhatsApp: s.supportWhatsApp }))}
+        <Field label={tr('হেল্পলাইন ইমেইল')} hint={tr('খালি রাখলে ইমেইল বাটন দেখাবে না।')}>
+          <input className={input} type="email" value={s.supportEmail} onChange={(e) => setS({ ...s, supportEmail: e.target.value })} placeholder="help@example.com" />
+        </Field>
+        <label className="flex items-start gap-3 rounded-xl bg-canvas p-3">
+          <input type="checkbox" className="mt-0.5 h-5 w-5 accent-primary" checked={s.bugReportEnabled} onChange={(e) => setS({ ...s, bugReportEnabled: e.target.checked })} />
+          <span>
+            <span className="block text-sm font-semibold text-ink">{tr('অ্যাপে “সমস্যা জানান” বাটন চালু')}</span>
+            <span className="block text-xs text-ink-muted">{tr('ডান পাশে ছোট বাটন; রিপোর্ট আসবে বাম মেনুর ‘রিপোর্ট’-এ আর টেলিগ্রামে।')}</span>
+          </span>
+        </label>
+        {footer('help', () => ({ supportWhatsApp: s.supportWhatsApp, supportEmail: s.supportEmail.trim(), bugReportEnabled: s.bugReportEnabled }))}
       </section>
 
       <div className="space-y-5">

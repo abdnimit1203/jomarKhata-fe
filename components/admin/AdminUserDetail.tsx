@@ -16,6 +16,7 @@ import { type AdminUserRow, LoginBadge, UsersTable } from './AdminDashboard';
 import { SegmentedControl } from '@/components/ui/segmented';
 import { toWhatsAppNumber } from '@/lib/dues';
 import { Pill, TABLE, TD, TH } from './AdminShell';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface LogRow {
   _id: string;
@@ -51,6 +52,8 @@ export function AdminUserDetail({ accountId }: { accountId: string }) {
   const [days, setDays] = useState('30');
   const [date, setDate] = useState('');
   const [pay, setPay] = useState({ amount: '', method: 'bkash', trxId: '', note: '' });
+  // every subscription change asks first (owner: "এক ক্লিকে ঠাস করে শুরু হয়ে যায় — আগে জিজ্ঞেস করবে")
+  const [ask, setAsk] = useState<{ body: Record<string, unknown>; done: string; title: string; text: string; danger?: boolean } | null>(null);
 
   const load = useCallback(() => {
     adminFetch<Detail>(`/admin/users/${encodeURIComponent(accountId)}`)
@@ -78,6 +81,16 @@ export function AdminUserDetail({ accountId }: { accountId: string }) {
       setBusy(false);
     }
   };
+  const who = `${u.shopName || u.displayName || u.email} (${u.accountId})`;
+  const extendText = (n: number) => {
+    // runs only on a button click (not during render)
+    // eslint-disable-next-line react-hooks/purity
+    const from = Math.max(Date.now(), new Date(u.subscription.expiresAt).getTime());
+    return `${who}-কে ${num(n)} দিন সাবস্ক্রিপশন দেবেন? নতুন মেয়াদ হবে ${fd(new Date(from + n * 86_400_000))} পর্যন্ত।${pay.amount ? ` টাকা: ৳${num(Number(pay.amount))}` : ''}`;
+  };
+  const askExtend = (n: number) =>
+    setAsk({ body: { action: 'extend', days: n, plan: `${n}d` }, done: `${n} দিন বাড়ানো হয়েছে।`, title: tr('সাবস্ক্রিপশন দেবেন?'), text: extendText(n) });
+
   const setReferrerType = async (referrerType: 'regular' | 'promoter') => {
     try {
       await adminFetch(`/admin/users/${encodeURIComponent(accountId)}/referrer-type`, { method: 'POST', body: { referrerType } });
@@ -207,13 +220,13 @@ export function AdminUserDetail({ accountId }: { accountId: string }) {
           </div>
           <div className="flex flex-wrap gap-2">
             {[30, 180, 365].map((n) => (
-              <button key={n} type="button" disabled={busy} onClick={() => change({ action: 'extend', days: n, plan: `${n}d` }, `${n} দিন বাড়ানো হয়েছে।`)} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-on-primary disabled:opacity-50">
+              <button key={n} type="button" disabled={busy} onClick={() => askExtend(n)} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-on-primary disabled:opacity-50">
                 +{num(n)} দিন
               </button>
             ))}
             <span className="flex items-center gap-1">
               <input className={`${input} w-20`} inputMode="numeric" value={days} onChange={(e) => setDays(e.target.value)} aria-label={tr("দিন")} />
-              <button type="button" disabled={busy || !(Number(days) > 0)} onClick={() => change({ action: 'extend', days: Number(days), plan: `${days}d` }, `${days} দিন বাড়ানো হয়েছে।`)} className="rounded-lg border border-border-strong px-3 py-2 text-xs font-bold disabled:opacity-50">
+              <button type="button" disabled={busy || !(Number(days) > 0)} onClick={() => askExtend(Number(days))} className="rounded-lg border border-border-strong px-3 py-2 text-xs font-bold disabled:opacity-50">
                 {tr("দিন বাড়ান")}
               </button>
             </span>
@@ -222,10 +235,19 @@ export function AdminUserDetail({ accountId }: { accountId: string }) {
             <div className="w-44">
               <DateInput value={date} onChange={setDate} aria-label={tr("শেষ তারিখ")} />
             </div>
-            <button type="button" disabled={busy || !date} onClick={() => change({ action: 'set_date', expiresAt: date, plan: 'custom' }, 'তারিখ ঠিক করা হয়েছে।')} className="rounded-lg border border-border-strong px-3 py-2 text-xs font-bold disabled:opacity-50">
+            <button type="button" disabled={busy || !date} onClick={() =>
+                setAsk({
+                  body: { action: 'set_date', expiresAt: date, plan: 'custom' },
+                  done: 'তারিখ ঠিক করা হয়েছে।',
+                  title: tr('মেয়াদের তারিখ বদলাবেন?'),
+                  text: `${who}-এর মেয়াদ ${fd(date)} পর্যন্ত করা হবে।`,
+                })
+              } className="rounded-lg border border-border-strong px-3 py-2 text-xs font-bold disabled:opacity-50">
               {tr("এই তারিখ পর্যন্ত")}
             </button>
-            <button type="button" disabled={busy} onClick={() => change({ action: 'expire' }, 'মেয়াদ শেষ করা হয়েছে।')} className="ml-auto rounded-lg border border-danger-border px-3 py-2 text-xs font-bold text-danger disabled:opacity-50">
+            <button type="button" disabled={busy} onClick={() =>
+                setAsk({ body: { action: 'expire' }, done: 'মেয়াদ শেষ করা হয়েছে।', title: tr('মেয়াদ এখনই শেষ করবেন?'), text: `${who}-এর সাবস্ক্রিপশন এখনই বন্ধ হবে।`, danger: true })
+              } className="ml-auto rounded-lg border border-danger-border px-3 py-2 text-xs font-bold text-danger disabled:opacity-50">
               {tr("এখনই মেয়াদ শেষ")}
             </button>
           </div>
@@ -281,6 +303,21 @@ export function AdminUserDetail({ accountId }: { accountId: string }) {
         <h2 className="border-b border-border px-4 py-3 text-sm font-bold">এই ইউজারের রেফারেলে এসেছে ({num(d.referred.length)})</h2>
         <UsersTable users={d.referred} empty="এখনও কেউ না।" />
       </section>
+      <ConfirmDialog
+        open={ask !== null}
+        title={ask?.title ?? ''}
+        description={ask?.text ?? ''}
+        confirmLabel={tr('হ্যাঁ, নিশ্চিত')}
+        cancelLabel={tr('না')}
+        tone={ask?.danger ? 'danger' : 'primary'}
+        isSubmitting={busy}
+        onCancel={() => setAsk(null)}
+        onConfirm={async () => {
+          if (!ask) return;
+          await change(ask.body, ask.done);
+          setAsk(null);
+        }}
+      />
     </div>
   );
 }

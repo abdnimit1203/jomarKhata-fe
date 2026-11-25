@@ -4,6 +4,16 @@ All notable changes to the Jomarkhata frontend. Steps refer to the approved fron
 
 ## [Unreleased]
 
+### 0.4.0 — launch prep, 2026-11-25
+- **Cloud backup (MongoDB):** signed-in users' khata is copied to the server ~20 s after any change when online (`components/support/CloudBackupRunner.tsx`, `lib/cloudBackup.ts`; gzip when supported). Settings → ব্যাকআপ shows the last cloud copy, "এখনই ক্লাউডে রাখুন" and an auto on/off switch. Restore: "ক্লাউড থেকে আনুন" inside the normal restore preview + confirmation, and offered on the shop-setup screen of a new phone. A whole-khata snapshot, not record-by-record sync.
+- **Settings regrouped:** shop info open; account, backup, greeting, helpline and app folded (`SettingsGroup`), each its own colour. Logout and "খাতা খালি করুন" stay at the bottom.
+- **Helpline:** WhatsApp + email set by the owner in the admin dashboard (served by `/config`, cached on the phone; env is only the fallback).
+- **"সমস্যা জানান":** small tab on the right edge of every app screen → one box → admin "রিপোর্ট" tab + Telegram. On/off from the admin settings. Works for guests too.
+- **Admin:** রিপোর্ট page; approving a payment and every subscription change on the user page now ask first (who, days, new end date); approved orders can be revoked ("ফেরত নিন", logged). Settings: helpline email + report-button switch.
+- **Install on phones:** the install button explains what happened (installing → icon appears on the home screen; already installed; open in Chrome from Facebook; Chrome-menu steps; iPhone steps). Manifest screenshots enable Chrome's larger install sheet.
+- **Slow start:** the service worker waits at most 3 s for the network before opening the cached app (weak mobile data used to hang); a start splash and a "একটু সময় লাগছে" hint after 4 s. Cache `jk-shell-v7`.
+- **SEO:** developer "Abdullah Ibne Ali" (abdnimit) with GitHub link in metadata, JSON-LD and footer. Wording: বাকি instead of পাওনা-দেনা on the landing page.
+
 ### Admin dashboard + subscriptions, 2026-11-25
 - **Admin panel with a left sidebar** (`app/admin/(panel)/*` + `components/admin/AdminShell.tsx`): ড্যাশবোর্ড · সাবস্ক্রিপশন রিকোয়েস্ট (pending badge) · সাবস্ক্রিপশন অর্ডার · ইউজার · সেটিংস. Tables on the right. One super-admin check for every page.
 - **Dashboard:** coloured count boxes (total / trial / paid / expired / new payment requests), plus a table of subscriptions ending within 7 days.

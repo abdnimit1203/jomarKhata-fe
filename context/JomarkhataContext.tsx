@@ -174,6 +174,8 @@ interface JomarkhataContextValue {
     voidExpense: (expenseId: string, reason?: string) => Promise<void>;
     resetDemoData: () => Promise<void>;
     exportBackupJson: (password?: string) => Promise<string>;
+    /** Backup file for the cloud copy (does not count as a file backup / change appMeta). */
+    buildCloudBackupJson: () => Promise<string>;
     inspectBackup: (text: string, password?: string) => Promise<BackupPreview>;
     restoreBackup: (text: string, password?: string) => Promise<void>;
     clearKhata: () => Promise<void>;
@@ -652,6 +654,7 @@ export function JomarkhataProvider({ children }: { children: React.ReactNode }) 
         showToast('ডেমো ডেটা পুনরায় রিসেট করা হয়েছে।', 'info');
       },
       exportBackupJson: async (password?: string) => jomarkhataService.exportBackupJson(password),
+      buildCloudBackupJson: () => jomarkhataService.buildCloudBackupJson(),
       inspectBackup: async (text: string, password?: string) => jomarkhataService.inspectBackup(text, password),
       restoreBackup: async (text: string, password?: string) => {
         const snap = await jomarkhataService.restoreBackup(text, password);

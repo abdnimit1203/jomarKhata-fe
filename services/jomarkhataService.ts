@@ -604,6 +604,11 @@ export const jomarkhataService = {
     return file;
   },
 
+  /** Same file for the cloud copy; does not touch appMeta (so it never triggers another refresh). */
+  async buildCloudBackupJson(): Promise<string> {
+    return buildBackupFile(await this.readBackupData(), JOMARKHATA_DB_VERSION);
+  },
+
   /** Outbox overview for the সিঙ্ক অবস্থা screen (read-only). */
   async getSyncStatus(): Promise<{ counts: Record<string, number>; items: SyncQueueItem[] }> {
     const db = getJomarkhataDb();

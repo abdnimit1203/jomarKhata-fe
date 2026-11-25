@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { SimpleSelect } from '@/components/ui/select';
 import { parseNumericInput } from '@/lib/format';
 import { isValidBdMobile } from '@/services/jomarkhataService';
+import { CloudRestoreOffer } from './CloudRestoreOffer';
 
 const BUSINESS_TYPES = ['মুদি দোকান', 'সাধারণ খুচরা', 'পাইকারি', 'অন্যান্য'];
 
@@ -78,6 +79,8 @@ export function ShopSetupScreen({ onBack }: { onBack: () => void }) {
             <p className="text-sm text-ink-muted">পরে সেটিংস থেকে বদলানো যাবে।</p>
           </div>
         </div>
+
+        <CloudRestoreOffer />
 
         <form onSubmit={submit} className="mt-6 space-y-5" noValidate>
           <section className="space-y-4 rounded-3xl bg-white p-5 shadow-card">

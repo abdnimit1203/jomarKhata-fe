@@ -26,6 +26,7 @@ import { SyncStatusSheet } from './SyncStatusSheet';
 import { UpdateBanner } from '@/components/pwa/PwaPrompts';
 import { useJomarkhata } from '@/context/JomarkhataContext';
 import { DashboardSkeleton, ToastContainer } from '@/components/ui/StateBlocks';
+import { SlowLoadHint, StartSplash } from '@/components/ui/SlowLoadHint';
 import { SaleFormSheet } from '@/components/sheets/SaleFormSheet';
 import { PurchaseFormSheet } from '@/components/sheets/PurchaseFormSheet';
 import { DueEntrySheet } from '@/components/sheets/DueEntrySheet';
@@ -47,6 +48,8 @@ import { ReportsView } from '@/components/views/ReportsView';
 import { SettingsView } from '@/components/views/SettingsView';
 import { WelcomeScreen } from '@/components/onboarding/WelcomeScreen';
 import { FirstRunGuide } from '@/components/onboarding/FirstRunGuide';
+import { BugReport } from '@/components/support/BugReport';
+import { CloudBackupRunner } from '@/components/support/CloudBackupRunner';
 import { AuthScreen } from '@/components/onboarding/AuthScreen';
 import { greetingText, useGreetingKey } from '@/lib/greeting';
 import { authProvider } from '@/lib/auth-firebase';
@@ -158,7 +161,7 @@ export function AppShell() {
   }
   // Locked: no login and guest mode not chosen (e.g. right after logout) → only the login screen.
   // Nothing of the khata is visible until the person signs in or picks guest / test mode.
-  if (!authReady && authProvider.available) return <div className="min-h-dvh bg-canvas" />;
+  if (!authReady && authProvider.available) return <StartSplash />;
   if (!isLoading && !error && phase !== 'welcome' && authProvider.available && auth.status === 'local' && !guestMode) {
     // Same welcome page as the first visit (banner + "শুরু করুন" → sign in / guest). The khata already
     // exists, so signing in or choosing guest simply unlocks it (no shop setup again).
@@ -205,6 +208,8 @@ export function AppShell() {
     <div className="min-h-dvh bg-canvas text-ink">
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       {/* first-run guide: real khata, home screen, once per phone */}
+      <BugReport />
+      <CloudBackupRunner />
       <FirstRunGuide enabled={!isLoading && !error && phase === 'ready' && mode === 'real' && isHome} />
 
       <div className="flex min-h-dvh">
@@ -385,7 +390,10 @@ export function AppShell() {
               </div>
             )}
             {isLoading ? (
-              <DashboardSkeleton />
+              <>
+                <SlowLoadHint />
+                <DashboardSkeleton />
+              </>
             ) : error ? (
               <div className="mx-auto max-w-md rounded-3xl bg-white p-6 text-center shadow-card">
                 <p className="text-base font-semibold text-danger">ডেটা লোড করতে সমস্যা হয়েছে</p>

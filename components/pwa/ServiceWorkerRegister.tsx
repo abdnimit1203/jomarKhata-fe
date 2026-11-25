@@ -12,6 +12,17 @@ export function ServiceWorkerRegister() {
     // The install prompt is captured in every build so the install card can use it.
     window.addEventListener('beforeinstallprompt', captureInstallPrompt);
     if (process.env.NODE_ENV !== 'production' || !('serviceWorker' in navigator)) {
+      // Development: a worker left over from an earlier production run on this localhost would keep
+      // serving old /_next/static files (stale-module errors). Remove it and its caches once.
+      if (process.env.NODE_ENV !== 'production' && 'serviceWorker' in navigator) {
+        void navigator.serviceWorker.getRegistrations().then(async (regs) => {
+          if (regs.length === 0) return;
+          await Promise.all(regs.map((r) => r.unregister()));
+          const keys = await caches.keys();
+          await Promise.all(keys.filter((k) => k.startsWith('jk-shell')).map((k) => caches.delete(k)));
+          window.location.reload();
+        });
+      }
       return () => window.removeEventListener('beforeinstallprompt', captureInstallPrompt);
     }
 
