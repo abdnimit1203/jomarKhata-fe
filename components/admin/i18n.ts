@@ -15,6 +15,8 @@ const EVENT = 'jk:admin-lang';
 const EN: Record<string, string> = {
   // reports, help, confirmations (2026-11-25)
   'রিপোর্ট': 'Reports',
+  'গেস্ট': 'Guest',
+  'অফলাইনে লেখা': 'written offline',
   'ফেরত নেওয়া': 'Revoked',
   'খোলা': 'Open',
   'সমাধান হয়েছে': 'Resolved',

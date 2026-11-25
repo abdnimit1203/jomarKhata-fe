@@ -16,6 +16,9 @@ interface ReportRow {
   accountId: string;
   email: string;
   shopName: string;
+  reporterName: string;
+  reporterPhone: string;
+  writtenAt: string | null;
   message: string;
   page: string;
   appVersion: string;
@@ -115,9 +118,21 @@ export function AdminReports() {
                       {r.shopName || r.email}
                     </Link>
                   ) : (
-                    <b>{tr('গেস্ট (লগইন ছাড়া)')}</b>
+                    <b>{r.shopName || tr('গেস্ট (লগইন ছাড়া)')}</b>
                   )}
-                  {r.accountId && <span className="ml-2 font-mono text-xs text-ink-muted">{r.accountId}</span>}
+                  <span className="ml-2 font-mono text-xs text-ink-muted">{r.accountId || tr('গেস্ট')}</span>
+                  {/* second small line: who wrote it */}
+                  {(r.reporterName || r.reporterPhone) && (
+                    <div className="mt-0.5 text-xs text-ink-muted">
+                      {r.reporterName}
+                      {r.reporterName && r.reporterPhone && ' · '}
+                      {r.reporterPhone && (
+                        <a href={`tel:${r.reporterPhone}`} className="font-semibold text-primary-ink hover:underline">
+                          {r.reporterPhone}
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-ink-muted">{fd(r.createdAt)}</span>
@@ -126,7 +141,9 @@ export function AdminReports() {
               </div>
               <p className="text-base whitespace-pre-wrap text-ink">{r.message}</p>
               <p className="text-xs text-ink-muted">
-                {[r.page, r.appVersion && `v${r.appVersion}`, device(r.userAgent), r.email].filter(Boolean).join(' · ')}
+                {[r.page, r.appVersion && `v${r.appVersion}`, device(r.userAgent), r.email, r.writtenAt && `${tr('অফলাইনে লেখা')} ${fd(r.writtenAt)}`]
+                  .filter(Boolean)
+                  .join(' · ')}
               </p>
               <div className="flex items-center gap-2 pt-1">
                 {r.status === 'open' ? (
