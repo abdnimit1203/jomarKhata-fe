@@ -65,7 +65,8 @@ export function BugReport() {
           onClick={() => setOpen(true)}
           aria-label="অ্যাপে সমস্যা জানান"
           title="সমস্যা জানান"
-          className="fixed top-1/2 right-0 z-30 flex -translate-y-1/2 items-center gap-1 rounded-l-2xl bg-tile-orange-fg py-2.5 pr-1.5 pl-2 text-on-primary opacity-80 shadow-card transition-all hover:pr-3 hover:opacity-100 print:hidden"
+          // phone & tablet: just above the bottom nav bar (h-16 + safe area); desktop (no bottom bar): bottom corner
+          className="fixed right-0 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 flex items-center lg:bottom-8 gap-1 rounded-l-2xl bg-tile-orange-fg py-2.5 pr-1.5 pl-2 text-on-primary opacity-80 shadow-card transition-all hover:pr-3 hover:opacity-100 print:hidden"
         >
           <Bug className="h-4 w-4" />
         </button>
