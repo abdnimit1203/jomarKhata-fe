@@ -6,6 +6,7 @@
  */
 import Link from 'next/link';
 import React, { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { SegmentedControl } from '@/components/ui/segmented';
 import { adminFetch } from './adminApi';
 import { Pill } from './AdminShell';
@@ -40,7 +41,9 @@ export function AdminReports() {
   const tr = useTr();
   const fd = useFmtDate();
   const num = useNum();
-  const [status, setStatus] = useState<Status>('open');
+  // ?id=<report> (from the Telegram "View report" button): show all and highlight that one
+  const focusId = useSearchParams()?.get('id') ?? '';
+  const [status, setStatus] = useState<Status>(focusId ? 'all' : 'open');
   const [q, setQ] = useState('');
   const [query, setQuery] = useState('');
   const [res, setRes] = useState<{ total: number; open: number; reports: ReportRow[] } | null>(null);
@@ -56,6 +59,9 @@ export function AdminReports() {
       .catch((e: unknown) => setErr(e instanceof Error ? e.message : tr('লোড করা যায়নি।')));
   }, [status, query, tr]);
   useEffect(load, [load]);
+  useEffect(() => {
+    if (focusId && res) document.getElementById(`report-${focusId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [focusId, res]);
 
   const mark = async (id: string, next: 'open' | 'resolved') => {
     setBusy(id);
@@ -110,7 +116,11 @@ export function AdminReports() {
           </p>
           {res.reports.length === 0 && <p className="rounded-2xl bg-white px-4 py-8 text-center text-sm text-ink-muted shadow-card">{tr('কোনো রিপোর্ট নেই।')}</p>}
           {res.reports.map((r) => (
-            <article key={r._id} className={`space-y-2 rounded-2xl border-l-4 bg-white p-4 shadow-card ${r.status === 'open' ? 'border-tile-orange-fg' : 'border-success'}`}>
+            <article
+              key={r._id}
+              id={`report-${r._id}`}
+              className={`space-y-2 rounded-2xl border-l-4 bg-white p-4 shadow-card ${r.status === 'open' ? 'border-tile-orange-fg' : 'border-success'} ${r._id === focusId ? 'ring-4 ring-primary/40' : ''}`}
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="text-sm">
                   {r.accountId ? (
