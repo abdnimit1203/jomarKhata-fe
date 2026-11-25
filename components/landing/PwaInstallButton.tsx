@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Download, Smartphone, X } from "lucide-react";
 import {
   canPromptInstall,
@@ -69,9 +70,9 @@ export function PwaInstallButton({
     document.getElementById("install")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const help = sheet && (
-    <InstallHelp sheet={sheet} onClose={() => setSheet(null)} />
-  );
+  // Portal to <body>: the header button sits inside a blurred sticky header, and a fixed element
+  // inside it is positioned against the header instead of the screen (the sheet got cut off at the top).
+  const help = sheet && createPortal(<InstallHelp sheet={sheet} onClose={() => setSheet(null)} />, document.body);
 
   if (variant === "header") {
     return (
